@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
-import type { Rule } from '../../../core/model';
+import type { Rule, Variable } from '../../../core/model';
 import { StorageQuotaError } from '../../../core/storage';
 import {
   MODE_OPTIONS,
@@ -10,11 +10,14 @@ import {
   validateDraft,
   type RuleDraft,
 } from '../composables/draft';
+import { defaultExampleUrl, parseExampleUrl } from '../composables/preview';
 import FieldTable from './FieldTable.vue';
 
 const props = defineProps<{
   initial: RuleDraft;
   existingIds: string[];
+  /** Variáveis salvas (usadas na pré-visualização e nas sugestões). */
+  variables: Variable[];
   /** A regra em edição mudou (ou sumiu) no armazenamento enquanto o editor estava aberto. */
   externalChange: 'changed' | 'removed' | null;
   save: (rule: Rule) => Promise<void>;
@@ -41,6 +44,14 @@ const shownErrors = computed<Record<string, string[]>>(() => {
   }
   return out;
 });
+
+// URL de exemplo da pré-visualização: padrão derivado do 1º padrão de URL até o usuário editar.
+const exampleOverride = ref<string | null>(null);
+const exampleUrl = computed({
+  get: () => exampleOverride.value ?? defaultExampleUrl(draft.value.urlPatterns),
+  set: (v: string) => (exampleOverride.value = v),
+});
+const exampleUrlInvalid = computed(() => parseExampleUrl(exampleUrl.value) === null);
 
 const summaryMessages = computed(() => (attempted.value ? live.value.messages : []));
 
@@ -139,6 +150,21 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
           <li v-for="m in summaryMessages" :key="m">{{ m }}</li>
         </ul>
       </template>
+    </div>
+
+    <div class="control example-url">
+      <label for="example-url">URL de exemplo (só para a pré-visualização dos valores)</label>
+      <input
+        id="example-url"
+        v-model="exampleUrl"
+        type="text"
+        autocomplete="off"
+        spellcheck="false"
+        :aria-invalid="exampleUrlInvalid"
+      />
+      <p v-if="exampleUrlInvalid" class="error-text">
+        URL inválida; a pré-visualização usa https://exemplo.com/.
+      </p>
     </div>
 
     <fieldset class="panel">
@@ -263,7 +289,12 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
       </div>
     </fieldset>
 
-    <FieldTable v-model:fields="draft.fields" :errors="shownErrors" />
+    <FieldTable
+      v-model:fields="draft.fields"
+      :errors="shownErrors"
+      :variables="variables"
+      :example-url="exampleUrl"
+    />
     <p v-if="err('fields')" class="error-text">{{ err('fields') }}</p>
 
     <div class="actions-bar">

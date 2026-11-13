@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { FILTER_NAMES } from '../../../core/expressions';
+import type { Variable } from '../../../core/model';
 import {
   ADAPTER_OPTIONS,
   LOCATOR_OPTIONS,
@@ -11,15 +13,22 @@ import {
   type FieldDraft,
   type LocatorBy,
 } from '../composables/draft';
+import { valueSuggestions } from '../composables/variables';
+import ValuePreview from './ValuePreview.vue';
 
 const props = defineProps<{
   fields: FieldDraft[];
   /** Erros do schema por chave (`fields.<id>.locator`...). A sintaxe do valor é checada aqui, ao vivo. */
   errors: Record<string, string[]>;
+  /** Variáveis salvas (preview e sugestões). */
+  variables: Variable[];
+  /** URL de exemplo para a pré-visualização. */
+  exampleUrl: string;
 }>();
 const emit = defineEmits<{ 'update:fields': [fields: FieldDraft[]] }>();
 
 const filters = FILTER_NAMES.join(', ');
+const suggestions = computed(() => valueSuggestions(props.variables));
 
 function patch(index: number, change: Partial<FieldDraft>): void {
   emit(
@@ -96,6 +105,10 @@ function otherErrors(f: FieldDraft): string[] {
         Filtros disponíveis: <code>{{ filters }}</code>
       </p>
     </details>
+
+    <datalist id="value-suggestions">
+      <option v-for="s in suggestions" :key="s.text" :value="s.text">{{ s.hint }}</option>
+    </datalist>
 
     <p v-if="fields.length === 0" class="muted">
       Nenhum campo ainda. Use “Adicionar campo” para dizer o que preencher.
@@ -191,6 +204,8 @@ function otherErrors(f: FieldDraft): string[] {
               class="f-value"
               type="text"
               :value="f.value"
+              :list="'value-suggestions'"
+              autocomplete="off"
               :aria-invalid="valueError(f) !== null"
               :aria-describedby="valueError(f) !== null ? `f${i}-value-err` : undefined"
               @input="onText(i, 'value', $event)"
@@ -198,6 +213,7 @@ function otherErrors(f: FieldDraft): string[] {
             <p v-if="valueError(f)" :id="`f${i}-value-err`" class="error-text" role="alert">
               {{ valueError(f) }}
             </p>
+            <ValuePreview :value="f.value" :variables="variables" :example-url="exampleUrl" />
           </div>
         </div>
 

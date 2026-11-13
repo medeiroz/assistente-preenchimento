@@ -71,7 +71,12 @@ test('a) lista mostra as regras do seed, agrupadas por site', async ({ context, 
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
     'Assistente de Preenchimento — Configurações',
   );
-  await expect(page.getByRole('tab')).toHaveText(['Regras', 'Histórico', 'Importar/Exportar']);
+  await expect(page.getByRole('tab')).toHaveText([
+    'Regras',
+    'Variáveis',
+    'Histórico',
+    'Importar/Exportar',
+  ]);
   await expect(page.locator('.rule-name', { hasText: CE_NAME })).toBeVisible();
   await expect(page.locator('.rule-name', { hasText: E2E_NAME })).toBeVisible();
   await expect(
