@@ -17,6 +17,7 @@
   "devDependencies": {
     "@playwright/test": "^1.65.0",
     "@wxt-dev/module-vue": "^1.0.3",
+    "esbuild": "0.28.2",
     "eslint": "^10.14.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-vue": "^10.12.1",
