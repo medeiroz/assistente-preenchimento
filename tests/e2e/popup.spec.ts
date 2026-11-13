@@ -87,27 +87,25 @@ test('lista a regra, mostra o relatório, preenche agora e desfaz', async ({
   await expect(fields.locator('[data-outcome="filled"]').first()).toBeVisible();
   await expect(ext.getByTestId('report-summary')).toContainText('preenchidos');
 
-  // Usuário esvazia o NBS: a sessão já tratou o campo nesta abertura, então "Preencher agora"
-  // não sobrescreve e o relatório diz isso.
+  // Usuário esvazia o NBS: "Preencher agora" expressa intenção de preencher, então preenche de novo.
   await page.fill('.eui-field:has(label:text-is("Código NBS")) input', '');
   await expect.poll(async () => (await state(page)).nbs).toBe('');
-  await ext.getByRole('button', { name: 'Preencher agora' }).click();
-  await expect(ext.getByTestId('report-fields')).toContainText('Já tratado nesta abertura');
-  expect((await state(page)).nbs).toBe('');
-
-  // Desfazer restaura o valor anterior; depois "Preencher agora" preenche de novo e atualiza o relatório.
-  // Sem campo 'filled' no último relatório, Desfazer fica desabilitado.
-  await expect(ext.getByRole('button', { name: 'Desfazer' })).toBeDisabled();
-  await page.evaluate(() => window.__harness.close());
-  await openModal(page);
-  await expect.poll(async () => (await state(page)).nbs, { timeout: 3000 }).toBe('126029000');
-  await ext.goto(popupUrl(extensionId, tabId));
-  await ext.getByRole('button', { name: 'Desfazer' }).click();
-  await expect.poll(async () => (await state(page)).nbs, { timeout: 3000 }).toBe('');
   await ext.getByRole('button', { name: 'Preencher agora' }).click();
   await expect.poll(async () => (await state(page)).nbs, { timeout: 3000 }).toBe('126029000');
   await expect(ext.getByTestId('report-fields')).toContainText('Preenchido');
   await expect(ext.getByTestId('report-summary')).toContainText(/\d+ preenchidos/);
+
+  // Desfazer restaura/limpa; o relatório vira 'Desfeito' e o botão Desfazer fica desabilitado.
+  await ext.getByRole('button', { name: 'Desfazer' }).click();
+  await expect.poll(async () => (await state(page)).nbs, { timeout: 3000 }).toBe('');
+  await expect.poll(async () => (await state(page)).consumo, { timeout: 3000 }).toBeNull();
+  await expect(ext.getByTestId('report-fields')).toContainText('Desfeito');
+  await expect(ext.getByRole('button', { name: 'Desfazer' })).toBeDisabled();
+
+  // Preencher agora de novo preenche e reabilita o Desfazer.
+  await ext.getByRole('button', { name: 'Preencher agora' }).click();
+  await expect.poll(async () => (await state(page)).nbs, { timeout: 3000 }).toBe('126029000');
+  await expect(ext.getByRole('button', { name: 'Desfazer' })).toBeEnabled();
   await ext.getByRole('button', { name: 'Desfazer' }).click();
   await expect.poll(async () => (await state(page)).nbs, { timeout: 3000 }).toBe('');
 });

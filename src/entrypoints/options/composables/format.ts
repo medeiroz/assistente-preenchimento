@@ -78,6 +78,7 @@ export const OUTCOME_LABELS: Record<FieldOutcome, string> = {
   'skipped-disabled': 'Pulado: campo desligado',
   'skipped-unresolved-value': 'Pulado: valor não resolvido',
   'not-found': 'Campo não encontrado',
+  undone: 'Desfeito',
   error: 'Erro',
 };
 
@@ -89,6 +90,7 @@ export function summaryText(report: RunReport): string {
   const s = summarize(report);
   const parts: string[] = [];
   if (s.filled) parts.push(plural(s.filled, 'preenchido', 'preenchidos'));
+  if (s.undone) parts.push(plural(s.undone, 'desfeito', 'desfeitos'));
   if (s.skipped) parts.push(plural(s.skipped, 'pulado', 'pulados'));
   if (s.notFound) parts.push(plural(s.notFound, 'não encontrado', 'não encontrados'));
   if (s.errors) parts.push(plural(s.errors, 'erro', 'erros'));

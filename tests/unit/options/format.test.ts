@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  OUTCOME_LABELS,
   exportFileName,
   exportJson,
   parseImport,
@@ -87,7 +88,7 @@ describe('histórico', () => {
 
   it('summaryText descreve só o que aconteceu', () => {
     const base = { ruleId: 'r', ruleName: 'R', startedAt: '', url: '', origin: 'auto' as const };
-    const f = (outcome: 'filled' | 'not-found' | 'error' | 'skipped-disabled') => ({
+    const f = (outcome: 'filled' | 'not-found' | 'error' | 'skipped-disabled' | 'undone') => ({
       fieldId: outcome,
       description: outcome,
       outcome,
@@ -99,6 +100,8 @@ describe('histórico', () => {
     expect(summaryText({ ...base, fields: [f('skipped-disabled'), f('error')] })).toBe(
       '1 pulado, 1 erro',
     );
+    expect(summaryText({ ...base, fields: [f('undone'), f('undone')] })).toBe('2 desfeitos');
+    expect(OUTCOME_LABELS.undone).toBe('Desfeito');
     expect(summaryText({ ...base, fields: [] })).toBe('nenhum campo');
   });
 });

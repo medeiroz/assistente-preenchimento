@@ -36,22 +36,21 @@ export interface FillSession {
   readonly ended: boolean;
 }
 
-type InternalOutcome = FieldOutcome | 'undone';
-
 interface FieldState {
   seen: boolean;
   root?: Element;
   adapter?: FieldAdapter;
   wasDefault?: boolean;
   previousValue: string | null;
-  outcome?: InternalOutcome;
+  outcome?: FieldOutcome;
   /** Falha ocorrida no snapshot (sem adaptador / leitura lançou); vira 'error' no primeiro fill. */
   snapError?: string;
   newValue?: string;
 }
 
-const HANDLED: ReadonlySet<InternalOutcome> = new Set<InternalOutcome>([
+const HANDLED: ReadonlySet<FieldOutcome> = new Set<FieldOutcome>([
   'filled',
+  'skipped-already-handled',
   'skipped-not-default',
   'skipped-unresolved-value',
   'error',
@@ -149,16 +148,20 @@ export function createSession(rule: Rule, container: Element, deps: SessionDeps)
     if (!resolved.ok) {
       return mark(f, st, 'skipped-unresolved-value', { message: resolved.error });
     }
+    return write(f, st, resolved.value);
+  }
+
+  async function write(f: FieldRule, st: FieldState, value: string): Promise<FieldReport> {
     const adapter = st.adapter as FieldAdapter;
     const root = st.root as Element;
     try {
-      await adapter.write(root, resolved.value);
-      if (!adapter.verify(root, resolved.value)) {
+      await adapter.write(root, value);
+      if (!adapter.verify(root, value)) {
         return mark(f, st, 'error', {
           message: 'verify-failed: o valor não foi aplicado ao campo',
         });
       }
-      return mark(f, st, 'filled', { newValue: resolved.value });
+      return mark(f, st, 'filled', { newValue: value });
     } catch (e) {
       return mark(f, st, 'error', { message: errMessage(e) });
     }
@@ -175,34 +178,55 @@ export function createSession(rule: Rule, container: Element, deps: SessionDeps)
     };
   }
 
+  /**
+   * "Preencher agora": o clique expressa intenção de preencher, então o campo é reavaliado
+   * AGORA (valor resolvido, valor atual, padrão), sem depender do que a sessão já tratou.
+   */
+  async function fillFieldManual(f: FieldRule, st: FieldState): Promise<FieldReport> {
+    if (!f.enabled) return report(f, st, 'skipped-disabled');
+    if (!st.seen) return report(f, st, 'not-found');
+    if (!st.adapter) {
+      // Tenta de novo localizar/resolver o adaptador.
+      st.seen = false;
+      st.snapError = undefined;
+      st.outcome = undefined;
+      snapshotField(f, st);
+      if (!st.seen) return report(f, st, 'not-found');
+    }
+    if (st.snapError !== undefined) return mark(f, st, 'error', { message: st.snapError });
+
+    const adapter = st.adapter as FieldAdapter;
+    const root = st.root as Element;
+    const resolved = deps.resolveValue(f.value);
+    if (!resolved.ok) {
+      return mark(f, st, 'skipped-unresolved-value', { message: resolved.error });
+    }
+    const current = adapter.read(root);
+    if (current === resolved.value) {
+      // Já preenchido por esta sessão: preserva 'filled' (e o valor anterior) para o Desfazer.
+      if (st.outcome === 'filled') {
+        return report(f, st, 'skipped-already-handled', { message: 'já está com este valor' });
+      }
+      st.previousValue = current;
+      return mark(f, st, 'skipped-already-handled', { message: 'já está com este valor' });
+    }
+    st.previousValue = current;
+    st.wasDefault = adapter.isDefault(root, f.defaultValue);
+    if (rule.behavior.overwrite === 'onlyIfDefault' && !st.wasDefault) {
+      return mark(f, st, 'skipped-not-default');
+    }
+    return write(f, st, resolved.value);
+  }
+
   async function fillField(
     f: FieldRule,
     st: FieldState,
     origin: 'auto' | 'manual',
   ): Promise<FieldReport> {
+    if (origin === 'manual') return fillFieldManual(f, st);
     if (!f.enabled) return report(f, st, 'skipped-disabled');
-    if (origin === 'auto') {
-      if (st.outcome && HANDLED.has(st.outcome)) return report(f, st, 'skipped-already-handled');
-    } else if (st.outcome === 'filled') {
-      return report(f, st, 'skipped-already-handled');
-    }
+    if (st.outcome && HANDLED.has(st.outcome)) return report(f, st, 'skipped-already-handled');
     if (!st.seen) return report(f, st, 'not-found');
-
-    if (origin === 'manual') {
-      if (!st.adapter) {
-        // Tenta de novo localizar/resolver o adaptador.
-        st.seen = false;
-        st.snapError = undefined;
-        st.outcome = undefined;
-        snapshotField(f, st);
-        if (!st.seen) return report(f, st, 'not-found');
-      } else if (st.root) {
-        // Reavalia o padrão e o valor anterior AGORA.
-        st.snapError = undefined;
-        st.previousValue = st.adapter.read(st.root);
-        st.wasDefault = st.adapter.isDefault(st.root, f.defaultValue);
-      }
-    }
     if (st.snapError !== undefined) return mark(f, st, 'error', { message: st.snapError });
     return attempt(f, st);
   }
@@ -231,30 +255,30 @@ export function createSession(rule: Rule, container: Element, deps: SessionDeps)
       const base = { fieldId: f.id, description: describeLocator(f.locator) };
       try {
         const prev = st.previousValue;
-        if (st.adapter.id === 'vue-multiselect' && (prev === null || prev === '')) {
+        const hadValue = prev !== null && prev !== '';
+        if (!hadValue && !st.adapter.clear) {
           fields.push({
             ...base,
             outcome: 'error',
-            previousValue: prev,
-            message: 'não é possível desfazer seleção',
+            previousValue: st.newValue ?? null,
+            message: 'não é possível desfazer',
           });
           continue;
         }
-        const restore = prev ?? '';
-        await st.adapter.write(st.root, restore);
+        if (hadValue) await st.adapter.write(st.root, prev);
+        else await st.adapter.clear?.(st.root);
         st.outcome = 'undone';
         fields.push({
           ...base,
-          outcome: 'filled',
+          outcome: 'undone',
           previousValue: st.newValue ?? null,
-          newValue: restore,
-          message: 'desfeito',
+          newValue: hadValue ? prev : '',
         });
       } catch (e) {
         fields.push({
           ...base,
           outcome: 'error',
-          previousValue: st.previousValue,
+          previousValue: st.newValue ?? null,
           message: errMessage(e),
         });
       }

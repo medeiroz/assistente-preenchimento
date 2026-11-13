@@ -47,7 +47,7 @@ interface Active {
   entries: Map<Element, Entry>;
 }
 
-const NOTABLE = new Set(['filled', 'error', 'not-found']);
+const NOTABLE = new Set(['filled', 'error', 'not-found', 'undone']);
 
 export function createController(o: ControllerOptions): Controller {
   const win = o.window;

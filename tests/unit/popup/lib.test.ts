@@ -32,6 +32,7 @@ describe('outcomeLabel', () => {
       ['skipped-disabled', 'Desativado'],
       ['skipped-unresolved-value', 'Valor não resolvido'],
       ['not-found', 'Não encontrado'],
+      ['undone', 'Desfeito'],
       ['error', 'Erro'],
     ];
     for (const [o, l] of all) expect(outcomeLabel(o)).toBe(l);
@@ -39,6 +40,11 @@ describe('outcomeLabel', () => {
 });
 
 describe('formatSummary / hasFilled / modeLabel', () => {
+  it('resume contagens com desfeitos', () => {
+    expect(formatSummary(report(['undone', 'undone', 'error']))).toBe(
+      '0 preenchidos · 0 ignorados · 0 não encontrados · 1 erros · 2 desfeitos',
+    );
+  });
   it('resume contagens', () => {
     const r = report(['filled', 'filled', 'skipped-disabled', 'not-found', 'error']);
     expect(formatSummary(r)).toBe('2 preenchidos · 1 ignorados · 1 não encontrados · 1 erros');
@@ -47,6 +53,7 @@ describe('formatSummary / hasFilled / modeLabel', () => {
     expect(hasFilled(null)).toBe(false);
     expect(hasFilled(report(['error']))).toBe(false);
     expect(hasFilled(report(['error', 'filled']))).toBe(true);
+    expect(hasFilled(report(['undone', 'undone']))).toBe(false);
   });
   it('modeLabel', () => {
     expect(modeLabel('auto')).toBe('Automático');

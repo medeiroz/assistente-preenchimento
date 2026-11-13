@@ -44,6 +44,9 @@ export const nativeTextAdapter: FieldAdapter = {
     dispatch(el, 'change');
     el.blur();
   },
+  async clear(root) {
+    await this.write(root, '');
+  },
   verify(root, value) {
     return this.read(root) === value;
   },

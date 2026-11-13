@@ -6,15 +6,15 @@ import {
   createPageUi,
 } from '../../../src/entrypoints/content/page-ui';
 
-const report = (message?: string): RunReport => ({
+const report = (outcome: 'filled' | 'undone' = 'filled'): RunReport => ({
   ruleId: 'r1',
   ruleName: 'Regra',
   url: 'https://x',
   startedAt: '2026-11-13T00:00:00.000Z',
   origin: 'auto',
   fields: [
-    { fieldId: 'a', description: 'A', outcome: 'filled', previousValue: null, message },
-    { fieldId: 'b', description: 'B', outcome: 'filled', previousValue: null, message },
+    { fieldId: 'a', description: 'A', outcome, previousValue: null },
+    { fieldId: 'b', description: 'B', outcome, previousValue: null },
   ],
 });
 
@@ -78,7 +78,7 @@ describe('page-ui', () => {
     const ui = createPageUi();
     ui.showReport(report());
     expect(shadowOf(TOAST_HOST_ATTR)?.querySelector('.undo')).toBeNull();
-    ui.showReport(report('desfeito'));
+    ui.showReport(report('undone'));
     expect(shadowOf(TOAST_HOST_ATTR)?.querySelector('.summary')?.textContent).toContain(
       '2 campos restaurados',
     );

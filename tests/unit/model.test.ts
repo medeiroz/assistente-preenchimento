@@ -119,9 +119,16 @@ describe('summarize', () => {
         { fieldId: '6', outcome: 'skipped-already-handled', ...base },
         { fieldId: '7', outcome: 'not-found', ...base },
         { fieldId: '8', outcome: 'error', ...base },
+        { fieldId: '9', outcome: 'undone', ...base },
       ],
     };
-    expect(summarize(report)).toEqual({ filled: 2, skipped: 4, notFound: 1, errors: 1 });
+    expect(summarize(report)).toEqual({
+      filled: 2,
+      undone: 1,
+      skipped: 4,
+      notFound: 1,
+      errors: 1,
+    });
   });
 });
 

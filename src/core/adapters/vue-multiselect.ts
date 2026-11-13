@@ -45,6 +45,18 @@ function openDropdown(ms: HTMLElement): void {
   if (!isOpen(ms)) (input ?? ms).focus();
 }
 
+function findClearButton(ms: HTMLElement): HTMLElement | null {
+  const btn = ms.querySelector<HTMLElement>('.multiselect__clear');
+  if (!btn || btn.hidden || btn.style.display === 'none') return null;
+  return btn;
+}
+
+function findSelectedOption(ms: Element): HTMLElement | null {
+  return ms.querySelector<HTMLElement>(
+    'li.multiselect__element span.multiselect__option--selected',
+  );
+}
+
 export const vueMultiselectAdapter: FieldAdapter = {
   id: 'vue-multiselect',
   detect: (root) => findSelect(root) !== null,
@@ -89,6 +101,35 @@ export const vueMultiselectAdapter: FieldAdapter = {
     dispatch(option, 'click');
     await waitFor(() => this.read(root) === wanted, WAIT_MS);
     await closeDropdown(ms);
+  },
+  async clear(root) {
+    const ms = findSelect(root);
+    if (!ms) throw new AdapterError('multiselect não encontrado', 'control-not-found');
+    if (this.read(root) === null) return;
+
+    const button = findClearButton(ms);
+    if (button) {
+      dispatch(button, 'mousedown');
+      dispatch(button, 'click');
+      await waitFor(() => this.read(root) === null, WAIT_MS);
+    } else {
+      // vue-multiselect (allowEmpty padrão): clicar na opção selecionada a desseleciona.
+      openDropdown(ms);
+      await waitFor(() => isOpen(ms), WAIT_MS);
+      for (let i = 0; i < 20 && this.read(root) !== null; i++) {
+        const selected = findSelectedOption(ms);
+        if (!selected) break;
+        dispatch(selected, 'mousedown');
+        dispatch(selected, 'click');
+        await new Promise((resolve) => setTimeout(resolve, 25));
+        if (!isOpen(ms)) openDropdown(ms);
+      }
+      await waitFor(() => this.read(root) === null, WAIT_MS);
+      await closeDropdown(ms);
+    }
+    if (this.read(root) !== null) {
+      throw new AdapterError('não foi possível limpar a seleção', 'write-failed');
+    }
   },
   verify(root, value) {
     return this.read(root) === value;
