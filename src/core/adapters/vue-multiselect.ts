@@ -1,0 +1,92 @@
+import { AdapterError, type FieldAdapter } from './types';
+import { dispatch, normalizeSpaces, setNativeValue, waitFor } from './dom';
+
+const WAIT_MS = 1000;
+
+function findSelect(root: Element): HTMLElement | null {
+  return root.matches('.multiselect')
+    ? (root as HTMLElement)
+    : root.querySelector<HTMLElement>('.multiselect');
+}
+
+function isOpen(ms: Element): boolean {
+  return ms.classList.contains('multiselect--active');
+}
+
+function findOption(ms: Element, value: string): HTMLElement | null {
+  const items = ms.querySelectorAll<HTMLElement>('li.multiselect__element');
+  for (const li of items) {
+    if (li.style.display === 'none') continue;
+    const span = li.querySelector<HTMLElement>('span.multiselect__option');
+    if (span && normalizeSpaces(span.textContent) === value) return span;
+  }
+  return null;
+}
+
+function closeDropdown(ms: HTMLElement): void {
+  const input = ms.querySelector<HTMLInputElement>('input.multiselect__input');
+  const target = input ?? ms;
+  dispatch(target, 'keydown', { key: 'Escape', keyCode: 27 });
+  dispatch(target, 'keyup', { key: 'Escape', keyCode: 27 });
+  input?.blur();
+  ms.blur();
+}
+
+function openDropdown(ms: HTMLElement): void {
+  const input = ms.querySelector<HTMLInputElement>('input.multiselect__input');
+  const toggler = ms.querySelector<HTMLElement>('.multiselect__select') ?? ms;
+  dispatch(toggler, 'mousedown');
+  if (!isOpen(ms)) (input ?? ms).focus();
+}
+
+export const vueMultiselectAdapter: FieldAdapter = {
+  id: 'vue-multiselect',
+  detect: (root) => findSelect(root) !== null,
+  read(root) {
+    const ms = findSelect(root);
+    if (!ms) return null;
+    const single = ms.querySelector('.multiselect__single');
+    if (single) {
+      const text = normalizeSpaces(single.textContent);
+      return text === '' ? null : text;
+    }
+    const tags = Array.from(ms.querySelectorAll('.multiselect__tag > span'))
+      .map((t) => normalizeSpaces(t.textContent))
+      .filter((t) => t !== '');
+    return tags.length > 0 ? tags.join(', ') : null;
+  },
+  isDefault(root, defaultValue) {
+    const current = this.read(root);
+    return defaultValue === undefined ? current === null : current === defaultValue;
+  },
+  async write(root, value) {
+    const ms = findSelect(root);
+    if (!ms) throw new AdapterError('multiselect não encontrado', 'control-not-found');
+    const wanted = normalizeSpaces(value);
+
+    openDropdown(ms);
+    await waitFor(() => isOpen(ms), WAIT_MS);
+
+    let option = findOption(ms, wanted);
+    const input = ms.querySelector<HTMLInputElement>('input.multiselect__input');
+    if (!option && input) {
+      setNativeValue(input, wanted);
+      dispatch(input, 'input');
+      option = await waitFor(() => findOption(ms, wanted), WAIT_MS);
+    }
+    if (!option) {
+      closeDropdown(ms);
+      await waitFor(() => !isOpen(ms), WAIT_MS);
+      throw new AdapterError(`Opção "${value}" não encontrada`, 'option-not-found');
+    }
+
+    dispatch(option, 'mousedown');
+    dispatch(option, 'click');
+    await waitFor(() => this.read(root) === wanted, WAIT_MS);
+    closeDropdown(ms);
+    await waitFor(() => !isOpen(ms), WAIT_MS);
+  },
+  verify(root, value) {
+    return this.read(root) === value;
+  },
+};
