@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <title>Harness NFS-e (Vue 2 + vue-multiselect)</title>
+    <link rel="stylesheet" href="/vendor/vue-multiselect.min.css" />
+    <style>
+      body {
+        font-family: sans-serif;
+      }
+      .modal {
+        display: none;
+      }
+      .modal.is-active {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        overflow: auto;
+      }
+      .eui-modal {
+        background: #fff;
+        margin: 20px auto;
+        width: 720px;
+        max-width: 95%;
+        padding: 16px;
+      }
+      .eui-field {
+        margin-bottom: 12px;
+      }
+      .eui-label {
+        display: block;
+        font-weight: bold;
+      }
+      .eui-input-text {
+        width: 100%;
+        box-sizing: border-box;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <button id="open-nfse" type="button" @click="open()">Abrir NFS-e</button>
+      <div v-if="mounted" class="modal eui-modal-wrapper is-large" :class="{ 'is-active': active }">
+        <div class="eui-modal modal-card">
+          <header>
+            <div class="eui-modal-header modal-card-head">
+              <div class="eui-modal-title modal-card-title">
+                <span>Emitir Nota Fiscal de Serviços Eletrônica</span>
+              </div>
+            </div>
+            <button class="eui-modal-close" type="button" aria-label="Fechar" @click="close()">
+              x
+            </button>
+          </header>
+          <div class="eui-modal-body modal-card-body">
+            <div
+              class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-text-field"
+            >
+              <label :for="ids.descricao" class="eui-label">Descrição</label>
+              <div class="eui-control">
+                <input
+                  :id="ids.descricao"
+                  v-model="descricao"
+                  type="text"
+                  placeholder="Digite"
+                  autocomplete="off"
+                  data-cy="default-input-text"
+                  class="eui-input eui-input-text"
+                />
+              </div>
+            </div>
+            <div
+              class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-text-field"
+            >
+              <label :for="ids.nbs" class="eui-label">Código NBS</label>
+              <div class="eui-control">
+                <input
+                  :id="ids.nbs"
+                  v-model="nbs"
+                  type="text"
+                  placeholder="Digite"
+                  autocomplete="off"
+                  data-cy="default-input-text"
+                  class="eui-input eui-input-text"
+                />
+              </div>
+            </div>
+            <div
+              class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-select-field"
+            >
+              <label :for="ids.consumo" class="eui-label">Operação de uso ou consumo pessoal</label>
+              <div class="eui-control">
+                <multiselect
+                  v-model="consumo"
+                  class="eui-input eui-input-select is-clearable is-color-basic"
+                  placeholder="Selecione"
+                  :searchable="false"
+                  label="name"
+                  track-by="id"
+                  :options="optsConsumo"
+                ></multiselect>
+              </div>
+            </div>
+            <div
+              class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-select-field"
+            >
+              <label :for="ids.governamental" class="eui-label"
+                >Tipo de operação governamental</label
+              >
+              <div class="eui-control">
+                <multiselect
+                  v-model="governamental"
+                  class="eui-input eui-input-select is-clearable is-color-basic"
+                  placeholder="Selecione"
+                  :searchable="false"
+                  label="name"
+                  track-by="id"
+                  :options="optsGov"
+                ></multiselect>
+              </div>
+            </div>
+            <div
+              class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-select-field"
+            >
+              <label :for="ids.nome" class="eui-label">Nome</label>
+              <div class="eui-control">
+                <multiselect
+                  v-model="nome"
+                  class="eui-input eui-input-select is-clearable is-color-basic"
+                  placeholder="Selecione"
+                  :searchable="true"
+                  label="name"
+                  track-by="id"
+                  :options="optsNome"
+                ></multiselect>
+              </div>
+            </div>
+            <div v-if="late" id="mais-campos" class="eui-section">
+              <h3>Mais campos</h3>
+              <div
+                class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-text-field"
+              >
+                <label :for="ids.interno" class="eui-label">Código interno do contribuinte</label>
+                <div class="eui-control">
+                  <input
+                    :id="ids.interno"
+                    v-model="interno"
+                    type="text"
+                    placeholder="Digite"
+                    autocomplete="off"
+                    data-cy="default-input-text"
+                    class="eui-input eui-input-text"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="eui-modal-footer">
+            <button type="button" id="emit-nfse" @click="emit()">Emitir NFS-e</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="/vendor/vue.min.js"></script>
+    <script src="/vendor/vue-multiselect.min.js"></script>
+    <script src="/app.js"></script>
+  </body>
+</html>
