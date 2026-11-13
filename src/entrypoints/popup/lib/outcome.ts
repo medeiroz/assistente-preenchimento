@@ -8,6 +8,7 @@ const LABELS: Record<FieldOutcome, string> = {
   'skipped-disabled': 'Desativado',
   'skipped-unresolved-value': 'Valor não resolvido',
   'not-found': 'Não encontrado',
+  undone: 'Desfeito',
   error: 'Erro',
 };
 
@@ -20,6 +21,7 @@ const TONES: Record<FieldOutcome, OutcomeTone> = {
   'skipped-disabled': 'neutral',
   'skipped-unresolved-value': 'warn',
   'not-found': 'warn',
+  undone: 'neutral',
   error: 'error',
 };
 
@@ -30,6 +32,7 @@ const ICONS: Record<FieldOutcome, string> = {
   'skipped-disabled': '–',
   'skipped-unresolved-value': '!',
   'not-found': '?',
+  undone: '↺',
   error: '✕',
 };
 
@@ -46,7 +49,8 @@ export function outcomeIcon(o: FieldOutcome): string {
 /** "2 preenchidos · 1 ignorados · 0 não encontrados · 0 erros" */
 export function formatSummary(r: RunReport): string {
   const s = summarize(r);
-  return `${s.filled} preenchidos · ${s.skipped} ignorados · ${s.notFound} não encontrados · ${s.errors} erros`;
+  const base = `${s.filled} preenchidos · ${s.skipped} ignorados · ${s.notFound} não encontrados · ${s.errors} erros`;
+  return s.undone > 0 ? `${base} · ${s.undone} desfeitos` : base;
 }
 
 export function modeLabel(mode: 'auto' | 'button' | 'off'): string {

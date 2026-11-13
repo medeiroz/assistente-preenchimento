@@ -139,6 +139,16 @@ export const nativeChoiceAdapter: FieldAdapter = {
     if (box.disabled) throw new AdapterError('Checkbox desabilitado', 'write-failed');
     if (box.checked !== (wanted === 'Sim')) box.click();
   },
+  /** Só checkbox: desmarca. Radios e toggles não têm estado "vazio" seguro, então falham. */
+  async clear(root) {
+    if (kindOf(root) !== 'checkbox') {
+      throw new AdapterError('não é possível limpar', 'write-failed');
+    }
+    const box = inputs(root, 'checkbox')[0];
+    if (!box) throw new AdapterError('Checkbox não encontrado', 'control-not-found');
+    if (box.disabled) throw new AdapterError('Checkbox desabilitado', 'write-failed');
+    if (box.checked) box.click();
+  },
   verify(root, value) {
     switch (kindOf(root)) {
       case 'toggle': {

@@ -19,6 +19,7 @@ type Which = 'native-text' | 'vue-multiselect' | 'native-select' | 'native-choic
 type Call =
   | { op: 'write'; value: string }
   | { op: 'read' }
+  | { op: 'clear' }
   | { op: 'isDefault'; defaultValue?: string }
   | { op: 'resolve' };
 
@@ -64,6 +65,10 @@ function run(page: Page, label: string, which: Which, call: Call) {
         if (call.op === 'write') {
           await adapter.write(root, call.value);
           return { value: adapter.verify(root, call.value) };
+        }
+        if (call.op === 'clear') {
+          await adapter.clear?.(root);
+          return { value: adapter.read(root) };
         }
         if (call.op === 'read') return { value: adapter.read(root) };
         return { value: adapter.isDefault(root, call.defaultValue) };
@@ -129,6 +134,57 @@ test('opção inexistente lança option-not-found e não altera o estado', async
   });
   expect(await state(page)).toEqual(before);
   await dropdownClosed(page, CONSUMO);
+  await expectNoEscape(page);
+});
+
+test('clear do vue-multiselect via botão × (sem Escape, sem diálogo)', async ({ page }) => {
+  await openModal(page);
+  await run(page, CONSUMO, 'vue-multiselect', { op: 'write', value: 'Sim' });
+  const clearBtn = page.locator(
+    `.eui-field:has(label.eui-label:text-is("${CONSUMO}")) .multiselect__clear`,
+  );
+  await expect(clearBtn).toBeVisible();
+  expect(await run(page, CONSUMO, 'vue-multiselect', { op: 'clear' })).toEqual({ value: null });
+  expect((await state(page)).consumo).toBeNull();
+  await expect(clearBtn).toHaveCount(0);
+  await dropdownClosed(page, CONSUMO);
+  await expectNoEscape(page);
+  // sem valor: no-op
+  expect(await run(page, CONSUMO, 'vue-multiselect', { op: 'clear' })).toEqual({ value: null });
+});
+
+test('clear do vue-multiselect sem botão: desseleciona a opção atual (sem Escape)', async ({
+  page,
+}) => {
+  await openModal(page);
+  const GOV = 'Tipo de operação governamental';
+  await run(page, GOV, 'vue-multiselect', { op: 'write', value: 'Operação Beta' });
+  expect(((await state(page)).governamental as { id: number }).id).toBe(11);
+  expect(await run(page, GOV, 'vue-multiselect', { op: 'clear' })).toEqual({ value: null });
+  expect((await state(page)).governamental).toBeNull();
+  await dropdownClosed(page, GOV);
+  await expectNoEscape(page);
+});
+
+test('clear de native-text, native-select, checkbox e date atualizam o estado Vue', async ({
+  page,
+}) => {
+  await openModal(page);
+  await run(page, 'Código NBS', 'native-text', { op: 'write', value: '126029000' });
+  expect(await run(page, 'Código NBS', 'native-text', { op: 'clear' })).toEqual({ value: '' });
+  expect((await state(page)).nbs).toBe('');
+  await run(page, 'Distribuidora', 'native-select', { op: 'write', value: 'Luz Teste' });
+  expect((await state(page)).distribuidora).not.toBe('');
+  await run(page, 'Distribuidora', 'native-select', { op: 'clear' });
+  expect((await state(page)).distribuidora).toBe('');
+  await run(page, 'Débito automático', 'native-choice', { op: 'write', value: 'Sim' });
+  expect((await state(page)).debitoAuto).toBe(true);
+  await run(page, 'Débito automático', 'native-choice', { op: 'clear' });
+  expect((await state(page)).debitoAuto).toBe(false);
+  await run(page, 'Vencimento', 'date', { op: 'write', value: '05/03/2026' });
+  expect((await state(page)).vencimento).toBe('2026-03-05');
+  await run(page, 'Vencimento', 'date', { op: 'clear' });
+  expect((await state(page)).vencimento).toBe('');
   await expectNoEscape(page);
 });
 

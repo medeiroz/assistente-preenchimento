@@ -80,15 +80,13 @@ test('modo botão: não preenche ao abrir; clique preenche; Desfazer restaura', 
 
     await page.locator(`${TOAST} .undo`).click();
     await expect.poll(async () => (await state(page)).nbs, { timeout: 3000 }).toBe('');
-    await expect(page.locator(`${TOAST} .summary`)).toContainText('restaurado');
+    await expect(page.locator(`${TOAST} .summary`)).toContainText(/[23] campos restaurados/);
     await expect(page.locator(`${TOAST} .undo`)).toHaveCount(0);
+    await expect(page.locator(`${TOAST} li.error`)).toHaveCount(0);
+    // O multiselect sem valor anterior agora é limpo (botão ×): consumo volta a null.
+    await expect.poll(async () => (await state(page)).consumo, { timeout: 3000 }).toBeNull();
     s = await state(page);
-    // Comportamento real do multiselect: sem valor anterior não há como desfazer; o campo
-    // permanece selecionado e o relatório indica o erro.
-    expect((s.consumo as { id: number } | null)?.id).toBe(0);
-    await expect(page.locator(`${TOAST} li.error`)).toContainText(
-      'não é possível desfazer seleção',
-    );
+    expect(s.nbs).toBe('');
 
     expect(await page.evaluate(() => (window as HarnessWindow).__escapeCount)).toBe(0);
     expect(await page.evaluate(() => (window as HarnessWindow).__cancelled)).toBe(false);

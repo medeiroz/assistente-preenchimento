@@ -18,6 +18,13 @@ export interface FieldAdapter {
   isDefault(root: Element, defaultValue?: string): boolean;
   write(root: Element, value: string): Promise<void>; // lança AdapterError
   verify(root: Element, value: string): boolean;
+  /**
+   * OPCIONAL. Deixa o campo sem valor (usado pelo "Desfazer" quando não havia valor anterior).
+   * Opcional para não quebrar implementações existentes: adaptadores que não conseguem
+   * limpar com segurança (radios, toggles) simplesmente não o implementam. Nunca usa teclado.
+   * Lança AdapterError('write-failed') se não for possível limpar.
+   */
+  clear?(root: Element): Promise<void>;
 }
 
 export interface AdapterRegistry {

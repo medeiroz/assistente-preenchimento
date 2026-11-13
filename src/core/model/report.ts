@@ -5,6 +5,7 @@ export type FieldOutcome =
   | 'skipped-disabled'
   | 'skipped-unresolved-value'
   | 'not-found'
+  | 'undone'
   | 'error';
 
 export type FieldReport = {
@@ -27,13 +28,15 @@ export type RunReport = {
 
 export function summarize(r: RunReport): {
   filled: number;
+  undone: number;
   skipped: number;
   notFound: number;
   errors: number;
 } {
-  const out = { filled: 0, skipped: 0, notFound: 0, errors: 0 };
+  const out = { filled: 0, undone: 0, skipped: 0, notFound: 0, errors: 0 };
   for (const f of r.fields) {
     if (f.outcome === 'filled') out.filled++;
+    else if (f.outcome === 'undone') out.undone++;
     else if (f.outcome === 'not-found') out.notFound++;
     else if (f.outcome === 'error') out.errors++;
     else out.skipped++;

@@ -82,6 +82,18 @@ export const dateAdapter: FieldAdapter = {
     dispatch(el, 'change');
     el.blur();
   },
+  async clear(root) {
+    const el = findInput(root);
+    if (!el) throw new AdapterError('Campo de data não encontrado', 'control-not-found');
+    if (el.readOnly || el.disabled) {
+      throw new AdapterError('Controle somente leitura ou desabilitado', 'write-failed');
+    }
+    el.focus();
+    setNativeValue(el, '');
+    dispatch(el, 'input');
+    dispatch(el, 'change');
+    el.blur();
+  },
   verify(root, value) {
     const parsed = parseDate(value);
     return parsed !== null && this.read(root) === toBr(parsed);

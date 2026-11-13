@@ -317,3 +317,100 @@ describe('registry auto com adaptadores extras', () => {
     });
   });
 });
+
+describe('clear() dos adaptadores', () => {
+  it('native-text e date: valor vazio com input/change', async () => {
+    for (const [adapter, html] of [
+      [nativeTextAdapter, '<input value="abc">'],
+      [dateAdapter, '<input type="date" value="2026-03-05">'],
+      [dateAdapter, '<input class="eui-input-datepicker" value="05/03/2026">'],
+    ] as const) {
+      const f = field(html);
+      const input = f.querySelector('input') as HTMLInputElement;
+      const events: string[] = [];
+      for (const t of ['input', 'change']) input.addEventListener(t, () => events.push(t));
+      await adapter.clear?.(f);
+      expect(input.value).toBe('');
+      expect(events).toEqual(['input', 'change']);
+    }
+  });
+
+  it('native-select: escolhe a opção vazia; sem ela, write-failed', async () => {
+    const f = field(SELECT);
+    await nativeSelectAdapter.write(f, 'Luz Teste');
+    const events: string[] = [];
+    const select = f.querySelector('select') as HTMLSelectElement;
+    for (const t of ['input', 'change']) select.addEventListener(t, () => events.push(t));
+    await nativeSelectAdapter.clear?.(f);
+    expect(nativeSelectAdapter.read(f)).toBeNull();
+    expect(events).toEqual(['input', 'change']);
+    const noEmpty = field(
+      '<select><option value="a">A</option><option value="b">B</option></select>',
+    );
+    await expect(nativeSelectAdapter.clear?.(noEmpty)).rejects.toMatchObject({
+      code: 'write-failed',
+      message: 'não é possível limpar',
+    });
+  });
+
+  it('native-choice: checkbox desmarca; radio não tem clear útil', async () => {
+    const f = field('<input type="checkbox" checked>');
+    await nativeChoiceAdapter.clear?.(f);
+    expect(nativeChoiceAdapter.read(f)).toBe('Não');
+    await nativeChoiceAdapter.clear?.(f); // já desmarcado: no-op
+    expect(nativeChoiceAdapter.read(f)).toBe('Não');
+    const radios = field(
+      '<input type="radio" name="x" id="r1"><label for="r1">A</label><input type="radio" name="x" id="r2"><label for="r2">B</label>',
+    );
+    await expect(nativeChoiceAdapter.clear?.(radios)).rejects.toMatchObject({
+      code: 'write-failed',
+    });
+  });
+
+  it('vue-multiselect: usa .multiselect__clear (mousedown+click) sem teclado', async () => {
+    const f = field(`<div class="multiselect">
+      <div class="multiselect__clear">×</div>
+      <div class="multiselect__tags"><span class="multiselect__single">Sim</span></div>
+    </div>`);
+    const clear = f.querySelector('.multiselect__clear') as HTMLElement;
+    const events: string[] = [];
+    const keys: string[] = [];
+    for (const t of ['mousedown', 'click']) clear.addEventListener(t, () => events.push(t));
+    document.addEventListener('keydown', (e) => keys.push(e.key));
+    clear.addEventListener('mousedown', () => f.querySelector('.multiselect__single')?.remove());
+    await vueMultiselectAdapter.clear?.(f);
+    expect(events).toEqual(['mousedown', 'click']);
+    expect(vueMultiselectAdapter.read(f)).toBeNull();
+    expect(keys).toEqual([]);
+  });
+
+  it('vue-multiselect: sem botão, clica a opção selecionada para desselecionar', async () => {
+    const f = field(`<div class="multiselect">
+      <div class="multiselect__select"></div>
+      <div class="multiselect__tags"><span class="multiselect__single">Sim</span><input class="multiselect__input"></div>
+      <ul><li class="multiselect__element"><span class="multiselect__option multiselect__option--selected">Sim</span></li></ul>
+    </div>`);
+    const ms = f.querySelector('.multiselect') as HTMLElement;
+    f.querySelector('.multiselect__select')?.addEventListener('mousedown', () =>
+      ms.classList.add('multiselect--active'),
+    );
+    const option = f.querySelector('.multiselect__option') as HTMLElement;
+    option.addEventListener('click', () => {
+      f.querySelector('.multiselect__single')?.remove();
+      ms.classList.remove('multiselect--active');
+    });
+    await vueMultiselectAdapter.clear?.(f);
+    expect(vueMultiselectAdapter.read(f)).toBeNull();
+  });
+
+  it('vue-multiselect: sem valor é no-op; falha vira write-failed', async () => {
+    const empty = field('<div class="multiselect"><div class="multiselect__tags"></div></div>');
+    await expect(vueMultiselectAdapter.clear?.(empty)).resolves.toBeUndefined();
+    const stuck = field(
+      '<div class="multiselect"><div class="multiselect__clear">×</div><span class="multiselect__single">Sim</span></div>',
+    );
+    await expect(vueMultiselectAdapter.clear?.(stuck)).rejects.toMatchObject({
+      code: 'write-failed',
+    });
+  });
+});

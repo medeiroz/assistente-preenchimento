@@ -1,5 +1,5 @@
 import { summarize } from '../../../core/model';
-import type { FieldOutcome, FieldReport, RunReport } from '../../../core/model';
+import type { FieldOutcome, RunReport } from '../../../core/model';
 
 import { isolateEvents } from './shared';
 
@@ -13,6 +13,7 @@ const OUTCOME_LABEL: Record<FieldOutcome, string> = {
   'skipped-disabled': 'ignorado (desabilitado)',
   'skipped-unresolved-value': 'ignorado (valor não resolvido)',
   'not-found': 'campo não encontrado',
+  undone: 'desfeito',
   error: 'erro',
 };
 
@@ -45,8 +46,6 @@ li.error, li.not-found { color: #fca5a5; }
 .undo:focus-visible { outline: 2px solid #93c5fd; outline-offset: 2px; }
 `;
 
-const isRestore = (f: FieldReport): boolean => f.outcome === 'filled' && f.message === 'desfeito';
-
 function buildToast(report: RunReport, onClose: () => void, onUndo?: () => void): HTMLElement {
   const s = summarize(report);
   const box = document.createElement('div');
@@ -68,7 +67,7 @@ function buildToast(report: RunReport, onClose: () => void, onUndo?: () => void)
 
   const summary = document.createElement('div');
   summary.className = 'summary';
-  const restored = report.fields.filter(isRestore).length;
+  const restored = s.undone;
   summary.textContent =
     restored > 0
       ? `${restored} ${restored === 1 ? 'campo restaurado' : 'campos restaurados'} · ${s.errors} erros`

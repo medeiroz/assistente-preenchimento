@@ -234,9 +234,9 @@ describe('createController', () => {
       expect(input('a').value).toBe('');
       expect(showReport).toHaveBeenCalledTimes(2);
       expect(showReport.mock.calls[1]?.[1]).toBeUndefined();
-      expect(showReport.mock.calls[1]?.[0].fields.map((f) => f.message)).toEqual([
-        'desfeito',
-        'desfeito',
+      expect(showReport.mock.calls[1]?.[0].fields.map((f) => f.outcome)).toEqual([
+        'undone',
+        'undone',
       ]);
     });
 

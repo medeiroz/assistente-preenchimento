@@ -37,6 +37,9 @@ class Fake {
   verifyResult = true;
   adapterId: FieldAdapter['id'] = 'native-text';
   delay = 0;
+  withClear = false;
+  clearError: Error | null = null;
+  clears: string[] = [];
 
   adapter: FieldAdapter = {
     id: 'native-text',
@@ -76,7 +79,16 @@ class Fake {
     register: () => undefined,
     resolve: () => {
       if (this.noAdapter) return null;
-      return { ...this.adapter, id: this.adapterId };
+      const base = { ...this.adapter, id: this.adapterId };
+      if (!this.withClear) return base;
+      return {
+        ...base,
+        clear: async (root: Element) => {
+          if (this.clearError) throw this.clearError;
+          this.clears.push(root.id);
+          this.values.set(root.id, '');
+        },
+      };
     },
     list: () => [this.adapter],
   };
@@ -250,13 +262,59 @@ describe('FillSession', () => {
     const s = createSession(makeRule(), f.container, f.deps());
     await s.fill('auto');
     expect(f.writes).toEqual([]);
-    // ainda carregado: manual respeita onlyIfDefault
     expect(outcomes(await s.fill('manual'))).toEqual(['a:skipped-not-default']);
     f.values.set('a', '');
     expect(outcomes(await s.fill('manual'))).toEqual(['a:filled']);
-    // já preenchido: manual não reescreve
-    expect(outcomes(await s.fill('manual'))).toEqual(['a:skipped-already-handled']);
+    const again = await s.fill('manual');
+    expect(outcomes(again)).toEqual(['a:skipped-already-handled']);
+    expect(again.fields[0]?.message).toBe('já está com este valor');
     expect(f.writes).toHaveLength(1);
+  });
+
+  it('13b manual preenche campo que a extensão preencheu e o usuário esvaziou', async () => {
+    const f = new Fake();
+    const s = createSession(makeRule(), f.container, f.deps());
+    await s.fill('auto');
+    f.values.set('a', '');
+    expect(outcomes(await s.fill('manual'))).toEqual(['a:filled']);
+    expect(f.writes).toEqual(['a=v-a', 'a=v-a']);
+    // o auto continua sem re-preencher depois
+    f.values.set('a', '');
+    expect(outcomes(await s.fill('auto'))).toEqual(['a:skipped-already-handled']);
+  });
+
+  it('13e manual sobre campo já preenchido pela sessão preserva o Desfazer', async () => {
+    const f = new Fake();
+    f.withClear = true;
+    const s = createSession(makeRule(), f.container, f.deps());
+    await s.fill('auto');
+    expect(outcomes(await s.fill('manual'))).toEqual(['a:skipped-already-handled']);
+    expect(outcomes(await s.undo())).toEqual(['a:undone']);
+    expect(f.values.get('a')).toBe('');
+  });
+
+  it('13c manual: valor não resolvido, desabilitado, não encontrado', async () => {
+    const f = new Fake(['a', 'b', 'c']);
+    f.present.delete('c');
+    const s = createSession(
+      makeRule({ fields: [{ id: 'a' }, { id: 'b', enabled: false }, { id: 'c' }] }),
+      f.container,
+      f.deps((t) => (t === 'v-a' ? { ok: false, error: 'sem valor' } : { ok: true, value: t })),
+    );
+    expect(outcomes(await s.fill('manual'))).toEqual([
+      'a:skipped-unresolved-value',
+      'b:skipped-disabled',
+      'c:not-found',
+    ]);
+  });
+
+  it('13d manual: onlyIfDefault reavaliado agora (usuário digitou depois do auto)', async () => {
+    const f = new Fake();
+    const s = createSession(makeRule(), f.container, f.deps());
+    await s.fill('auto');
+    f.values.set('a', 'digitado');
+    expect(outcomes(await s.fill('manual'))).toEqual(['a:skipped-not-default']);
+    expect(f.values.get('a')).toBe('digitado');
   });
 
   it('14 undo restaura texto', async () => {
@@ -268,23 +326,58 @@ describe('FillSession', () => {
     const r = await s.undo();
     expect(f.values.get('a')).toBe('antigo');
     expect(r.fields[0]).toMatchObject({
-      outcome: 'filled',
+      outcome: 'undone',
+      previousValue: 'v-a',
       newValue: 'antigo',
-      message: 'desfeito',
     });
     // desfeito conta como tratado
     expect(outcomes(await s.fill('auto'))).toEqual(['a:skipped-already-handled']);
     expect(f.values.get('a')).toBe('antigo');
   });
 
-  it('14b undo de multiselect sem valor anterior reporta error', async () => {
+  it('14b undo sem valor anterior e sem clear reporta error', async () => {
     const f = new Fake();
-    f.adapterId = 'vue-multiselect';
     const s = createSession(makeRule(), f.container, f.deps());
     await s.fill('auto');
     const r = await s.undo();
     expect(outcomes(r)).toEqual(['a:error']);
-    expect(r.fields[0]?.message).toBe('não é possível desfazer seleção');
+    expect(r.fields[0]?.message).toBe('não é possível desfazer');
+    expect(f.values.get('a')).toBe('v-a');
+  });
+
+  it('14c undo sem valor anterior usa clear() quando existe', async () => {
+    const f = new Fake();
+    f.withClear = true;
+    const s = createSession(makeRule(), f.container, f.deps());
+    await s.fill('auto');
+    const r = await s.undo();
+    expect(outcomes(r)).toEqual(['a:undone']);
+    expect(r.fields[0]).toMatchObject({ previousValue: 'v-a', newValue: '' });
+    expect(f.clears).toEqual(['a']);
+    expect(f.values.get('a')).toBe('');
+    expect((await s.undo()).fields).toEqual([]);
+  });
+
+  it('14d undo com valor anterior escreve, mesmo havendo clear()', async () => {
+    const f = new Fake();
+    f.withClear = true;
+    f.values.set('a', 'antigo');
+    const s = createSession(makeRule({ overwrite: 'always' }), f.container, f.deps());
+    await s.fill('auto');
+    await s.undo();
+    expect(f.clears).toEqual([]);
+    expect(f.values.get('a')).toBe('antigo');
+  });
+
+  it('14e falha no clear vira error', async () => {
+    const f = new Fake();
+    f.withClear = true;
+    f.clearError = new AdapterError('x', 'write-failed');
+    const s = createSession(makeRule(), f.container, f.deps());
+    await s.fill('auto');
+    const r = await s.undo();
+    expect(outcomes(r)).toEqual(['a:error']);
+    expect(r.fields[0]?.message).toBe('x');
   });
 
   it('15 end() impede escrita', async () => {

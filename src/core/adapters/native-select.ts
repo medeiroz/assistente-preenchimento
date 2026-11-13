@@ -57,6 +57,16 @@ export const nativeSelectAdapter: FieldAdapter = {
     dispatch(select, 'input');
     dispatch(select, 'change');
   },
+  async clear(root) {
+    const select = findSelect(root);
+    if (!select) throw new AdapterError('select nativo não encontrado', 'control-not-found');
+    if (select.disabled) throw new AdapterError('select desabilitado', 'write-failed');
+    const index = Array.from(select.options).findIndex((o) => o.value === '');
+    if (index < 0) throw new AdapterError('não é possível limpar', 'write-failed');
+    setNativeSelectedIndex(select, index);
+    dispatch(select, 'input');
+    dispatch(select, 'change');
+  },
   verify(root, value) {
     const select = findSelect(root);
     const current = this.read(root);
