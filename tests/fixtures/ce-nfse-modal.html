@@ -1,0 +1,996 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fixture: Emitir NFS-e (dados fictícios)</title>
+  </head>
+  <body>
+    <div class="modal eui-modal-wrapper is-large is-active">
+      <div class="eui-modal modal-card">
+        <div class="eui-modal-header modal-card-head">
+          <div class="eui-modal-title modal-card-title">
+            <span
+              class="has-text-basic-900 has-text-18-desktop has-text-13-mobile has-text-weight-bold is-trimmed is-inline"
+              >Emitir Nota Fiscal de Serviços Eletrônica</span
+            >
+          </div>
+          <button
+            type="button"
+            class="eui-modal-close eui-button is-medium is-basic is-transparent is-flat is-icon"
+          >
+            <span class="eui-button-content"><i class="eui-icon ei ei-times"></i></span>
+          </button>
+        </div>
+        <div class="eui-modal-body modal-card-body">
+          <div class="p-20">
+            <div class="eui-message is-warning">
+              Confira em Configurações &gt; Preferências do sistema os dados do emitente antes de
+              emitir a nota.
+            </div>
+          </div>
+          <div class="pt-0 eui-section">
+            <div class="eui-section-header">Dados do cliente</div>
+            <div class="eui-section-body">
+              <div class="columns">
+                <div class="column is-12 mb-10">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-right eui-input-switch-field"
+                  >
+                    <label for="401" class="eui-label"
+                      >Não enviar dados do tomador na emissão da nota<i
+                        class="eui-label-help eui-icon ei ei-question-circle"
+                        data-tippy-directive=""
+                        tabindex="0"
+                      ></i
+                    ></label>
+                    <div class="eui-control">
+                      <input
+                        id="401"
+                        type="checkbox"
+                        data-cy="default-input-switch"
+                        class="eui-input eui-input-switch"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-primary is-fullwidth has-label-at-top eui-input-toggle-field"
+                  >
+                    <label for="402" class="eui-label">Tipo de pessoa*</label>
+                    <div class="eui-control">
+                      <div
+                        id="402"
+                        class="eui-button-group is-medium is-primary is-grouped is-fullwidth"
+                      >
+                        <div class="eui-button-group-wrapper">
+                          <button type="button" class="eui-button is-medium is-primary is-filled">
+                            Física
+                          </button>
+                          <button type="button" class="eui-button is-medium is-primary is-outlined">
+                            Jurídica
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-select-field"
+                  >
+                    <label for="403" class="eui-label">Nome*</label>
+                    <div class="eui-control">
+                      <div
+                        class="multiselect eui-input eui-input-select is-clearable is-color-basic is-fixed is-searchable has-value"
+                        role="combobox"
+                      >
+                        <div class="multiselect__select"></div>
+                        <div class="multiselect__clear"></div>
+                        <div class="multiselect__tags">
+                          <div class="multiselect__tags-wrap"></div>
+                          <div class="multiselect__spinner"></div>
+                          <input
+                            id="403"
+                            type="text"
+                            autocomplete="off"
+                            class="multiselect__input"
+                            value=""
+                          />
+                          <span class="multiselect__single">Maria Exemplo Teste</span>
+                        </div>
+                        <div class="multiselect__content-wrapper" style="display: none">
+                          <ul class="multiselect__content" role="listbox">
+                            <li class="multiselect__element" role="option">
+                              <span class="multiselect__option multiselect__option--highlight"
+                                ><div class="multiselect__option-desc">
+                                  Maria Exemplo Teste
+                                </div></span
+                              >
+                            </li>
+                            <li class="multiselect__element" role="option">
+                              <span class="multiselect__option"
+                                ><div class="multiselect__option-desc">
+                                  João Exemplo Teste
+                                </div></span
+                              >
+                            </li>
+                            <li class="multiselect__element" role="option">
+                              <span class="multiselect__option"
+                                ><div class="multiselect__option-desc">Ana Exemplo Teste</div></span
+                              >
+                            </li>
+                            <li class="multiselect__element" style="display: none">
+                              <span class="multiselect__option"
+                                ><span>Nenhuma opção encontrada</span></span
+                              >
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-document-field"
+                  >
+                    <label for="404" class="eui-label">CPF*</label>
+                    <div class="eui-control">
+                      <input
+                        id="404"
+                        type="tel"
+                        placeholder="000.000.000-00"
+                        autocomplete="off"
+                        class="eui-input eui-input-document"
+                        value="123.456.789-09"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-phone-field"
+                  >
+                    <label for="405" class="eui-label">Telefone*</label>
+                    <div class="eui-control">
+                      <div
+                        class="multiselect eui-input eui-input-select is-clearable is-color-basic is-fixed is-searchable has-value"
+                        role="combobox"
+                      >
+                        <div class="multiselect__select"></div>
+                        <div class="multiselect__clear"></div>
+                        <div class="multiselect__tags">
+                          <div class="multiselect__tags-wrap"></div>
+                          <div class="multiselect__spinner"></div>
+                          <input
+                            id="406"
+                            type="text"
+                            autocomplete="off"
+                            class="multiselect__input"
+                            value=""
+                          />
+                          <span class="multiselect__single">+55</span>
+                        </div>
+                        <div class="multiselect__content-wrapper" style="display: none">
+                          <ul class="multiselect__content" role="listbox">
+                            <li class="multiselect__element" role="option">
+                              <span class="multiselect__option multiselect__option--highlight"
+                                ><div class="multiselect__option-desc">+55</div></span
+                              >
+                            </li>
+                            <li class="multiselect__element" role="option">
+                              <span class="multiselect__option"
+                                ><div class="multiselect__option-desc">+1</div></span
+                              >
+                            </li>
+                            <li class="multiselect__element" role="option">
+                              <span class="multiselect__option"
+                                ><div class="multiselect__option-desc">+351</div></span
+                              >
+                            </li>
+                            <li class="multiselect__element" style="display: none">
+                              <span class="multiselect__option"
+                                ><span>Nenhuma opção encontrada</span></span
+                              >
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                      <input
+                        id="405"
+                        type="tel"
+                        placeholder="(99) 99999-9999"
+                        autocomplete="off"
+                        class="eui-input eui-input-phone"
+                        value="(11) 90000-0000"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-email-field"
+                  >
+                    <label for="407" class="eui-label">E-mail*</label>
+                    <div class="eui-control">
+                      <input
+                        id="407"
+                        type="email"
+                        placeholder="Digite"
+                        autocomplete="off"
+                        class="eui-input eui-input-email"
+                        value="maria.exemplo@example.com"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-text-field"
+                  >
+                    <label for="408" class="eui-label">Código postal*</label>
+                    <div class="eui-control">
+                      <input
+                        id="408"
+                        type="text"
+                        placeholder="00000-000"
+                        autocomplete="off"
+                        data-cy="default-input-text"
+                        class="eui-input eui-input-text"
+                        value="01000-000"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-select-field"
+                  >
+                    <label for="409" class="eui-label">Estado*</label>
+                    <div class="eui-control">
+                      <div
+                        class="multiselect eui-input eui-input-select is-clearable is-color-basic is-searchable has-value"
+                        role="combobox"
+                      >
+                        <div class="multiselect__select"></div>
+                        <div class="multiselect__clear"></div>
+                        <div class="multiselect__tags">
+                          <div class="multiselect__tags-wrap"></div>
+                          <div class="multiselect__spinner"></div>
+                          <input
+                            id="409"
+                            type="text"
+                            autocomplete="off"
+                            class="multiselect__input"
+                            value=""
+                          />
+                          <span class="multiselect__single">São Paulo</span>
+                        </div>
+                        <div class="multiselect__content-wrapper" style="display: none">
+                          <ul class="multiselect__content" role="listbox">
+                            <li class="multiselect__element" role="option">
+                              <span class="multiselect__option multiselect__option--highlight"
+                                ><div class="multiselect__option-desc">São Paulo</div></span
+                              >
+                            </li>
+                            <li class="multiselect__element" role="option">
+                              <span class="multiselect__option"
+                                ><div class="multiselect__option-desc">Rio de Janeiro</div></span
+                              >
+                            </li>
+                            <li class="multiselect__element" role="option">
+                              <span class="multiselect__option"
+                                ><div class="multiselect__option-desc">Minas Gerais</div></span
+                              >
+                            </li>
+                            <li class="multiselect__element" style="display: none">
+                              <span class="multiselect__option"
+                                ><span>Nenhuma opção encontrada</span></span
+                              >
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-select-field"
+                  >
+                    <label for="410" class="eui-label">Cidade*</label>
+                    <div class="eui-control">
+                      <div
+                        class="multiselect eui-input eui-input-select is-clearable is-color-basic is-searchable has-value"
+                        role="combobox"
+                      >
+                        <div class="multiselect__select"></div>
+                        <div class="multiselect__clear"></div>
+                        <div class="multiselect__tags">
+                          <div class="multiselect__tags-wrap"></div>
+                          <div class="multiselect__spinner"></div>
+                          <input
+                            id="410"
+                            type="text"
+                            autocomplete="off"
+                            class="multiselect__input"
+                            value=""
+                          />
+                          <span class="multiselect__single">Cidade Exemplo</span>
+                        </div>
+                        <div class="multiselect__content-wrapper" style="display: none">
+                          <ul class="multiselect__content" role="listbox">
+                            <li class="multiselect__element" role="option">
+                              <span class="multiselect__option multiselect__option--highlight"
+                                ><div class="multiselect__option-desc">Cidade Exemplo</div></span
+                              >
+                            </li>
+                            <li class="multiselect__element" role="option">
+                              <span class="multiselect__option"
+                                ><div class="multiselect__option-desc">Cidade Teste A</div></span
+                              >
+                            </li>
+                            <li class="multiselect__element" role="option">
+                              <span class="multiselect__option"
+                                ><div class="multiselect__option-desc">Cidade Teste B</div></span
+                              >
+                            </li>
+                            <li class="multiselect__element" style="display: none">
+                              <span class="multiselect__option"
+                                ><span>Nenhuma opção encontrada</span></span
+                              >
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-text-field"
+                  >
+                    <label for="411" class="eui-label">Bairro*</label>
+                    <div class="eui-control">
+                      <input
+                        id="411"
+                        type="text"
+                        placeholder="Digite"
+                        autocomplete="off"
+                        data-cy="default-input-text"
+                        class="eui-input eui-input-text"
+                        value="Bairro Exemplo"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-text-field"
+                  >
+                    <label for="412" class="eui-label">Rua*</label>
+                    <div class="eui-control">
+                      <input
+                        id="412"
+                        type="text"
+                        placeholder="Digite"
+                        autocomplete="off"
+                        data-cy="default-input-text"
+                        class="eui-input eui-input-text"
+                        value="Rua Exemplo"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-text-field"
+                  >
+                    <label for="413" class="eui-label">Número*</label>
+                    <div class="eui-control">
+                      <input
+                        id="413"
+                        type="text"
+                        placeholder="Digite"
+                        autocomplete="off"
+                        data-cy="default-input-text"
+                        class="eui-input eui-input-text"
+                        value="100"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-text-field"
+                  >
+                    <label for="414" class="eui-label">Complemento</label>
+                    <div class="eui-control">
+                      <input
+                        id="414"
+                        type="text"
+                        placeholder="Digite"
+                        autocomplete="off"
+                        data-cy="default-input-text"
+                        class="eui-input eui-input-text"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="eui-section">
+            <div class="eui-section-header">Dados do serviço</div>
+            <div class="eui-section-body">
+              <div class="columns is-multiline">
+                <div class="column is-12 mb-10">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-text-field"
+                  >
+                    <label for="415" class="eui-label">Descrição*</label>
+                    <div class="eui-control">
+                      <input
+                        id="415"
+                        type="text"
+                        placeholder="Digite"
+                        autocomplete="off"
+                        data-cy="default-input-text"
+                        class="eui-input eui-input-text"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-date-field"
+                  >
+                    <label for="416" class="eui-label"
+                      >Data de competência<i
+                        class="eui-label-help eui-icon ei ei-question-circle"
+                        data-tippy-directive=""
+                        tabindex="0"
+                      ></i
+                    ></label>
+                    <div class="eui-control">
+                      <input
+                        id="416"
+                        type="text"
+                        placeholder="Digite"
+                        autocomplete="off"
+                        data-cy="default-input-date"
+                        class="eui-input eui-input-datepicker"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-text-field"
+                  >
+                    <label for="417" class="eui-label"
+                      >Código tributário municipal<i
+                        class="eui-label-help eui-icon ei ei-question-circle"
+                        data-tippy-directive=""
+                        tabindex="0"
+                      ></i
+                    ></label>
+                    <div class="eui-control">
+                      <input
+                        id="417"
+                        type="text"
+                        placeholder="Digite"
+                        autocomplete="off"
+                        data-cy="default-input-text"
+                        class="eui-input eui-input-text"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-text-field"
+                  >
+                    <label for="418" class="eui-label"
+                      >Código de tributação municipal do ISSQN</label
+                    >
+                    <div class="eui-control">
+                      <input
+                        id="418"
+                        type="text"
+                        placeholder="Digite"
+                        autocomplete="off"
+                        data-cy="default-input-text"
+                        class="eui-input eui-input-text"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-text-field"
+                  >
+                    <label for="419" class="eui-label"
+                      >Código de tributação nacional do ISSQN</label
+                    >
+                    <div class="eui-control">
+                      <input
+                        id="419"
+                        type="text"
+                        placeholder="Digite"
+                        autocomplete="off"
+                        data-cy="default-input-text"
+                        class="eui-input eui-input-text"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-number-field"
+                  >
+                    <label for="420" class="eui-label">ISS</label>
+                    <div class="eui-control">
+                      <input
+                        id="420"
+                        type="tel"
+                        placeholder="0,00%"
+                        autocomplete="off"
+                        data-cy="default-input-number"
+                        class="eui-input eui-input-number v-money"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-text-field"
+                  >
+                    <label for="421" class="eui-label"
+                      >Código NBS<i
+                        class="eui-label-help eui-icon ei ei-question-circle"
+                        data-tippy-directive=""
+                        tabindex="0"
+                      ></i
+                    ></label>
+                    <div class="eui-control">
+                      <input
+                        id="421"
+                        type="text"
+                        placeholder="Digite"
+                        autocomplete="off"
+                        data-cy="default-input-text"
+                        class="eui-input eui-input-text"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-text-field"
+                  >
+                    <label for="422" class="eui-label"
+                      >Código da Situação Tributária do IBS/CBS</label
+                    >
+                    <div class="eui-control">
+                      <input
+                        id="422"
+                        type="text"
+                        placeholder="Digite"
+                        autocomplete="off"
+                        data-cy="default-input-text"
+                        class="eui-input eui-input-text"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-text-field"
+                  >
+                    <label for="423" class="eui-label"
+                      >Código de Classificação Tributária do IBS/CBS</label
+                    >
+                    <div class="eui-control">
+                      <input
+                        id="423"
+                        type="text"
+                        placeholder="Digite"
+                        autocomplete="off"
+                        data-cy="default-input-text"
+                        class="eui-input eui-input-text"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-text-field"
+                  >
+                    <label for="424" class="eui-label"
+                      >Código indicador da operação<i
+                        class="eui-label-help eui-icon ei ei-question-circle"
+                        data-tippy-directive=""
+                        tabindex="0"
+                      ></i
+                    ></label>
+                    <div class="eui-control">
+                      <input
+                        id="424"
+                        type="text"
+                        placeholder="Digite"
+                        autocomplete="off"
+                        data-cy="default-input-text"
+                        class="eui-input eui-input-text"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-select-field"
+                  >
+                    <label for="425" class="eui-label"
+                      >Operação de uso ou consumo pessoal<i
+                        class="eui-label-help eui-icon ei ei-question-circle"
+                        data-tippy-directive=""
+                        tabindex="0"
+                      ></i
+                    ></label>
+                    <div class="eui-control">
+                      <div
+                        class="multiselect eui-input eui-input-select is-clearable is-color-basic"
+                        id="425"
+                        role="combobox"
+                      >
+                        <div class="multiselect__select"></div>
+                        <div class="multiselect__clear"></div>
+                        <div class="multiselect__tags">
+                          <div class="multiselect__tags-wrap"></div>
+                          <div class="multiselect__spinner"></div>
+                          <span class="multiselect__placeholder">Selecione</span>
+                        </div>
+                        <div class="multiselect__content-wrapper" style="display: none">
+                          <ul class="multiselect__content" role="listbox">
+                            <li class="multiselect__element" role="option">
+                              <span class="multiselect__option multiselect__option--highlight"
+                                ><div class="multiselect__option-desc">Não</div></span
+                              >
+                            </li>
+                            <li class="multiselect__element" role="option">
+                              <span class="multiselect__option"
+                                ><div class="multiselect__option-desc">Sim</div></span
+                              >
+                            </li>
+                            <li class="multiselect__element" style="display: none">
+                              <span class="multiselect__option"
+                                ><span>Nenhuma opção encontrada</span></span
+                              >
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-select-field"
+                  >
+                    <label for="426" class="eui-label">Tipo de operação governamental</label>
+                    <div class="eui-control">
+                      <div
+                        class="multiselect eui-input eui-input-select is-clearable is-color-basic"
+                        id="426"
+                        role="combobox"
+                      >
+                        <div class="multiselect__select"></div>
+                        <div class="multiselect__clear"></div>
+                        <div class="multiselect__tags">
+                          <div class="multiselect__tags-wrap"></div>
+                          <div class="multiselect__spinner"></div>
+                          <span class="multiselect__placeholder">Selecione</span>
+                        </div>
+                        <div class="multiselect__content-wrapper" style="display: none">
+                          <ul class="multiselect__content" role="listbox">
+                            <li class="multiselect__element" role="option">
+                              <span class="multiselect__option multiselect__option--highlight"
+                                ><div class="multiselect__option-desc">
+                                  1 - Fornecimento com pagamento posterior
+                                </div></span
+                              >
+                            </li>
+                            <li class="multiselect__element" role="option">
+                              <span class="multiselect__option"
+                                ><div class="multiselect__option-desc">
+                                  2 - Recebimento do pagamento com fornecimento já realizado
+                                </div></span
+                              >
+                            </li>
+                            <li class="multiselect__element" role="option">
+                              <span class="multiselect__option"
+                                ><div class="multiselect__option-desc">
+                                  3 - Fornecimento com pagamento já realizado
+                                </div></span
+                              >
+                            </li>
+                            <li class="multiselect__element" role="option">
+                              <span class="multiselect__option"
+                                ><div class="multiselect__option-desc">
+                                  4 - Recebimento do pagamento com fornecimento posterior
+                                </div></span
+                              >
+                            </li>
+                            <li class="multiselect__element" role="option">
+                              <span class="multiselect__option"
+                                ><div class="multiselect__option-desc">
+                                  5 - Fornecimento e recebimento do pagamento concomitantes
+                                </div></span
+                              >
+                            </li>
+                            <li class="multiselect__element" style="display: none">
+                              <span class="multiselect__option"
+                                ><span>Nenhuma opção encontrada</span></span
+                              >
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-number-field"
+                  >
+                    <label for="427" class="eui-label"
+                      >Alíquota da UF para IBS<i
+                        class="eui-label-help eui-icon ei ei-question-circle"
+                        data-tippy-directive=""
+                        tabindex="0"
+                      ></i
+                    ></label>
+                    <div class="eui-control">
+                      <input
+                        id="427"
+                        type="tel"
+                        placeholder="0,00%"
+                        autocomplete="off"
+                        data-cy="default-input-number"
+                        class="eui-input eui-input-number v-money"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-number-field"
+                  >
+                    <label for="428" class="eui-label"
+                      >Alíquota do Município para IBS<i
+                        class="eui-label-help eui-icon ei ei-question-circle"
+                        data-tippy-directive=""
+                        tabindex="0"
+                      ></i
+                    ></label>
+                    <div class="eui-control">
+                      <input
+                        id="428"
+                        type="tel"
+                        placeholder="0,00%"
+                        autocomplete="off"
+                        data-cy="default-input-number"
+                        class="eui-input eui-input-number v-money"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-number-field"
+                  >
+                    <label for="429" class="eui-label">Alíquota da União para CBS</label>
+                    <div class="eui-control">
+                      <input
+                        id="429"
+                        type="tel"
+                        placeholder="0,00%"
+                        autocomplete="off"
+                        data-cy="default-input-number"
+                        class="eui-input eui-input-number v-money"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-number-field"
+                  >
+                    <label for="430" class="eui-label"
+                      >Alíq. do serviço prestado relativo ao município</label
+                    >
+                    <div class="eui-control">
+                      <input
+                        id="430"
+                        type="number"
+                        placeholder="0,00%"
+                        autocomplete="off"
+                        class="eui-input eui-input-number"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-text-field"
+                  >
+                    <label for="431" class="eui-label">Código interno do contribuinte</label>
+                    <div class="eui-control">
+                      <input
+                        id="431"
+                        type="text"
+                        placeholder="Digite"
+                        autocomplete="off"
+                        data-cy="default-input-text"
+                        class="eui-input eui-input-text"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-text-field"
+                  >
+                    <label for="432" class="eui-label"
+                      >Informações adicionais<i
+                        class="eui-label-help eui-icon ei ei-question-circle"
+                        data-tippy-directive=""
+                        tabindex="0"
+                      ></i
+                    ></label>
+                    <div class="eui-control">
+                      <input
+                        id="432"
+                        type="text"
+                        placeholder="Digite"
+                        autocomplete="off"
+                        data-cy="default-input-text"
+                        class="eui-input eui-input-text"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-number-field"
+                  >
+                    <label for="433" class="eui-label"
+                      >Alíq. aproximada dos tributos municipais (%)</label
+                    >
+                    <div class="eui-control">
+                      <input
+                        id="433"
+                        type="tel"
+                        placeholder="Digite"
+                        autocomplete="off"
+                        class="eui-input eui-input-number"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-number-field"
+                  >
+                    <label for="434" class="eui-label"
+                      >Alíq. aproximada dos tributos estaduais (%)</label
+                    >
+                    <div class="eui-control">
+                      <input
+                        id="434"
+                        type="tel"
+                        placeholder="Digite"
+                        autocomplete="off"
+                        class="eui-input eui-input-number"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-number-field"
+                  >
+                    <label for="435" class="eui-label"
+                      >Alíq. aproximada dos tributos federais (%)</label
+                    >
+                    <div class="eui-control">
+                      <input
+                        id="435"
+                        type="tel"
+                        placeholder="Digite"
+                        autocomplete="off"
+                        class="eui-input eui-input-number"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-number-field"
+                  >
+                    <label for="436" class="eui-label"
+                      >Valor aproximado dos tributos municipais (R$)</label
+                    >
+                    <div class="eui-control">
+                      <input
+                        id="436"
+                        type="tel"
+                        placeholder="Digite"
+                        autocomplete="off"
+                        class="eui-input eui-input-number"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-number-field"
+                  >
+                    <label for="437" class="eui-label"
+                      >Valor aproximado dos tributos estaduais (R$)</label
+                    >
+                    <div class="eui-control">
+                      <input
+                        id="437"
+                        type="tel"
+                        placeholder="Digite"
+                        autocomplete="off"
+                        class="eui-input eui-input-number"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-4">
+                  <div
+                    class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-number-field"
+                  >
+                    <label for="438" class="eui-label"
+                      >Valor aproximado dos tributos federais (R$)</label
+                    >
+                    <div class="eui-control">
+                      <input
+                        id="438"
+                        type="tel"
+                        placeholder="Digite"
+                        autocomplete="off"
+                        class="eui-input eui-input-number"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="eui-section">
+            <div class="eui-section-header">Valor total</div>
+            <div class="eui-section-body">
+              <div class="columns is-multiline"></div>
+            </div>
+          </div>
+          <div class="eui-section">
+            <div class="eui-section-body">
+              <div class="columns is-multiline"></div>
+            </div>
+          </div>
+        </div>
+        <div class="eui-modal-footer modal-card-foot d-flex is-centered is-multiline">
+          <button type="button" class="eui-button is-medium is-primary is-filled is-flat">
+            Emitir NFS-e
+          </button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
