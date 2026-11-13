@@ -10,6 +10,8 @@ declare global {
       hideViaClass(): void;
     };
     __emitted: boolean;
+    __escapeCount: number;
+    __cancelled: boolean;
   }
 }
 
@@ -92,4 +94,26 @@ test('Emitir NFS-e só seta window.__emitted', async ({ page }) => {
   expect(await page.evaluate(() => window.__emitted)).toBe(true);
   expect(await state(page)).toEqual(before);
   await expect(page.locator('.eui-modal-wrapper.is-active')).toHaveCount(1);
+});
+
+test('sanidade: Escape real com o modal aberto abre o diálogo de cancelamento', async ({
+  page,
+}) => {
+  await openModal(page);
+  expect(await page.evaluate(() => window.__escapeCount)).toBe(0);
+  await page.keyboard.press('Escape');
+  await expect(page.getByText('Deseja cancelar a emissão da nota?')).toBeVisible();
+  expect(await page.evaluate(() => window.__escapeCount)).toBeGreaterThan(0);
+  await page.click('.eui-confirm-back');
+  await expect(page.locator('.eui-confirm-wrapper')).toHaveCount(0);
+  await expect(page.locator('.eui-modal-title')).toBeVisible();
+  expect(await page.evaluate(() => window.__cancelled)).toBe(false);
+});
+
+test('"Sim, cancelar" fecha o modal e seta __cancelled', async ({ page }) => {
+  await openModal(page);
+  await page.keyboard.press('Escape');
+  await page.click('.eui-confirm-cancel');
+  await expect(page.locator('.eui-modal-wrapper')).toHaveCount(0);
+  expect(await page.evaluate(() => window.__cancelled)).toBe(true);
 });

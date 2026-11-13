@@ -1,3 +1,12 @@
+/**
+ * PRINCÍPIO DOS ADAPTADORES: nunca disparar eventos de teclado que possam chegar ao
+ * `document`/`window`. Escape/Enter/Tab sintéticos com `bubbles: true` acionam listeners
+ * globais do site (ex.: o modal de NFS-e pergunta "Deseja cancelar a emissão da nota?" ao
+ * receber Escape no document) e podem descartar o trabalho do usuário.
+ * Para fechar/confirmar widgets use o próprio fluxo do componente (ex.: closeOnSelect) ou
+ * `focus()`/`blur()` nativos (não borbulham). Eventos que o framework espera
+ * (`input`, `change`, `mousedown`, `click`) podem borbulhar.
+ */
 export function normalizeSpaces(text: string | null | undefined): string {
   return (text ?? '').replace(/\s+/g, ' ').trim();
 }
@@ -21,6 +30,9 @@ export function dispatch(
 ): void {
   const view = el.ownerDocument.defaultView;
   const common = { bubbles: true, cancelable: true, ...init };
+  if (type.startsWith('key') && common.bubbles) {
+    throw new Error(`dispatch: evento de teclado "${type}" com bubbles:true é proibido`);
+  }
   if (view && (type.startsWith('mouse') || type === 'click')) {
     el.dispatchEvent(new view.MouseEvent(type, { ...common, view }));
   } else if (view && type.startsWith('key')) {

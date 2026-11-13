@@ -18,6 +18,7 @@
       return Object.assign(emptyState(), {
         mounted: false,
         active: false,
+        confirmOpen: false,
         late: false,
         ids: {},
         closeMode: params.get('close') === 'class' ? 'class' : 'if',
@@ -55,12 +56,21 @@
           interno: String(++counter),
         };
         this.late = false;
+        this.confirmOpen = false;
         this.mounted = true;
         this.active = true;
         clearTimeout(lateTimer);
         lateTimer = setTimeout(function () {
           vm.late = true;
         }, 800);
+      },
+      confirmBack: function () {
+        this.confirmOpen = false;
+      },
+      confirmCancel: function () {
+        window.__cancelled = true;
+        this.confirmOpen = false;
+        this.close();
       },
       close: function () {
         if (this.closeMode === 'class') {
@@ -82,6 +92,19 @@
   });
 
   window.__emitted = false;
+  window.__cancelled = false;
+  window.__escapeCount = 0;
+
+  // Imita o site real: com o modal aberto, Escape no document (keydown OU keyup) pede
+  // confirmação "Deseja cancelar a emissão da nota?". Se um adaptador disparar Escape
+  // borbulhante, o diálogo aparece e __escapeCount > 0 (os testes e2e detectam a regressão).
+  function onEscape(ev) {
+    if (ev.key !== 'Escape') return;
+    window.__escapeCount++;
+    if (vm.mounted && vm.active) vm.confirmOpen = true;
+  }
+  document.addEventListener('keydown', onEscape);
+  document.addEventListener('keyup', onEscape);
   window.__harness = {
     getState: function () {
       return {

@@ -25,6 +25,18 @@
         max-width: 95%;
         padding: 16px;
       }
+      .eui-confirm-wrapper {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        background: rgba(0, 0, 0, 0.5);
+      }
+      .eui-confirm {
+        background: #fff;
+        margin: 120px auto;
+        width: 360px;
+        padding: 16px;
+      }
       .eui-field {
         margin-bottom: 12px;
       }
@@ -158,6 +170,17 @@
           </div>
           <div class="eui-modal-footer">
             <button type="button" id="emit-nfse" @click="emit()">Emitir NFS-e</button>
+          </div>
+        </div>
+      </div>
+      <div v-if="confirmOpen" class="eui-confirm-wrapper" role="dialog" aria-modal="true">
+        <div class="eui-confirm">
+          <p class="eui-confirm-title">Deseja cancelar a emissão da nota?</p>
+          <div class="eui-confirm-actions">
+            <button type="button" class="eui-confirm-back" @click="confirmBack()">Voltar</button>
+            <button type="button" class="eui-confirm-cancel" @click="confirmCancel()">
+              Sim, cancelar
+            </button>
           </div>
         </div>
       </div>

@@ -2,6 +2,7 @@ import { AdapterError, type FieldAdapter } from './types';
 import { dispatch, normalizeSpaces, setNativeValue, waitFor } from './dom';
 
 const WAIT_MS = 1000;
+const SETTLE_MS = 300;
 
 function findSelect(root: Element): HTMLElement | null {
   return root.matches('.multiselect')
@@ -23,13 +24,18 @@ function findOption(ms: Element, value: string): HTMLElement | null {
   return null;
 }
 
-function closeDropdown(ms: HTMLElement): void {
+/**
+ * Fecha o dropdown sem teclado sintético: aguarda o fechamento natural (closeOnSelect) e,
+ * se ainda estiver aberto, tira o foco (blur nativo não borbulha e o vue-multiselect
+ * desativa no blur do input).
+ */
+async function closeDropdown(ms: HTMLElement): Promise<void> {
+  if (await waitFor(() => !isOpen(ms), SETTLE_MS)) return;
   const input = ms.querySelector<HTMLInputElement>('input.multiselect__input');
   const target = input ?? ms;
-  dispatch(target, 'keydown', { key: 'Escape', keyCode: 27 });
-  dispatch(target, 'keyup', { key: 'Escape', keyCode: 27 });
-  input?.blur();
-  ms.blur();
+  if (ms.ownerDocument.activeElement !== target) target.focus();
+  target.blur();
+  await waitFor(() => !isOpen(ms), WAIT_MS);
 }
 
 function openDropdown(ms: HTMLElement): void {
@@ -75,16 +81,14 @@ export const vueMultiselectAdapter: FieldAdapter = {
       option = await waitFor(() => findOption(ms, wanted), WAIT_MS);
     }
     if (!option) {
-      closeDropdown(ms);
-      await waitFor(() => !isOpen(ms), WAIT_MS);
+      await closeDropdown(ms);
       throw new AdapterError(`Opção "${value}" não encontrada`, 'option-not-found');
     }
 
     dispatch(option, 'mousedown');
     dispatch(option, 'click');
     await waitFor(() => this.read(root) === wanted, WAIT_MS);
-    closeDropdown(ms);
-    await waitFor(() => !isOpen(ms), WAIT_MS);
+    await closeDropdown(ms);
   },
   verify(root, value) {
     return this.read(root) === value;

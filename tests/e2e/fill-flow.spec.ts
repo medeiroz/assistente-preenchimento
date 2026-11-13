@@ -11,6 +11,8 @@ declare global {
       hideViaClass(): void;
     };
     __emitted: boolean;
+    __escapeCount: number;
+    __cancelled: boolean;
   }
 }
 
@@ -56,6 +58,9 @@ async function expectFilled(page: Page) {
 
 test.afterEach(async ({ page }) => {
   expect(await emitted(page)).toBe(false);
+  expect(await page.evaluate(() => window.__escapeCount)).toBe(0);
+  expect(await page.evaluate(() => window.__cancelled)).toBe(false);
+  await expect(page.locator('.eui-confirm-wrapper')).toHaveCount(0);
   const own = (errors.get(page) ?? []).filter((e) =>
     /assistente|extension|chrome-extension/i.test(e),
   );
