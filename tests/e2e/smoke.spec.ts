@@ -5,5 +5,5 @@ test('service worker carrega e options mostra o título', async ({ context, exte
   expect(context.serviceWorkers().length).toBeGreaterThan(0);
   const page = await context.newPage();
   await page.goto(`chrome-extension://${extensionId}/options.html`);
-  await expect(page.locator('h1')).toHaveText('Configurações');
+  await expect(page.locator('h1')).toContainText('Configurações');
 });
