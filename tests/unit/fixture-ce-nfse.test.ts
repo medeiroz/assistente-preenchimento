@@ -51,8 +51,6 @@ const EXPECTED_LABELS = [
   'Valor aproximado dos tributos federais (R$)',
 ];
 
-const FORBIDDEN_REAL_DATA: string[] = [];
-
 function loadDoc(): Document {
   return new DOMParser().parseFromString(html, 'text/html');
 }
@@ -111,9 +109,51 @@ describe('fixture ce-nfse-modal.html', () => {
     expect(labels).toEqual(EXPECTED_LABELS);
   });
 
-  it('não contém dados reais de clientes', () => {
-    for (const term of FORBIDDEN_REAL_DATA) {
-      expect(html, `termo proibido presente: ${term}`).not.toContain(term);
+  it('contém apenas dados fictícios conhecidos', () => {
+    const doc = loadDoc();
+    const inputValues = Array.from(doc.querySelectorAll('input'))
+      .map((input) => input.getAttribute('value') ?? '')
+      .filter((value) => value !== '');
+    const text = `${doc.body.textContent ?? ''}\n${inputValues.join('\n')}`;
+
+    const ALLOWED_CPF = ['123.456.789-09'];
+    const ALLOWED_PHONE = ['(11) 90000-0000'];
+    const ALLOWED_CEP = ['01000-000'];
+    const ALLOWED_SINGLES = ['Maria Exemplo Teste', 'São Paulo', 'Cidade Exemplo', '+55'];
+    const ALLOWED_INPUT_VALUES = [
+      '123.456.789-09',
+      'maria.exemplo@example.com',
+      '(11) 90000-0000',
+      '01000-000',
+      'Bairro Exemplo',
+      'Rua Exemplo',
+      '100',
+    ];
+
+    const cpfs = text.match(/(?<![\d.])\d{3}\.\d{3}\.\d{3}-\d{2}(?!\d)/g) ?? [];
+    for (const cpf of cpfs) expect(ALLOWED_CPF, `CPF não fictício: ${cpf}`).toContain(cpf);
+
+    const emails = text.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g) ?? [];
+    for (const email of emails) {
+      expect(email, `e-mail não fictício: ${email}`).toMatch(/@example\.com$/);
+    }
+
+    const phones = text.match(/\(\d{2}\) \d{4,5}-\d{4}/g) ?? [];
+    for (const phone of phones)
+      expect(ALLOWED_PHONE, `telefone não fictício: ${phone}`).toContain(phone);
+
+    const ceps = text.match(/(?<!\d)\d{5}-\d{3}(?!\d)/g) ?? [];
+    for (const cep of ceps) expect(ALLOWED_CEP, `CEP não fictício: ${cep}`).toContain(cep);
+
+    const singles = Array.from(doc.querySelectorAll('.multiselect__single')).map(
+      (el) => el.textContent?.trim() ?? '',
+    );
+    for (const single of singles) {
+      expect(ALLOWED_SINGLES, `valor de multiselect não fictício: ${single}`).toContain(single);
+    }
+
+    for (const value of inputValues) {
+      expect(ALLOWED_INPUT_VALUES, `valor de input não fictício: ${value}`).toContain(value);
     }
   });
 
