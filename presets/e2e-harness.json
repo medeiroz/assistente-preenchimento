@@ -1,0 +1,38 @@
+{
+  "id": "e2e-harness",
+  "name": "E2E — harness de NFS-e",
+  "enabled": true,
+  "trigger": {
+    "urlPatterns": ["http://localhost/*", "http://127.0.0.1/*"],
+    "container": {
+      "selector": ".eui-modal-wrapper.is-active",
+      "textContains": "Emitir Nota Fiscal de Serviços Eletrônica"
+    },
+    "settleMs": 300
+  },
+  "behavior": { "mode": "auto", "overwrite": "onlyIfDefault", "refill": "oncePerAppearance" },
+  "fields": [
+    {
+      "id": "nbs",
+      "enabled": true,
+      "locator": { "by": "label", "text": "Código NBS" },
+      "adapter": "auto",
+      "value": "126029000"
+    },
+    {
+      "id": "consumo-pessoal",
+      "enabled": true,
+      "locator": { "by": "label", "text": "Operação de uso ou consumo pessoal" },
+      "adapter": "auto",
+      "value": "Não"
+    },
+    {
+      "id": "interno",
+      "enabled": true,
+      "locator": { "by": "label", "text": "Código interno do contribuinte" },
+      "adapter": "auto",
+      "value": "{{ url.query.ref | default(\"sem-ref\") }}"
+    }
+  ],
+  "updatedAt": "2026-11-13T00:00:00.000Z"
+}

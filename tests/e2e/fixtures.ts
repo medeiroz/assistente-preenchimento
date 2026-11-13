@@ -3,7 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-const extensionPath = path.resolve(import.meta.dirname, '../../.output/chrome-mv3');
+const extensionPath = path.resolve(import.meta.dirname, '../../.output/chrome-mv3-e2e');
 
 export const test = base.extend<{ context: BrowserContext; extensionId: string }>({
   context: async ({}, use) => {
