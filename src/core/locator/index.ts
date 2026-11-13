@@ -1,2 +1,2 @@
-// Localização de campos na página (a implementar).
-export {};
+export { describeLocator } from './types';
+export type { LocateFn } from './types';

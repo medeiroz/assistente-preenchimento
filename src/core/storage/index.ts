@@ -1,2 +1,1 @@
-// ConfigRepository e implementações de armazenamento (a implementar).
-export {};
+export type { Unsubscribe, ConfigRepository, HistoryRepository } from './types';
