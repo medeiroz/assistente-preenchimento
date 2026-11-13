@@ -148,6 +148,103 @@
                 ></multiselect>
               </div>
             </div>
+            <div id="outros-campos" class="eui-section">
+              <h3>Outros campos</h3>
+              <div class="eui-field is-medium is-basic is-fullwidth eui-input-select-field">
+                <label :for="ids.distribuidora" class="eui-label">Distribuidora</label>
+                <div class="eui-control">
+                  <select :id="ids.distribuidora" v-model="distribuidora" class="eui-input">
+                    <option value="">Selecione</option>
+                    <option value="Energia Exemplo">Energia Exemplo</option>
+                    <option value="Luz Teste">Luz Teste</option>
+                  </select>
+                </div>
+              </div>
+              <div class="eui-field is-medium is-basic is-fullwidth eui-input-radio-field">
+                <label class="eui-label">Tipo de conta</label>
+                <div class="eui-control">
+                  <input
+                    :id="ids.tipoConta + '-res'"
+                    v-model="tipoConta"
+                    type="radio"
+                    name="tipo-conta"
+                    value="residencial"
+                  />
+                  <label :for="ids.tipoConta + '-res'">Residencial</label>
+                  <input
+                    :id="ids.tipoConta + '-com'"
+                    v-model="tipoConta"
+                    type="radio"
+                    name="tipo-conta"
+                    value="comercial"
+                  />
+                  <label :for="ids.tipoConta + '-com'">Comercial</label>
+                </div>
+              </div>
+              <div
+                class="eui-field is-medium is-basic is-fullwidth has-label-at-right eui-input-switch-field"
+              >
+                <label :for="ids.debitoAuto" class="eui-label">Débito automático</label>
+                <div class="eui-control">
+                  <input
+                    :id="ids.debitoAuto"
+                    v-model="debitoAuto"
+                    type="checkbox"
+                    class="eui-input eui-input-switch"
+                  />
+                </div>
+              </div>
+              <div
+                class="eui-field is-medium is-primary is-fullwidth has-label-at-top eui-input-toggle-field"
+              >
+                <label :for="ids.tipoPessoa" class="eui-label">Tipo de pessoa</label>
+                <div class="eui-control">
+                  <div
+                    :id="ids.tipoPessoa"
+                    class="eui-button-group is-medium is-primary is-grouped is-fullwidth"
+                  >
+                    <div class="eui-button-group-wrapper">
+                      <button
+                        type="button"
+                        class="eui-button is-medium is-primary"
+                        :class="tipoPessoa === 'Física' ? 'is-filled' : 'is-outlined'"
+                        @click="tipoPessoa = 'Física'"
+                      >
+                        Física
+                      </button>
+                      <button
+                        type="button"
+                        class="eui-button is-medium is-primary"
+                        :class="tipoPessoa === 'Jurídica' ? 'is-filled' : 'is-outlined'"
+                        @click="tipoPessoa = 'Jurídica'"
+                      >
+                        Jurídica
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="eui-field is-medium is-basic is-fullwidth eui-input-date-field">
+                <label :for="ids.vencimento" class="eui-label">Vencimento</label>
+                <div class="eui-control">
+                  <input :id="ids.vencimento" v-model="vencimento" type="date" class="eui-input" />
+                </div>
+              </div>
+              <div class="eui-field is-medium is-basic is-fullwidth eui-input-date-field">
+                <label :for="ids.competencia" class="eui-label">Data de competência</label>
+                <div class="eui-control">
+                  <input
+                    :id="ids.competencia"
+                    v-model="competencia"
+                    type="text"
+                    placeholder="Digite"
+                    autocomplete="off"
+                    data-cy="default-input-date"
+                    class="eui-input eui-input-datepicker"
+                  />
+                </div>
+              </div>
+            </div>
             <div v-if="late" id="mais-campos" class="eui-section">
               <h3>Mais campos</h3>
               <div

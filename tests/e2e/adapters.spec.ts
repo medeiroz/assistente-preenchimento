@@ -15,7 +15,7 @@ declare global {
   }
 }
 
-type Which = 'native-text' | 'vue-multiselect';
+type Which = 'native-text' | 'vue-multiselect' | 'native-select' | 'native-choice' | 'date';
 type Call =
   | { op: 'write'; value: string }
   | { op: 'read' }
@@ -50,9 +50,16 @@ function run(page: Page, label: string, which: Which, call: Call) {
       );
       const root = found?.closest('.eui-field');
       if (!root) throw new Error(`campo não encontrado: ${label}`);
-      const { registry, nativeTextAdapter, vueMultiselectAdapter } = window.__adapters;
+      const adapters = window.__adapters;
+      const { registry } = adapters;
       if (call.op === 'resolve') return { value: registry.resolve(root, 'auto')?.id ?? null };
-      const adapter = which === 'native-text' ? nativeTextAdapter : vueMultiselectAdapter;
+      const adapter = {
+        'native-text': adapters.nativeTextAdapter,
+        'vue-multiselect': adapters.vueMultiselectAdapter,
+        'native-select': adapters.nativeSelectAdapter,
+        'native-choice': adapters.nativeChoiceAdapter,
+        date: adapters.dateAdapter,
+      }[which];
       try {
         if (call.op === 'write') {
           await adapter.write(root, call.value);
@@ -182,4 +189,98 @@ test('registry.resolve("auto") escolhe o adaptador certo por campo', async ({ pa
   for (const [label, id] of expected) {
     expect(await run(page, label, id, { op: 'resolve' })).toEqual({ value: id });
   }
+});
+
+test.describe('adapters extras no harness ("Outros campos")', () => {
+  test('native-select escolhe a distribuidora e o modelo Vue recebe', async ({ page }) => {
+    await openModal(page);
+    expect(await run(page, 'Distribuidora', 'native-select', { op: 'isDefault' })).toEqual({
+      value: true,
+    });
+    expect(
+      await run(page, 'Distribuidora', 'native-select', { op: 'write', value: 'Luz Teste' }),
+    ).toEqual({ value: true });
+    expect((await state(page)).distribuidora).toBe('Luz Teste');
+    expect(await run(page, 'Distribuidora', 'native-select', { op: 'read' })).toEqual({
+      value: 'Luz Teste',
+    });
+    const before = await state(page);
+    expect(
+      await run(page, 'Distribuidora', 'native-select', { op: 'write', value: 'Inexistente' }),
+    ).toEqual({ error: 'option-not-found' });
+    expect(await state(page)).toEqual(before);
+    await expectNoEscape(page);
+  });
+
+  test('native-choice: radios, checkbox e toggle atualizam o estado Vue', async ({ page }) => {
+    await openModal(page);
+    expect(await run(page, 'Tipo de conta', 'native-choice', { op: 'isDefault' })).toEqual({
+      value: true,
+    });
+    expect(
+      await run(page, 'Tipo de conta', 'native-choice', { op: 'write', value: 'Comercial' }),
+    ).toEqual({ value: true });
+    expect((await state(page)).tipoConta).toBe('comercial');
+
+    expect(
+      await run(page, 'Débito automático', 'native-choice', { op: 'write', value: 'Sim' }),
+    ).toEqual({ value: true });
+    expect((await state(page)).debitoAuto).toBe(true);
+    expect(
+      await run(page, 'Débito automático', 'native-choice', { op: 'write', value: 'quem sabe' }),
+    ).toEqual({ error: 'write-failed' });
+    expect((await state(page)).debitoAuto).toBe(true);
+    await run(page, 'Débito automático', 'native-choice', { op: 'write', value: 'off' });
+    expect((await state(page)).debitoAuto).toBe(false);
+
+    expect(await run(page, 'Tipo de pessoa', 'native-choice', { op: 'read' })).toEqual({
+      value: 'Física',
+    });
+    expect(
+      await run(page, 'Tipo de pessoa', 'native-choice', { op: 'write', value: 'Jurídica' }),
+    ).toEqual({ value: true });
+    expect((await state(page)).tipoPessoa).toBe('Jurídica');
+    await expect(
+      page.locator('.eui-field:has(label:text-is("Tipo de pessoa")) button.is-filled'),
+    ).toHaveText('Jurídica');
+    await expectNoEscape(page);
+  });
+
+  test('date escreve em type=date e no datepicker de texto', async ({ page }) => {
+    await openModal(page);
+    expect(await run(page, 'Vencimento', 'date', { op: 'write', value: '15/08/2026' })).toEqual({
+      value: true,
+    });
+    expect((await state(page)).vencimento).toBe('2026-08-15');
+    expect(await run(page, 'Vencimento', 'date', { op: 'read' })).toEqual({ value: '15/08/2026' });
+
+    expect(
+      await run(page, 'Data de competência', 'date', { op: 'write', value: '2026-01-31' }),
+    ).toEqual({ value: true });
+    expect((await state(page)).competencia).toBe('31/01/2026');
+    expect(await run(page, 'Data de competência', 'date', { op: 'isDefault' })).toEqual({
+      value: false,
+    });
+    expect(
+      await run(page, 'Data de competência', 'date', { op: 'write', value: '31/02/2026' }),
+    ).toEqual({ error: 'write-failed' });
+    expect((await state(page)).competencia).toBe('31/01/2026');
+    await expectNoEscape(page);
+  });
+
+  test('registry auto resolve os campos extras', async ({ page }) => {
+    await openModal(page);
+    const expected: [string, Which][] = [
+      ['Distribuidora', 'native-select'],
+      ['Tipo de conta', 'native-choice'],
+      ['Débito automático', 'native-choice'],
+      ['Tipo de pessoa', 'native-choice'],
+      ['Vencimento', 'date'],
+      ['Data de competência', 'date'],
+      ['Código NBS', 'native-text'],
+    ];
+    for (const [label, id] of expected) {
+      expect(await run(page, label, id, { op: 'resolve' })).toEqual({ value: id });
+    }
+  });
 });

@@ -1,6 +1,9 @@
 import type { AdapterId } from '../model';
 import type { AdapterRegistry, FieldAdapter } from './types';
 import { nativeTextAdapter } from './native-text';
+import { nativeSelectAdapter } from './native-select';
+import { nativeChoiceAdapter } from './native-choice';
+import { dateAdapter } from './date';
 import { vueMultiselectAdapter } from './vue-multiselect';
 
 export function createAdapterRegistry(): AdapterRegistry {
@@ -24,6 +27,9 @@ export function createAdapterRegistry(): AdapterRegistry {
 export function createDefaultRegistry(): AdapterRegistry {
   const registry = createAdapterRegistry();
   registry.register(vueMultiselectAdapter, 100);
+  registry.register(dateAdapter, 90);
+  registry.register(nativeSelectAdapter, 80);
+  registry.register(nativeChoiceAdapter, 70);
   registry.register(nativeTextAdapter, 10);
   return registry;
 }

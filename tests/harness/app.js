@@ -8,7 +8,20 @@
   var lateTimer = null;
 
   function emptyState() {
-    return { descricao: '', nbs: '', consumo: null, governamental: null, nome: null, interno: '' };
+    return {
+      descricao: '',
+      nbs: '',
+      consumo: null,
+      governamental: null,
+      nome: null,
+      interno: '',
+      distribuidora: '',
+      tipoConta: '',
+      debitoAuto: false,
+      tipoPessoa: 'Física',
+      vencimento: '',
+      competencia: '',
+    };
   }
 
   var vm = new Vue({
@@ -54,6 +67,12 @@
           governamental: String(++counter),
           nome: String(++counter),
           interno: String(++counter),
+          distribuidora: String(++counter),
+          tipoConta: String(++counter),
+          debitoAuto: String(++counter),
+          tipoPessoa: String(++counter),
+          vencimento: String(++counter),
+          competencia: String(++counter),
         };
         this.late = false;
         this.confirmOpen = false;
@@ -114,6 +133,12 @@
         governamental: vm.governamental,
         nome: vm.nome,
         interno: vm.interno,
+        distribuidora: vm.distribuidora,
+        tipoConta: vm.tipoConta,
+        debitoAuto: vm.debitoAuto,
+        tipoPessoa: vm.tipoPessoa,
+        vencimento: vm.vencimento,
+        competencia: vm.competencia,
       };
     },
     open: function (preset) {
