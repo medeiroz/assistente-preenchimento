@@ -22,6 +22,10 @@ export interface Controller {
   runNow(ruleId?: string): Promise<RunReport[]>;
   lastReport(): RunReport | null;
   setRules(rules: Rule[]): void;
+  setVariables(vars: Record<string, string>): void;
+  undo(ruleId?: string): Promise<RunReport[]>;
+  /** Regras com watcher ativo para a URL atual. */
+  activeRules(): Rule[];
 }
 
 interface Entry {
@@ -44,6 +48,7 @@ export function createController(o: ControllerOptions): Controller {
   const win = o.window;
   const adapters = createDefaultRegistry();
   let rules = o.rules;
+  let variables = o.variables ?? {};
   let running = false;
   let last: RunReport | null = null;
   let urlWatcher: UrlWatcher | undefined;
@@ -79,7 +84,7 @@ export function createController(o: ControllerOptions): Controller {
       adapters,
       resolveValue: (template) =>
         resolveValue(template, {
-          variables: o.variables ?? {},
+          variables,
           url: new URL(win.location.href),
           now: new Date(),
           field: fieldValue,
@@ -164,7 +169,9 @@ export function createController(o: ControllerOptions): Controller {
     const wanted = rulesForUrl(rules, win.location.href);
     for (const [id, a] of [...active]) {
       const w = wanted.find((r) => r.id === id);
-      const restart = !w || w !== a.rule || (urlChanged && !a.rule.trigger.container);
+      const changed = !!w && w !== a.rule && JSON.stringify(w) !== JSON.stringify(a.rule);
+      const restart = !w || changed || (urlChanged && !a.rule.trigger.container);
+      if (!restart && w) a.rule = w;
       if (restart) {
         stopActive(a);
         active.delete(id);
@@ -199,6 +206,23 @@ export function createController(o: ControllerOptions): Controller {
         }
       }
       return out;
+    },
+    async undo(ruleId) {
+      const out: RunReport[] = [];
+      for (const a of [...active.values()]) {
+        if (ruleId !== undefined && a.rule.id !== ruleId) continue;
+        for (const entry of [...a.entries.values()]) {
+          const r = await entry.session.undo();
+          last = r;
+          o.ui.showReport(r);
+          out.push(r);
+        }
+      }
+      return out;
+    },
+    activeRules: () => [...active.values()].map((a) => a.rule),
+    setVariables(vars) {
+      variables = vars;
     },
     lastReport: () => last,
     setRules(next) {

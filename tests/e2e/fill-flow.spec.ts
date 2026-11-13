@@ -28,6 +28,25 @@ test.afterAll(async () => {
   await stop();
 });
 
+// As regras vêm do storage (semeado pelo background): espera o seed antes de abrir o harness.
+test.beforeEach(async ({ context, extensionId }) => {
+  const ext = await context.newPage();
+  await ext.goto(`chrome-extension://${extensionId}/options.html`);
+  await expect
+    .poll(() =>
+      ext.evaluate(async () => {
+        const c = (
+          globalThis as unknown as {
+            chrome: { storage: { sync: { get(k: string): Promise<Record<string, unknown>> } } };
+          }
+        ).chrome;
+        return 'rule:e2e-harness' in (await c.storage.sync.get('rule:e2e-harness'));
+      }),
+    )
+    .toBe(true);
+  await ext.close();
+});
+
 const state = (page: Page) => page.evaluate(() => window.__harness.getState());
 const field = (page: Page, label: string) =>
   page.locator(`.eui-field:has(label.eui-label:text-is("${label}"))`);
