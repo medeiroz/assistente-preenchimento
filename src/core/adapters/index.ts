@@ -1,2 +1,2 @@
-// Adaptadores de campo: texto, select, multiselect (a implementar).
-export {};
+export { AdapterError } from './types';
+export type { FieldAdapter, AdapterRegistry } from './types';

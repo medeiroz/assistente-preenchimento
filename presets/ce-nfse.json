@@ -1,0 +1,31 @@
+{
+  "id": "ce-nfse-basico",
+  "name": "CE — NFS-e: NBS e consumo pessoal",
+  "enabled": true,
+  "trigger": {
+    "urlPatterns": ["https://app.clinicaexperts.com.br/*"],
+    "container": {
+      "selector": ".eui-modal-wrapper.is-active",
+      "textContains": "Emitir Nota Fiscal de Serviços Eletrônica"
+    },
+    "settleMs": 300
+  },
+  "behavior": { "mode": "auto", "overwrite": "onlyIfDefault", "refill": "oncePerAppearance" },
+  "fields": [
+    {
+      "id": "nbs",
+      "enabled": true,
+      "locator": { "by": "label", "text": "Código NBS" },
+      "adapter": "auto",
+      "value": "126029000"
+    },
+    {
+      "id": "consumo-pessoal",
+      "enabled": true,
+      "locator": { "by": "label", "text": "Operação de uso ou consumo pessoal" },
+      "adapter": "auto",
+      "value": "Não"
+    }
+  ],
+  "updatedAt": "2026-11-13T00:00:00.000Z"
+}

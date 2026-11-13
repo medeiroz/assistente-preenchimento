@@ -1,2 +1,2 @@
-// Mensagens entre contextos e utilitários (a implementar).
-export {};
+export { isMessage } from './messages';
+export type { Message, MessageMap, MessageResponse } from './messages';
