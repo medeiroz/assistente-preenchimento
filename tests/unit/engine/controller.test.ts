@@ -45,11 +45,17 @@ const tick = (ms: number) => vi.advanceTimersByTimeAsync(ms);
 
 describe('createController', () => {
   let controller: Controller | undefined;
-  const showReport = vi.fn<(r: RunReport) => void>();
+  const showReport = vi.fn<(r: RunReport, actions?: { undo?: () => void }) => void>();
+  const showActionButton = vi.fn<(id: string, label: string, onClick: () => void) => void>();
+  const hideActionButton = vi.fn<(id: string) => void>();
   const highlight = vi.fn<(roots: Element[]) => void>();
 
   function make(rules: Rule[]): Controller {
-    controller = createController({ window, rules, ui: { showReport, highlight } });
+    controller = createController({
+      window,
+      rules,
+      ui: { showReport, highlight, showActionButton, hideActionButton },
+    });
     controller.start();
     return controller;
   }
@@ -59,6 +65,8 @@ describe('createController', () => {
     document.body.innerHTML = '';
     (window as unknown as { happyDOM: { setURL(u: string): void } }).happyDOM.setURL(BASE);
     showReport.mockReset();
+    showActionButton.mockReset();
+    hideActionButton.mockReset();
     highlight.mockReset();
   });
 
@@ -168,5 +176,76 @@ describe('createController', () => {
     expect(input('a').value).toBe('1');
     expect(showReport).not.toHaveBeenCalled();
     expect(highlight).not.toHaveBeenCalled();
+  });
+
+  describe('modo botão e desfazer', () => {
+    it('mode button não preenche ao aparecer e mostra o botão; clique preenche e esconde', async () => {
+      make([makeRule({ mode: 'button' })]);
+      addModal();
+      await tick(SETTLE + 50);
+      expect(input('a').value).toBe('');
+      expect(showReport).not.toHaveBeenCalled();
+      expect(showActionButton).toHaveBeenCalledTimes(1);
+      expect(showActionButton.mock.calls[0]?.[0]).toBe('r1');
+      expect(showActionButton.mock.calls[0]?.[1]).toBe('Preencher: Regra de teste');
+      showActionButton.mock.calls[0]?.[2]();
+      await tick(50);
+      expect(input('a').value).toBe('valor-a');
+      expect(input('b').value).toBe('valor-b');
+      expect(hideActionButton).toHaveBeenCalledWith('r1');
+      expect(showReport).toHaveBeenCalledTimes(1);
+    });
+
+    it('respeita "só se padrão" com o snapshot da aparição', async () => {
+      make([makeRule({ mode: 'button' })]);
+      addModal(modalHtml('existente', ''));
+      await tick(SETTLE + 50);
+      showActionButton.mock.calls[0]?.[2]();
+      await tick(50);
+      expect(input('a').value).toBe('existente');
+      expect(input('b').value).toBe('valor-b');
+    });
+
+    it('onGone esconde o botão', async () => {
+      make([makeRule({ mode: 'button' })]);
+      const el = addModal();
+      await tick(SETTLE + 50);
+      hideActionButton.mockReset();
+      el.remove();
+      await tick(SETTLE + 50);
+      expect(hideActionButton).toHaveBeenCalledWith('r1');
+    });
+
+    it('um botão por regra', async () => {
+      make([makeRule({ mode: 'button', id: 'r1' }), makeRule({ mode: 'button', id: 'r2' })]);
+      addModal();
+      await tick(SETTLE + 50);
+      expect(showActionButton.mock.calls.map((c) => c[0]).sort()).toEqual(['r1', 'r2']);
+    });
+
+    it('toast recebe actions.undo quando há filled; undo restaura e reporta', async () => {
+      make([makeRule()]);
+      addModal();
+      await tick(SETTLE + 50);
+      const actions = showReport.mock.calls[0]?.[1];
+      expect(actions?.undo).toBeTypeOf('function');
+      actions?.undo?.();
+      await tick(50);
+      expect(input('a').value).toBe('');
+      expect(showReport).toHaveBeenCalledTimes(2);
+      expect(showReport.mock.calls[1]?.[1]).toBeUndefined();
+      expect(showReport.mock.calls[1]?.[0].fields.map((f) => f.message)).toEqual([
+        'desfeito',
+        'desfeito',
+      ]);
+    });
+
+    it('sem campos filled o toast não recebe actions', async () => {
+      make([makeRule()]);
+      addModal('<div class="modal is-active"><h1>Emitir nota</h1></div>');
+      await tick(SETTLE + 50);
+      expect(showReport).toHaveBeenCalled();
+      expect(showReport.mock.calls[0]?.[1]).toBeUndefined();
+    });
   });
 });
