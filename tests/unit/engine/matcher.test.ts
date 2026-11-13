@@ -26,6 +26,12 @@ function rule(id: string, enabled: boolean, urlPattern: string, mode = 'auto'): 
 }
 
 describe('matchesUrlPattern', () => {
+  it('ignora a porta da URL (como o Chrome)', () => {
+    expect(matchesUrlPattern('http://localhost/*', 'http://localhost:5173/x?a=1')).toBe(true);
+    expect(matchesUrlPattern('http://127.0.0.1/*', 'http://127.0.0.1:8080/')).toBe(true);
+    expect(matchesUrlPattern('http://localhost/*', 'http://localhost.evil.com:80/')).toBe(false);
+  });
+
   it('casa host exato com path curinga', () => {
     const p = 'https://app.clinicaexperts.com.br/*';
     expect(matchesUrlPattern(p, 'https://app.clinicaexperts.com.br/')).toBe(true);
