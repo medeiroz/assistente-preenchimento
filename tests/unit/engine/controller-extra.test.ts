@@ -45,7 +45,7 @@ describe('controller: variáveis, undo e regras ativas', () => {
       window,
       rules,
       variables,
-      ui: { showReport, highlight: vi.fn() },
+      ui: { showReport, highlight: vi.fn(), showActionButton: vi.fn(), hideActionButton: vi.fn() },
     });
     controller.start();
     return controller;

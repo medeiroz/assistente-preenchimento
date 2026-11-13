@@ -12,7 +12,12 @@ export interface ControllerOptions {
   window: Window;
   rules: Rule[];
   variables?: Record<string, string>;
-  ui: { showReport(r: RunReport): void; highlight(roots: Element[]): void };
+  ui: {
+    showReport(r: RunReport, actions?: { undo?: () => void }): void;
+    highlight(roots: Element[]): void;
+    showActionButton(id: string, label: string, onClick: () => void): void;
+    hideActionButton(id: string): void;
+  };
   onReport?(r: RunReport): void;
 }
 
@@ -62,7 +67,20 @@ export function createController(o: ControllerOptions): Controller {
     }
     last = shown;
     o.onReport?.(shown);
-    if (shown.fields.some((f) => NOTABLE.has(f.outcome))) o.ui.showReport(shown);
+    if (shown.fields.some((f) => NOTABLE.has(f.outcome))) {
+      const canUndo = shown.fields.some((f) => f.outcome === 'filled');
+      if (canUndo) {
+        o.ui.showReport(shown, {
+          undo: () => {
+            doUndo(a.rule.id).catch((e: unknown) =>
+              console.warn('[assistente] falha ao desfazer', e),
+            );
+          },
+        });
+      } else {
+        o.ui.showReport(shown);
+      }
+    }
     const roots: Element[] = [];
     for (const f of raw.fields) {
       if (f.outcome !== 'filled') continue;
@@ -71,6 +89,35 @@ export function createController(o: ControllerOptions): Controller {
       if (root) roots.push(root);
     }
     if (roots.length > 0) o.ui.highlight(roots);
+  }
+
+  async function doUndo(ruleId?: string): Promise<RunReport[]> {
+    const out: RunReport[] = [];
+    for (const a of [...active.values()]) {
+      if (ruleId !== undefined && a.rule.id !== ruleId) continue;
+      for (const entry of [...a.entries.values()]) {
+        const r = await entry.session.undo();
+        last = r;
+        o.ui.showReport(r);
+        out.push(r);
+      }
+    }
+    return out;
+  }
+
+  function showButton(a: Active): void {
+    o.ui.showActionButton(a.rule.id, `Preencher: ${a.rule.name}`, () => {
+      if (!running || active.get(a.rule.id) !== a) return;
+      o.ui.hideActionButton(a.rule.id);
+      for (const entry of [...a.entries.values()]) {
+        entry.session
+          .fill('auto')
+          .then((r) => {
+            if (running && !entry.session.ended) reportResult(a, entry, r);
+          })
+          .catch((e: unknown) => console.warn('[assistente] falha ao preencher', e));
+      }
+    });
   }
 
   function makeSession(rule: Rule, el: Element): FillSession {
@@ -101,6 +148,10 @@ export function createController(o: ControllerOptions): Controller {
     const entry: Entry = { session: makeSession(a.rule, el), fields: new Map() };
     a.entries.set(el, entry);
     entry.session.snapshot();
+    if (a.rule.behavior.mode === 'button') {
+      showButton(a);
+      return;
+    }
     if (a.rule.behavior.mode !== 'auto') return;
     entry.session
       .fill('auto')
@@ -132,6 +183,7 @@ export function createController(o: ControllerOptions): Controller {
   function onGone(a: Active, el: Element): void {
     a.entries.get(el)?.session.end();
     a.entries.delete(el);
+    if (a.entries.size === 0) o.ui.hideActionButton(a.rule.id);
   }
 
   function stopActive(a: Active): void {
@@ -140,6 +192,7 @@ export function createController(o: ControllerOptions): Controller {
     a.timer = undefined;
     for (const e of a.entries.values()) e.session.end();
     a.entries.clear();
+    o.ui.hideActionButton(a.rule.id);
   }
 
   function startActive(rule: Rule): void {
@@ -207,19 +260,7 @@ export function createController(o: ControllerOptions): Controller {
       }
       return out;
     },
-    async undo(ruleId) {
-      const out: RunReport[] = [];
-      for (const a of [...active.values()]) {
-        if (ruleId !== undefined && a.rule.id !== ruleId) continue;
-        for (const entry of [...a.entries.values()]) {
-          const r = await entry.session.undo();
-          last = r;
-          o.ui.showReport(r);
-          out.push(r);
-        }
-      }
-      return out;
-    },
+    undo: doUndo,
     activeRules: () => [...active.values()].map((a) => a.rule),
     setVariables(vars) {
       variables = vars;
