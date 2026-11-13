@@ -11,6 +11,7 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "e2e": "npm run build && playwright test",
+    "harness": "node tests/e2e/harness-server.ts",
     "postinstall": "wxt prepare"
   },
   "devDependencies": {
@@ -24,7 +25,9 @@
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.72.2",
     "vitest": "^5.1.0",
+    "vue-multiselect-v2": "npm:vue-multiselect@2.1.9",
     "vue-tsc": "^3.3.14",
+    "vue2": "npm:vue@2.7.16",
     "wxt": "^0.21.5"
   },
   "dependencies": {
