@@ -10,7 +10,8 @@ export default defineConfig({
   manifest: ({ mode }) => ({
     name: 'Assistente de Preenchimento',
     description: 'Preenche formulários automaticamente a partir de regras configuráveis.',
-    permissions: ['storage', 'scripting', 'activeTab'],
+    // "tabs" só no build e2e: permite ao teste achar o tabId do harness por URL.
+    permissions: ['storage', 'scripting', 'activeTab', ...(mode === 'e2e' ? ['tabs'] : [])],
     host_permissions: ['https://app.clinicaexperts.com.br/*', ...(mode === 'e2e' ? E2E_HOSTS : [])],
     optional_host_permissions: ['https://*/*'],
   }),
