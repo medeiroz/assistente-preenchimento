@@ -1,25 +1,13 @@
 import { createController, type Controller } from '../../core/engine';
-import { parseRule, type Rule } from '../../core/model';
-import { isMessage } from '../../shared/messages';
-import ceNfse from '../../../presets/ce-nfse.json';
+import type { Config, RunReport } from '../../core/model';
+import { chromeHistoryRepository, chromeSyncRepository } from '../../core/storage';
+import { isMessage, type TabStatus } from '../../shared/messages';
 import { createPageUi } from './page-ui';
 
 const E2E = import.meta.env.MODE === 'e2e';
 
-function parsePresets(raw: unknown[]): Rule[] {
-  const rules: Rule[] = [];
-  for (const item of raw) {
-    const r = parseRule(item);
-    if (r.ok) rules.push(r.rule);
-    else console.warn('[assistente] preset inválido descartado:', r.errors.join('; '));
-  }
-  return rules;
-}
-
-async function loadRules(): Promise<Rule[]> {
-  const raw: unknown[] = [ceNfse];
-  if (E2E) raw.push((await import('../../../presets/e2e-harness.json')).default);
-  return parsePresets(raw);
+function varsOf(config: Config): Record<string, string> {
+  return Object.fromEntries(config.variables.map((v) => [v.key, v.value]));
 }
 
 export default defineContentScript({
@@ -27,23 +15,71 @@ export default defineContentScript({
     ? ['https://app.clinicaexperts.com.br/*', 'http://localhost/*', 'http://127.0.0.1/*']
     : ['https://app.clinicaexperts.com.br/*'],
   async main() {
+    const repo = chromeSyncRepository();
+    const history = chromeHistoryRepository();
+    const host = location.hostname;
+    let config = await repo.load();
+
     const controller: Controller = createController({
       window,
-      rules: await loadRules(),
+      rules: config.rules,
+      variables: varsOf(config),
       ui: createPageUi(),
+      onReport: (r: RunReport) => {
+        history.append(r).catch((e: unknown) => console.warn('[assistente] histórico', e));
+      },
     });
-    controller.start();
+
+    const isPaused = (): boolean => config.settings.pausedHosts.includes(host);
+    let started = false;
+    function applyPause(): void {
+      const paused = isPaused();
+      if (paused && started) {
+        controller.stop();
+        started = false;
+      } else if (!paused && !started) {
+        controller.start();
+        started = true;
+      }
+    }
+    applyPause();
+
+    repo.onChange((next) => {
+      config = next;
+      controller.setVariables(varsOf(next));
+      controller.setRules(next.rules);
+      applyPause();
+    });
 
     browser.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
       if (!isMessage(message)) return false;
-      if (message.type === 'run/now') {
-        controller.runNow(message.payload.ruleId).then(sendResponse);
-        return true;
+      switch (message.type) {
+        case 'run/now':
+          controller.runNow(message.payload.ruleId).then(sendResponse);
+          return true;
+        case 'run/undo':
+          controller.undo(message.payload.ruleId).then(sendResponse);
+          return true;
+        case 'run/last-report':
+          sendResponse(controller.lastReport());
+          return false;
+        case 'tab/status': {
+          const status: TabStatus = {
+            host,
+            paused: isPaused(),
+            activeRules: controller.activeRules().map((r) => ({
+              id: r.id,
+              name: r.name,
+              mode: r.behavior.mode,
+            })),
+            lastReport: controller.lastReport(),
+          };
+          sendResponse(status);
+          return false;
+        }
+        default:
+          return false;
       }
-      if (message.type === 'run/last-report') {
-        sendResponse(controller.lastReport());
-      }
-      return false;
     });
   },
 });

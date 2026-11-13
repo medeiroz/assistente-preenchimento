@@ -137,6 +137,8 @@ describe('isMessage', () => {
   it('aceita mensagens conhecidas', () => {
     expect(isMessage({ type: 'config/get' })).toBe(true);
     expect(isMessage({ type: 'run/now', payload: { ruleId: 'a' } })).toBe(true);
+    expect(isMessage({ type: 'run/undo', payload: {} })).toBe(true);
+    expect(isMessage({ type: 'tab/status' })).toBe(true);
     expect(isMessage({ type: 'site/pause', payload: { host: 'a.com', paused: true } })).toBe(true);
   });
 

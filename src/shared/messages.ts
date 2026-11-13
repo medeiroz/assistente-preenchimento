@@ -1,5 +1,12 @@
 import type { Config, RunReport } from '../core/model';
 
+export interface TabStatus {
+  host: string;
+  paused: boolean;
+  activeRules: { id: string; name: string; mode: 'auto' | 'button' | 'off' }[];
+  lastReport: RunReport | null;
+}
+
 /** Mapa tipo da mensagem -> payload e resposta. Fonte única de verdade. */
 export interface MessageMap {
   'config/get': { payload: undefined; response: Config };
@@ -7,6 +14,8 @@ export interface MessageMap {
   'config/changed': { payload: Config; response: void };
   'run/now': { payload: { ruleId?: string }; response: RunReport[] };
   'run/last-report': { payload: undefined; response: RunReport | null };
+  'run/undo': { payload: { ruleId?: string }; response: RunReport[] };
+  'tab/status': { payload: undefined; response: TabStatus };
   'site/pause': { payload: { host: string; paused: boolean }; response: void };
 }
 
@@ -23,6 +32,8 @@ const MESSAGE_TYPES: ReadonlySet<string> = new Set<keyof MessageMap>([
   'config/changed',
   'run/now',
   'run/last-report',
+  'run/undo',
+  'tab/status',
   'site/pause',
 ]);
 
