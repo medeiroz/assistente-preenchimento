@@ -550,3 +550,37 @@ summary {
     grid-template-columns: 1fr;
   }
 }
+
+/* variáveis e pré-visualização */
+.var-list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.var-row .hint {
+  margin: 2px 0 6px;
+}
+
+.preview {
+  margin: 4px 0 0;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.preview.ok .preview-value {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+
+.preview.warn {
+  color: var(--warn-text);
+  background: var(--warn-bg);
+  border-radius: 6px;
+  padding: 3px 8px;
+}
+
+.example-url {
+  margin: 0 0 14px;
+}

@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { chromeHistoryRepository } from '../../core/storage';
-import type { Rule } from '../../core/model';
+import type { Rule, Variable } from '../../core/model';
 import RuleList from './components/RuleList.vue';
 import RuleEditor from './components/RuleEditor.vue';
 import HistoryView from './components/HistoryView.vue';
+import VariablesView from './components/VariablesView.vue';
 import ImportExport from './components/ImportExport.vue';
 import { useConfig } from './composables/useConfig';
 import { duplicateRule, newRuleDraft, ruleToDraft, type RuleDraft } from './composables/draft';
@@ -12,6 +13,7 @@ import { duplicateRule, newRuleDraft, ruleToDraft, type RuleDraft } from './comp
 // Para incluir uma aba nova (ex.: Variáveis), acrescente aqui e um painel no template.
 const TABS = [
   { id: 'rules', label: 'Regras' },
+  { id: 'variables', label: 'Variáveis' },
   { id: 'history', label: 'Histórico' },
   { id: 'import-export', label: 'Importar/Exportar' },
 ] as const;
@@ -74,6 +76,12 @@ async function saveRule(rule: Rule): Promise<void> {
   await reload();
   editing.value = null;
   showNotice('ok', 'Regra salva');
+}
+
+async function saveVariables(variables: Variable[]): Promise<void> {
+  await repo.saveVariables(variables);
+  await reload();
+  showNotice('ok', 'Variáveis salvas');
 }
 
 // ------------------------------------------------------------ ações da lista
@@ -156,6 +164,7 @@ watch(tab, () => (notice.value = null));
           :key="editing.token"
           :initial="editing.draft"
           :existing-ids="existingIds"
+          :variables="config.variables"
           :external-change="externalChange"
           :save="saveRule"
           @cancel="editing = null"
@@ -170,6 +179,20 @@ watch(tab, () => (notice.value = null));
           @duplicate="copyRule"
           @remove="removeRule"
           @toggle="toggleRule"
+        />
+      </div>
+
+      <div
+        v-show="tab === 'variables'"
+        id="panel-variables"
+        role="tabpanel"
+        aria-labelledby="tab-variables"
+      >
+        <VariablesView
+          :variables="config.variables"
+          :rules="config.rules"
+          :loaded="loaded"
+          :save="saveVariables"
         />
       </div>
 
