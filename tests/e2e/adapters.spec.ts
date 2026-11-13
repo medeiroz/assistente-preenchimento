@@ -10,6 +10,8 @@ declare global {
       close(): void;
       hideViaClass(): void;
     };
+    __escapeCount: number;
+    __cancelled: boolean;
   }
 }
 
@@ -72,6 +74,13 @@ const dropdownClosed = async (page: Page, label: string) =>
   expect(
     page.locator(`.eui-field:has(label.eui-label:text-is("${label}")) .multiselect--active`),
   ).toHaveCount(0);
+/** Nenhum Escape chegou ao document e o diálogo de cancelamento nunca apareceu. */
+async function expectNoEscape(page: Page) {
+  expect(await page.evaluate(() => window.__escapeCount)).toBe(0);
+  expect(await page.evaluate(() => window.__cancelled)).toBe(false);
+  await expect(page.locator('.eui-confirm-wrapper')).toHaveCount(0);
+  await expect(page.getByText('Deseja cancelar a emissão da nota?')).toBeHidden();
+}
 const single = (page: Page, label: string) =>
   page.locator(`.eui-field:has(label.eui-label:text-is("${label}")) .multiselect__single`);
 
@@ -91,6 +100,7 @@ test('vue-multiselect seleciona "Não" e fecha o dropdown', async ({ page }) => 
   expect(((await state(page)).consumo as { id: number }).id).toBe(0);
   await expect(single(page, CONSUMO)).toHaveText('Não');
   await dropdownClosed(page, CONSUMO);
+  await expectNoEscape(page);
 });
 
 test('selecionar "Sim" depois de "Não" troca o valor', async ({ page }) => {
@@ -100,6 +110,7 @@ test('selecionar "Sim" depois de "Não" troca o valor', async ({ page }) => {
   expect(((await state(page)).consumo as { id: number }).id).toBe(1);
   await expect(single(page, CONSUMO)).toHaveText('Sim');
   await dropdownClosed(page, CONSUMO);
+  await expectNoEscape(page);
 });
 
 test('opção inexistente lança option-not-found e não altera o estado', async ({ page }) => {
@@ -111,6 +122,7 @@ test('opção inexistente lança option-not-found e não altera o estado', async
   });
   expect(await state(page)).toEqual(before);
   await dropdownClosed(page, CONSUMO);
+  await expectNoEscape(page);
 });
 
 test('select pesquisável "Nome" seleciona nome existente e rejeita inexistente', async ({
@@ -123,12 +135,14 @@ test('select pesquisável "Nome" seleciona nome existente e rejeita inexistente'
   expect(((await state(page)).nome as { id: number }).id).toBe(2);
   await expect(single(page, 'Nome')).toHaveText('Bruno Teste');
   await dropdownClosed(page, 'Nome');
+  await expectNoEscape(page);
 
   expect(await run(page, 'Nome', 'vue-multiselect', { op: 'write', value: 'Zé Ninguém' })).toEqual({
     error: 'option-not-found',
   });
   expect(((await state(page)).nome as { id: number }).id).toBe(2);
   await dropdownClosed(page, 'Nome');
+  await expectNoEscape(page);
 });
 
 test('isDefault: true no modal vazio', async ({ page }) => {
