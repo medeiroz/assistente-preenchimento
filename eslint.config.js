@@ -12,6 +12,7 @@ export default tseslint.config(
       'test-results/**',
       'coverage/**',
       'dist/**',
+      '.*/**',
     ],
   },
   ...tseslint.configs.recommended,
