@@ -12,6 +12,7 @@ import {
 } from '../composables/draft';
 import { defaultExampleUrl, parseExampleUrl } from '../composables/preview';
 import FieldTable from './FieldTable.vue';
+import { classifyOrigins, hostOfOrigin } from '../../../shared/permissions';
 
 const props = defineProps<{
   initial: RuleDraft;
@@ -59,6 +60,9 @@ function err(key: string): string | null {
   const e = shownErrors.value[key];
   return e && e.length > 0 ? e.join('; ') : null;
 }
+
+// Avisos de permissão (não bloqueiam o salvamento).
+const originClasses = computed(() => classifyOrigins(draft.value.urlPatterns));
 
 function patternError(i: number): string | null {
   return err(`urlPatterns.${i}`);
@@ -215,6 +219,19 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
         <p v-if="patternError(i)" :id="`url-${i}-err`" class="error-text">{{ patternError(i) }}</p>
       </div>
       <p v-if="err('urlPatterns')" class="error-text">{{ err('urlPatterns') }}</p>
+      <p v-if="originClasses.unsupported.length > 0" class="hint warn-text" data-testid="warn-http">
+        Sites sem HTTPS não são suportados ({{
+          originClasses.unsupported.map(hostOfOrigin).join(', ')
+        }}). Use um endereço que comece com https://.
+      </p>
+      <p v-if="originClasses.broad.length > 0" class="hint warn-text" data-testid="warn-broad">
+        Esse padrão vale para qualquer site. Informe um site específico (por exemplo
+        https://site.com/*): a extensão não pede permissão para todos os sites.
+      </p>
+      <p v-if="originClasses.needed.length > 0" class="hint" data-testid="info-permission">
+        Ao salvar, o navegador vai pedir permissão para acessar
+        {{ originClasses.needed.map(hostOfOrigin).join(', ') }}.
+      </p>
       <button type="button" class="btn" @click="addPattern">Adicionar padrão de URL</button>
 
       <div class="control">

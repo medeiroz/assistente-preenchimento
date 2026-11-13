@@ -3,13 +3,14 @@ import { computed } from 'vue';
 import type { Rule } from '../../../core/model';
 import { fieldCountLabel, groupRulesBySite, modeLabel } from '../composables/draft';
 
-const props = defineProps<{ rules: Rule[]; loaded: boolean }>();
+const props = defineProps<{ rules: Rule[]; loaded: boolean; missingIds: ReadonlySet<string> }>();
 const emit = defineEmits<{
   create: [];
   edit: [rule: Rule];
   duplicate: [rule: Rule];
   remove: [rule: Rule];
   toggle: [rule: Rule, enabled: boolean];
+  grant: [rule: Rule];
 }>();
 
 const groups = computed(() => groupRulesBySite(props.rules));
@@ -44,6 +45,17 @@ function onToggle(rule: Rule, ev: Event): void {
                 modeLabel(r.behavior.mode)
               }}</span>
               <span>{{ fieldCountLabel(r.fields.length) }}</span>
+              <span v-if="missingIds.has(r.id)" class="no-permission" data-testid="no-permission">
+                <span class="badge warn">sem permissão</span>
+                <button
+                  type="button"
+                  class="btn small"
+                  data-action="grant"
+                  @click="emit('grant', r)"
+                >
+                  Permitir<span class="sr-only"> acesso para {{ r.name }}</span>
+                </button>
+              </span>
             </span>
           </div>
           <label class="switch">
