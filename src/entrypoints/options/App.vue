@@ -8,6 +8,7 @@ import HistoryView from './components/HistoryView.vue';
 import VariablesView from './components/VariablesView.vue';
 import ImportExport from './components/ImportExport.vue';
 import { useConfig } from './composables/useConfig';
+import { usePermissions } from './composables/permissions';
 import { duplicateRule, newRuleDraft, ruleToDraft, type RuleDraft } from './composables/draft';
 
 // Para incluir uma aba nova (ex.: Variáveis), acrescente aqui e um painel no template.
@@ -22,6 +23,7 @@ type TabId = (typeof TABS)[number]['id'];
 const tab = ref<TabId>('rules');
 const { repo, config, loaded, loadError, reload } = useConfig();
 const historyRepo = chromeHistoryRepository();
+const permissions = usePermissions(computed(() => config.value.rules));
 
 const notice = ref<{ kind: 'ok' | 'error'; text: string } | null>(null);
 let noticeTimer: ReturnType<typeof setTimeout> | undefined;
@@ -72,10 +74,14 @@ function reloadEditor(): void {
 const existingIds = computed(() => config.value.rules.map((r) => r.id));
 
 async function saveRule(rule: Rule): Promise<void> {
+  // O pedido de permissão precisa começar dentro do gesto do usuário: antes de qualquer
+  // await (inclusive do storage). A regra é salva de qualquer forma.
+  const asking = permissions.request(rule);
   await repo.saveRule(rule);
   await reload();
   editing.value = null;
   showNotice('ok', 'Regra salva');
+  await asking;
 }
 
 async function saveVariables(variables: Variable[]): Promise<void> {
@@ -157,6 +163,35 @@ watch(tab, () => (notice.value = null));
       Não foi possível carregar a configuração: {{ loadError }}
     </p>
 
+    <div
+      v-if="permissions.notice.value?.kind === 'denied'"
+      class="notice warn"
+      role="status"
+      data-testid="perm-denied"
+    >
+      <p>
+        <strong>Sem permissão para {{ permissions.notice.value.hosts.join(', ') }}:</strong>
+        a regra fica salva, mas só funciona depois que você permitir o acesso.
+      </p>
+      <button
+        type="button"
+        class="btn"
+        data-testid="perm-allow"
+        @click="permissions.notice.value.rule && permissions.request(permissions.notice.value.rule)"
+      >
+        Permitir acesso
+      </button>
+    </div>
+    <div
+      v-else-if="permissions.notice.value?.kind === 'granted'"
+      class="notice ok"
+      role="status"
+      data-testid="perm-granted"
+    >
+      <p>Recarregue as abas abertas desse site para a extensão começar a atuar.</p>
+      <button type="button" class="btn" @click="permissions.dismiss()">Entendi</button>
+    </div>
+
     <main>
       <div v-show="tab === 'rules'" id="panel-rules" role="tabpanel" aria-labelledby="tab-rules">
         <RuleEditor
@@ -174,6 +209,8 @@ watch(tab, () => (notice.value = null));
           v-else
           :rules="config.rules"
           :loaded="loaded"
+          :missing-ids="permissions.missingRuleIds.value"
+          @grant="permissions.request"
           @create="createRule"
           @edit="editRule"
           @duplicate="copyRule"
