@@ -5,6 +5,9 @@ import {
   AdapterError,
   createAdapterRegistry,
   createDefaultRegistry,
+  dateAdapter,
+  nativeChoiceAdapter,
+  nativeSelectAdapter,
   nativeTextAdapter,
   vueMultiselectAdapter,
   type FieldAdapter,
@@ -135,9 +138,15 @@ describe('registry', () => {
     expect(registry.resolve(document.body, 'auto')).toBeNull();
   });
 
-  it('createDefaultRegistry registra vue-multiselect (100) e native-text (10)', () => {
+  it('createDefaultRegistry registra vue-multiselect, date, native-select, native-choice e native-text', () => {
     const registry = createDefaultRegistry();
-    expect(registry.list()).toEqual([vueMultiselectAdapter, nativeTextAdapter]);
+    expect(registry.list()).toEqual([
+      vueMultiselectAdapter,
+      dateAdapter,
+      nativeSelectAdapter,
+      nativeChoiceAdapter,
+      nativeTextAdapter,
+    ]);
     expect(registry.resolve(field('<input>'), 'auto')).toBe(nativeTextAdapter);
     expect(registry.resolve(field('<div class="multiselect"></div>'), 'auto')).toBe(
       vueMultiselectAdapter,
