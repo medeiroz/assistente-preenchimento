@@ -68,13 +68,14 @@ watch(
 
     <ul class="history-list">
       <li v-for="(r, i) in reports" :key="`${r.startedAt}-${i}`" class="history-item">
-        <details>
-          <summary>
-            <span class="h-when">{{ formatDateTime(r.startedAt) }}</span>
-            <span class="h-rule">{{ r.ruleName }}</span>
-            <span class="h-url">{{ urlHostPath(r.url) }}</span>
-            <span class="h-summary">{{ summaryText(r) }}</span>
-          </summary>
+        <div class="h-head">
+          <span class="h-when">{{ formatDateTime(r.startedAt) }}</span>
+          <span class="h-rule">{{ r.ruleName }}</span>
+        </div>
+        <p class="h-url" :title="r.url" data-testid="history-url">{{ urlHostPath(r.url) }}</p>
+        <p class="h-summary" data-testid="history-summary">{{ summaryText(r) }}</p>
+        <details class="h-details">
+          <summary>Detalhes por campo</summary>
           <p class="muted">
             {{ r.origin === 'auto' ? 'Preenchimento automático' : 'Preenchimento manual' }}
           </p>
