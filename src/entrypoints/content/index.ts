@@ -39,6 +39,7 @@ export default defineContentScript({
     });
 
     const picker = createPicker({
+      trustedOnly: true,
       onCapture: (capture) => {
         deliverCapture(capture, {
           storage: browser.storage.local,

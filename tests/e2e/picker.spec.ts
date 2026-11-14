@@ -64,8 +64,16 @@ async function setup(
   expect(tabId).toBeGreaterThan(-1);
   await page.click('#open-nfse');
   await expect(page.locator('.eui-modal-title')).toBeVisible();
-  // espera o preenchimento automático terminar para não competir com a captura
-  await expect.poll(() => page.evaluate(() => window.__harness.getState().nbs)).toBe('126029000');
+  // Espera o preenchimento automático terminar (NBS, consumo e, por último, o código interno)
+  // para não competir com a captura.
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const s = window.__harness.getState();
+        return [s.nbs, s.consumo !== null, s.interno];
+      }),
+    )
+    .toEqual(['126029000', true, 'sem-ref']);
   return { page, ext, tabId };
 }
 
