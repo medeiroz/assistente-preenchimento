@@ -22,6 +22,12 @@ const TYPE_LABEL: Record<string, string> = {
 
 export interface PickerDeps {
   win?: Window;
+  /**
+   * Só reage a eventos de um usuário de verdade (`isTrusted`). Eventos sintéticos, como os que o
+   * próprio motor de preenchimento dispara nos campos, passam direto: não são capturados nem
+   * engolidos. Sem isso, um preenchimento em andamento "clicaria" sozinho e encerraria a captura.
+   */
+  trustedOnly?: boolean;
   /** Chamado uma vez, depois que o modo captura já foi encerrado. */
   onCapture(capture: Capture): void;
   onCancel?(): void;
@@ -54,6 +60,7 @@ function swallow(ev: Event): void {
 export function createPicker(deps: PickerDeps): Picker {
   const win = deps.win ?? window;
   const doc = win.document;
+  const ignored = (ev: Event): boolean => deps.trustedOnly === true && !ev.isTrusted;
   let overlay: Overlay | null = null;
   let hovered: Element | null = null;
   let raf = 0;
@@ -88,13 +95,13 @@ export function createPicker(deps: PickerDeps): Picker {
   }
 
   function onMove(ev: Event): void {
-    if (!overlay || overlay.owns(ev)) return;
+    if (!overlay || ignored(ev) || overlay.owns(ev)) return;
     pendingTarget = isElement(ev.target) ? ev.target : null;
     schedule(paint);
   }
 
   function onPointer(ev: Event): void {
-    if (!overlay || overlay.owns(ev)) return;
+    if (!overlay || ignored(ev) || overlay.owns(ev)) return;
     swallow(ev);
     if (ev.type !== 'click' || !isElement(ev.target)) return;
     const capture = buildCapture(ev.target, doc, win.location.href);
@@ -109,7 +116,7 @@ export function createPicker(deps: PickerDeps): Picker {
   }
 
   function onKey(ev: Event): void {
-    if (!isEscape(ev)) return;
+    if (!isEscape(ev) || ignored(ev)) return;
     // Escape do usuário: o site (ex.: modal da CE) nunca pode vê-lo.
     swallow(ev);
     if (ev.type !== 'keydown') return;
@@ -122,7 +129,7 @@ export function createPicker(deps: PickerDeps): Picker {
   function guardEscapeRelease(): void {
     const timer = setTimeout(done, ESCAPE_RELEASE_GUARD_MS);
     function onUp(ev: Event): void {
-      if (isEscape(ev)) {
+      if (isEscape(ev) && !ignored(ev)) {
         swallow(ev);
         done();
       }

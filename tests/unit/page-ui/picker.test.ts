@@ -84,6 +84,30 @@ describe('createPicker', () => {
     expect(siteSeen).toEqual(['click']);
   });
 
+  it('trustedOnly: eventos sintéticos (do preenchimento) passam direto; só o usuário captura', () => {
+    const picker = createPicker({ onCapture, onCancel, trustedOnly: true });
+    picker.start();
+    const input = document.getElementById('i1') as Element;
+    // o motor de preenchimento dispara eventos sintéticos enquanto a captura está ligada
+    for (const t of ['mousedown', 'mouseup', 'click']) {
+      expect(mouse(t, input).defaultPrevented).toBe(false);
+    }
+    expect(key('keydown', 'Escape').defaultPrevented).toBe(false);
+    expect(siteSeen).toEqual(['mousedown', 'mouseup', 'click', 'keydown']);
+    expect(picker.active).toBe(true);
+    expect(onCapture).not.toHaveBeenCalled();
+    expect(onCancel).not.toHaveBeenCalled();
+
+    // um clique confiável (usuário de verdade) captura normalmente
+    const real = new MouseEvent('click', { bubbles: true, cancelable: true, composed: true });
+    Object.defineProperty(real, 'isTrusted', { value: true });
+    input.dispatchEvent(real);
+    expect(real.defaultPrevented).toBe(true);
+    expect(siteSeen).toHaveLength(4);
+    expect(picker.active).toBe(false);
+    expect(onCapture).toHaveBeenCalledOnce();
+  });
+
   it('clique fora de campo: avisa e continua no modo captura', () => {
     const picker = createPicker({ onCapture, onCancel });
     picker.start();
