@@ -8,6 +8,8 @@ import RuleEditor from './components/RuleEditor.vue';
 import HistoryView from './components/HistoryView.vue';
 import VariablesView from './components/VariablesView.vue';
 import ImportExport from './components/ImportExport.vue';
+import cePreset from '../../../presets/ce-nfse.json';
+import { parseAddition, planMerge, type Addition } from './composables/merge';
 import { useConfig } from './composables/useConfig';
 import { usePermissions } from './composables/permissions';
 import { duplicateRule, newRuleDraft, ruleToDraft, type RuleDraft } from './composables/draft';
@@ -185,6 +187,35 @@ async function onPicked(picked: PickerDraft): Promise<void> {
 }
 usePickerDraft(onPicked);
 
+/**
+ * Adiciona regras (de um arquivo ou do exemplo) sem apagar nada. Síncrono até o pedido de
+ * permissão: ele precisa começar dentro do clique do usuário.
+ */
+async function addRules(addition: Addition): Promise<void> {
+  const asking = permissions.requestAll(addition.rules);
+  await guard(async () => {
+    // Recalcula contra a configuração atual: os ids podem ter mudado desde a prévia.
+    const current = await repo.load();
+    const plan = planMerge(current, addition);
+    for (const rule of plan.rules) await repo.saveRule(rule);
+    if (plan.newVariables.length > 0) {
+      await repo.saveVariables([...current.variables, ...plan.newVariables]);
+    }
+    await reload();
+    editing.value = null;
+    showNotice(
+      'ok',
+      plan.rules.length === 1 ? 'Regra adicionada' : `${plan.rules.length} regras adicionadas`,
+    );
+  }, 'Não foi possível adicionar as regras');
+  await asking;
+}
+
+function importExample(): void {
+  const parsed = parseAddition(JSON.stringify(cePreset));
+  if (parsed.ok) void addRules(parsed.addition);
+}
+
 function onImported(): void {
   editing.value = null;
   void reload();
@@ -314,6 +345,7 @@ watch(tab, () => (notice.value = null));
           :missing-ids="permissions.missingRuleIds.value"
           @grant="permissions.request"
           @create="createRule"
+          @import-example="importExample"
           @edit="editRule"
           @duplicate="copyRule"
           @remove="removeRule"
@@ -350,7 +382,7 @@ watch(tab, () => (notice.value = null));
         role="tabpanel"
         aria-labelledby="tab-import-export"
       >
-        <ImportExport :repo="repo" @imported="onImported" />
+        <ImportExport :repo="repo" @imported="onImported" @add-rules="addRules" />
       </div>
     </main>
   </div>

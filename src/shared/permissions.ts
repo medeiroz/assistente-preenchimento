@@ -3,20 +3,25 @@ import type { Rule } from '../core/model';
 /**
  * Permissões sob demanda (WP4.3).
  *
- * O manifest cobre estaticamente a CE (e localhost/127.0.0.1 só no build e2e) e declara
- * `optional_host_permissions` para https. Qualquer outro site https precisa de permissão
- * concedida pelo usuário; o content script é então registrado dinamicamente.
+ * Em produção o manifest não cobre site nenhum: todo site depende de `optional_host_permissions`
+ * (https) concedida pelo usuário, e o content script é registrado dinamicamente. Só o build de
+ * testes (`--mode e2e`) cobre estaticamente o site de exemplo e localhost/127.0.0.1.
  * Permissões são por origem: o caminho do padrão sempre vira `/*`.
  */
 
 export const DYNAMIC_SCRIPT_ID = 'assistente-dinamico';
 
-const PRODUCTION_STATIC = ['https://app.clinicaexperts.com.br/*'];
-const E2E_STATIC = ['http://localhost/*', 'http://127.0.0.1/*'];
+const E2E_STATIC = [
+  'https://app.clinicaexperts.com.br/*',
+  'http://localhost/*',
+  'http://127.0.0.1/*',
+];
 
-/** O que o manifest já cobre (host_permissions + matches do content script). */
-export const STATIC_MATCHES: readonly string[] =
-  import.meta.env.MODE === 'e2e' ? [...PRODUCTION_STATIC, ...E2E_STATIC] : PRODUCTION_STATIC;
+/**
+ * O que o manifest já cobre (host_permissions + matches do content script). A comparação com o
+ * modo fica inline para o bundler descartar a lista de testes do build de produção.
+ */
+export const STATIC_MATCHES: readonly string[] = import.meta.env.MODE === 'e2e' ? E2E_STATIC : [];
 
 const PATTERN = /^(https?|\*):\/\/([^/]+)\/.*$/;
 

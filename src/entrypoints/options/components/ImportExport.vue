@@ -1,16 +1,21 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import type { Config } from '../../../core/model';
+import type { Config, Rule } from '../../../core/model';
 import type { ConfigRepository } from '../../../core/storage';
 import { exportFileName, exportJson, parseImport } from '../composables/format';
+import { parseAddition, planMerge, type Addition, type MergePlan } from '../composables/merge';
+import { hostOfPattern } from '../composables/draft';
 
 const props = defineProps<{ repo: ConfigRepository }>();
-const emit = defineEmits<{ imported: [] }>();
+const emit = defineEmits<{ imported: []; addRules: [addition: Addition] }>();
 
 const error = ref<string | null>(null);
 const message = ref<string | null>(null);
 const preview = ref<{ config: Config; warnings: string[]; fileName: string } | null>(null);
 const busy = ref(false);
+const addError = ref<string | null>(null);
+const addPreview = ref<{ addition: Addition; plan: MergePlan; fileName: string } | null>(null);
+const addInput = ref<HTMLInputElement | null>(null);
 const fileInput = ref<HTMLInputElement | null>(null);
 
 async function doExport(): Promise<void> {
@@ -64,6 +69,45 @@ async function confirmImport(): Promise<void> {
   }
 }
 
+function sitesOf(rule: Rule): string {
+  return rule.trigger.urlPatterns.map((p) => hostOfPattern(p) ?? p).join(', ');
+}
+
+async function onAddFile(ev: Event): Promise<void> {
+  const input = ev.target as HTMLInputElement;
+  const file = input.files?.[0];
+  addError.value = null;
+  addPreview.value = null;
+  if (!file) return;
+  const parsed = parseAddition(await file.text());
+  if (!parsed.ok) {
+    addError.value = parsed.error;
+  } else {
+    try {
+      const plan = planMerge(await props.repo.load(), parsed.addition);
+      addPreview.value = { addition: parsed.addition, plan, fileName: file.name };
+    } catch (e) {
+      addError.value = `Não foi possível ler a configuração atual: ${
+        e instanceof Error ? e.message : String(e)
+      }`;
+    }
+  }
+  input.value = '';
+}
+
+/** Síncrono de propósito: o pedido de permissão do pai precisa começar dentro deste clique. */
+function confirmAdd(): void {
+  const p = addPreview.value;
+  if (!p) return;
+  addPreview.value = null;
+  emit('addRules', p.addition);
+}
+
+function cancelAdd(): void {
+  addPreview.value = null;
+  if (addInput.value) addInput.value.value = '';
+}
+
 function cancelImport(): void {
   preview.value = null;
   if (fileInput.value) fileInput.value.value = '';
@@ -85,6 +129,70 @@ function cancelImport(): void {
       <button type="button" class="btn primary" data-testid="export" @click="doExport">
         Exportar configuração
       </button>
+    </div>
+
+    <div class="panel" data-testid="add-panel">
+      <h3>Adicionar regras de um arquivo</h3>
+      <p class="hint">
+        Escolha um arquivo com <strong>uma regra</strong> (como o exemplo em
+        <code>presets/ce-nfse.json</code>) ou uma configuração exportada. As regras são
+        <strong>adicionadas</strong> às que você já tem; nada é apagado nem substituído.
+      </p>
+      <label for="add-file" class="block-label">Arquivo de regra ou configuração (.json)</label>
+      <input
+        id="add-file"
+        ref="addInput"
+        class="file-input"
+        type="file"
+        accept="application/json,.json"
+        data-testid="add-file"
+        @change="onAddFile"
+      />
+
+      <div v-if="addPreview" class="notice" role="status" data-testid="add-preview">
+        <p>
+          <strong>{{ addPreview.fileName }}</strong> vai adicionar
+          {{ addPreview.plan.rules.length }}
+          {{ addPreview.plan.rules.length === 1 ? 'regra' : 'regras' }}:
+        </p>
+        <ul>
+          <li v-for="r in addPreview.plan.rules" :key="r.id">
+            {{ r.name }} <span class="muted">({{ sitesOf(r) }})</span>
+          </li>
+        </ul>
+        <p v-if="addPreview.plan.renamed.length > 0" data-testid="add-renamed">
+          {{
+            addPreview.plan.renamed.length === 1 ? 'Uma regra já usava' : 'Algumas regras já usavam'
+          }}
+          o mesmo identificador e receberam um novo: nenhuma regra existente é alterada.
+        </p>
+        <p v-if="addPreview.plan.newVariables.length > 0">
+          Variáveis novas:
+          {{ addPreview.plan.newVariables.map((v) => v.key).join(', ') }}.
+        </p>
+        <p v-if="addPreview.plan.skippedVariables.length > 0">
+          Variáveis que você já tem (mantidas):
+          {{ addPreview.plan.skippedVariables.join(', ') }}.
+        </p>
+        <template v-if="addPreview.addition.warnings.length > 0">
+          <p>Avisos:</p>
+          <ul>
+            <li v-for="w in addPreview.addition.warnings" :key="w">{{ w }}</li>
+          </ul>
+        </template>
+        <p class="hint">
+          Para sites novos, o Chrome vai pedir permissão de acesso ao clicar em adicionar.
+        </p>
+        <div class="row">
+          <button type="button" class="btn primary" data-testid="confirm-add" @click="confirmAdd">
+            Adicionar à minha configuração
+          </button>
+          <button type="button" class="btn" @click="cancelAdd">Cancelar</button>
+        </div>
+      </div>
+      <p v-if="addError" class="notice error" role="alert" data-testid="add-error">
+        {{ addError }}
+      </p>
     </div>
 
     <div class="panel">

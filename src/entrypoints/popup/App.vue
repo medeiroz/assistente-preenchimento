@@ -5,6 +5,9 @@ import { chromeSyncRepository } from '../../core/storage';
 import type { TabStatus } from '../../shared/messages';
 import ReportList from './components/ReportList.vue';
 import RuleList from './components/RuleList.vue';
+import type { ScriptPublicPath } from 'wxt/utils/inject-script';
+import { contentScriptFile } from '../../shared/content-script';
+import { injectAndStartPicker } from './lib/inject';
 import { hasFilled } from './lib/outcome';
 import { togglePausedHost } from './lib/pause';
 import { resolveTabId, sendToTab } from './lib/tab';
@@ -93,6 +96,32 @@ async function startCapture(): Promise<void> {
   }
 }
 
+/** Site sem content script: injeta sob demanda (activeTab) e liga a captura. */
+async function captureOnDemand(): Promise<void> {
+  if (tabId === null || busy.value) return;
+  const id = tabId;
+  busy.value = true;
+  error.value = '';
+  try {
+    await injectAndStartPicker(id, {
+      executeScript: (injection) =>
+        browser.scripting.executeScript({
+          target: injection.target,
+          files: injection.files as ScriptPublicPath[],
+        }),
+      startPicker: (t) => sendToTab(t, { type: 'picker/start' }),
+      sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+      scriptFile: contentScriptFile(browser.runtime.getManifest()),
+    });
+    window.close();
+  } catch {
+    error.value =
+      'Não foi possível capturar nesta página. Páginas internas do Chrome e a Chrome Web Store não permitem extensões.';
+  } finally {
+    busy.value = false;
+  }
+}
+
 function openSettings(): void {
   void browser.runtime.openOptionsPage();
 }
@@ -110,8 +139,24 @@ onMounted(load);
     <p v-if="view === 'loading'" class="muted" role="status">Carregando…</p>
 
     <section v-else-if="view === 'unavailable'" class="empty" data-testid="unavailable">
-      <p>A extensão não atua nesta página</p>
-      <button type="button" class="btn" @click="openSettings">Abrir configurações</button>
+      <p>Nenhuma regra para este site</p>
+      <p class="muted">
+        Para criar uma regra, capture um campo desta página. A extensão só acessa a página depois do
+        seu clique.
+      </p>
+      <p v-if="error" class="error" role="alert">{{ error }}</p>
+      <div class="actions">
+        <button
+          type="button"
+          class="btn primary"
+          data-testid="capture-here"
+          :disabled="busy"
+          @click="captureOnDemand"
+        >
+          Capturar campo nesta página
+        </button>
+        <button type="button" class="btn" @click="openSettings">Abrir configurações</button>
+      </div>
     </section>
 
     <template v-else-if="status">

@@ -366,7 +366,7 @@ interface ConfigRepository {
 }
 ```
 
-Implementação inicial: `ChromeSyncRepository`. Se um dia for preciso (histórico central, backup versionado, limites estourados), entra um `RemoteRepository` apontando para a **servidor próprio**:
+Implementação inicial: `ChromeSyncRepository`. Se um dia for preciso (histórico central, backup versionado, limites estourados), entra um `RemoteRepository` apontando para um **servidor próprio (API + Postgres)**:
 - uma **API pequena** na frente do banco, porque a extensão nunca fala direto com o Postgres;
 - autenticação por token pessoal guardado em `storage.local`;
 - o restante da extensão não muda.
@@ -380,14 +380,15 @@ A config tem `schemaVersion`. Ao carregar, uma cadeia de migrações atualiza fo
 ```json
 {
   "permissions": ["storage", "scripting", "activeTab"],
-  "host_permissions": ["https://app.clinicaexperts.com.br/*"],
   "optional_host_permissions": ["https://*/*"]
 }
 ```
 
-- A CE vem liberada por padrão.
-- Novos sites (energia, água) pedem permissão **na hora em que a regra é criada**.
-- Sites sem regra não recebem nenhum script.
+- A extensão é genérica: **nenhum site vem liberado** e não há `host_permissions` nem content script no manifest.
+- Cada site pede permissão **na hora em que a regra é criada** (ou pelo botão "Permitir" da lista); o content script é então registrado dinamicamente (`chrome.scripting.registerContentScripts`) só para os sites com regra e permissão.
+- Em um site sem regra, "Capturar campo nesta página" injeta o content script sob demanda, com o `activeTab` concedido no clique do ícone.
+- Sites sem regra nem clique do usuário não recebem nenhum script.
+- O build de testes (`--mode e2e`) é a única exceção: declara localhost/127.0.0.1 e um site de exemplo no manifest.
 
 ## 13. Segurança e privacidade
 
@@ -444,7 +445,7 @@ assistente-preenchimento/
 ## 16. Decisões em aberto
 
 1. **UI em Vue 3?** Recomendado. Trocar para React ou Svelte não muda a arquitetura.
-2. **Nome da extensão.** O repositório se chama `assistente-preenchimento`, mas a extensão vai além da CE.
+2. **Nome da extensão.** "Assistente de Preenchimento": a extensão não é específica de nenhum site.
 3. **Fixtures**: salvar o HTML do modal da NFS-e com dados de teste fictícios (sem dados reais de clientes).
 4. **Botão "desfazer"** no toast: restaura os valores do snapshot. Barato de fazer, vale incluir na fase 1 ou 2?
 
