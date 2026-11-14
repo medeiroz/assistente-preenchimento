@@ -509,19 +509,39 @@ summary {
   padding: 8px 14px;
 }
 
-.history-item summary {
+.history-item {
   display: grid;
-  grid-template-columns: 10em 1fr;
+  gap: 4px;
+  min-width: 0;
+}
+
+.h-head {
+  display: flex;
+  flex-wrap: wrap;
   gap: 2px 12px;
+  align-items: baseline;
+}
+
+.h-when {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .h-rule {
   font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .h-url,
 .h-summary {
+  margin: 0;
   color: var(--muted);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.h-details summary {
+  cursor: pointer;
   font-size: 0.9rem;
 }
 
@@ -543,12 +563,6 @@ summary {
 .outcome-error strong,
 .outcome-not-found strong {
   color: var(--danger);
-}
-
-@media (max-width: 720px) {
-  .history-item summary {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* variáveis e pré-visualização */
