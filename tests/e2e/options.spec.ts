@@ -319,3 +319,63 @@ test('i) mudança externa da regra em edição mostra aviso', async ({ context, 
     'Esta regra foi alterada em outro lugar',
   );
 });
+
+test('j) sair da aba Regras com o editor aberto e sem alterações fecha o editor', async ({
+  context,
+  extensionId,
+}) => {
+  const page = await openOptions(context, extensionId);
+  await editE2eRule(page);
+  await page.getByRole('tab', { name: 'Histórico' }).click();
+  await expect(page.getByRole('tab', { name: 'Histórico' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await page.getByRole('tab', { name: 'Regras' }).click();
+  await expect(item(page, E2E_ID)).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Editar regra' })).toHaveCount(0);
+});
+
+test('k) sair da aba Regras com alterações não salvas pede confirmação', async ({
+  context,
+  extensionId,
+}) => {
+  const page = await openOptions(context, extensionId);
+  await editE2eRule(page);
+  await page.locator('#rule-name').fill('Nome alterado sem salvar');
+
+  const messages: string[] = [];
+  let accept = false;
+  page.on('dialog', (d) => {
+    messages.push(d.message());
+    void (accept ? d.accept() : d.dismiss());
+  });
+
+  await page.getByRole('tab', { name: 'Variáveis' }).click();
+  await expect.poll(() => messages.length).toBe(1);
+  expect(messages[0]).toBe('Você tem alterações não salvas nesta regra. Descartar e sair?');
+  await expect(page.getByRole('tab', { name: 'Regras' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#rule-name')).toHaveValue('Nome alterado sem salvar');
+
+  accept = true;
+  await page.getByRole('tab', { name: 'Variáveis' }).click();
+  await expect(page.getByRole('tab', { name: 'Variáveis' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await page.getByRole('tab', { name: 'Regras' }).click();
+  await expect(item(page, E2E_ID)).toBeVisible();
+  await expect(item(page, E2E_ID).locator('.rule-name')).toHaveText(E2E_NAME);
+  expect((await storedRule(page, E2E_ID))?.name).toBe(E2E_NAME);
+});
+
+test('l) clicar na aba Regras com o editor aberto volta para a lista', async ({
+  context,
+  extensionId,
+}) => {
+  const page = await openOptions(context, extensionId);
+  await editE2eRule(page);
+  await page.getByRole('tab', { name: 'Regras' }).click();
+  await expect(page.getByRole('heading', { name: 'Editar regra' })).toHaveCount(0);
+  await expect(item(page, E2E_ID)).toBeVisible();
+});

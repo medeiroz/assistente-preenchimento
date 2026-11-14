@@ -37,6 +37,7 @@ const errorBox = ref<HTMLElement | null>(null);
 // Prévia estável (sem sorteio de id) para marcar erros ao vivo.
 const live = computed(() => validateDraft(draft.value, { rng: () => 0.5 }));
 const dirty = computed(() => isDirty(props.initial, draft.value));
+defineExpose({ dirty });
 
 const shownErrors = computed<Record<string, string[]>>(() => {
   if (!attempted.value) return {};
