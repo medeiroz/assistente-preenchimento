@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { chromeHistoryRepository } from '../../core/storage';
 import type { Rule, Variable } from '../../core/model';
+import type { Capture, PickerDraft } from '../../core/locator';
 import RuleList from './components/RuleList.vue';
 import RuleEditor from './components/RuleEditor.vue';
 import HistoryView from './components/HistoryView.vue';
@@ -10,6 +11,14 @@ import ImportExport from './components/ImportExport.vue';
 import { useConfig } from './composables/useConfig';
 import { usePermissions } from './composables/permissions';
 import { duplicateRule, newRuleDraft, ruleToDraft, type RuleDraft } from './composables/draft';
+import {
+  addCaptureToRule,
+  findMatchingRules,
+  newRuleFromCapture,
+  usePickerDraft,
+  type CaptureEditor,
+  type CaptureFocus,
+} from './composables/picker';
 
 // Para incluir uma aba nova (ex.: Variáveis), acrescente aqui e um painel no template.
 const TABS = [
@@ -40,12 +49,18 @@ interface Editing {
   baseUpdatedAt: string | null;
   /** Muda a cada abertura para recriar o componente. */
   token: number;
+  /** Presente quando o editor veio do "Capturar campo". */
+  focus: CaptureFocus | null;
 }
 const editing = ref<Editing | null>(null);
 let token = 0;
 
-function open(draft: RuleDraft, baseUpdatedAt: string | null): void {
-  editing.value = { draft, baseUpdatedAt, token: ++token };
+function open(
+  draft: RuleDraft,
+  baseUpdatedAt: string | null,
+  focus: CaptureFocus | null = null,
+): void {
+  editing.value = { draft, baseUpdatedAt, token: ++token, focus };
 }
 
 function createRule(): void {
@@ -125,6 +140,51 @@ function removeRule(rule: Rule): Promise<void> {
   }, 'Não foi possível excluir a regra');
 }
 
+// ------------------------------------------------------------ captura de campo
+interface CapturePrompt {
+  capture: Capture;
+  rules: Rule[];
+}
+const capturePrompt = ref<CapturePrompt | null>(null);
+
+function openCaptureEditor(editor: CaptureEditor, baseUpdatedAt: string | null): void {
+  capturePrompt.value = null;
+  open(editor.draft, baseUpdatedAt, editor.focus);
+}
+
+function captureToNewRule(capture: Capture): void {
+  openCaptureEditor(newRuleFromCapture(capture), null);
+}
+
+function captureToRule(rule: Rule, capture: Capture): void {
+  openCaptureEditor(addCaptureToRule(rule, capture), rule.updatedAt);
+}
+
+function untilLoaded(): Promise<void> {
+  if (loaded.value) return Promise.resolve();
+  return new Promise((resolve) => {
+    const stop = watch(loaded, (v) => {
+      if (!v) return;
+      stop();
+      resolve();
+    });
+  });
+}
+
+/** Chega um rascunho do "Capturar campo" (já apagado do storage: consumo único). */
+async function onPicked(picked: PickerDraft): Promise<void> {
+  await untilLoaded();
+  if (editing.value && !window.confirm('Descartar a edição aberta e usar o campo capturado?')) {
+    return;
+  }
+  tab.value = 'rules';
+  editing.value = null;
+  const matches = findMatchingRules(config.value.rules, picked.capture);
+  if (matches.length === 0) captureToNewRule(picked.capture);
+  else capturePrompt.value = { capture: picked.capture, rules: matches };
+}
+usePickerDraft(onPicked);
+
 function onImported(): void {
   editing.value = null;
   void reload();
@@ -194,6 +254,47 @@ watch(tab, () => (notice.value = null));
 
     <main>
       <div v-show="tab === 'rules'" id="panel-rules" role="tabpanel" aria-labelledby="tab-rules">
+        <section
+          v-if="capturePrompt"
+          class="notice"
+          role="group"
+          aria-label="Campo capturado"
+          data-testid="capture-choice"
+        >
+          <p>
+            <strong>Campo capturado:</strong>
+            {{ capturePrompt.capture.label ?? 'campo sem rótulo' }}. Já existe uma regra para esta
+            página e este contêiner. O que deseja fazer?
+          </p>
+          <div class="actions-bar">
+            <button
+              v-for="r in capturePrompt.rules"
+              :key="r.id"
+              type="button"
+              class="btn primary"
+              data-testid="capture-add-to-rule"
+              @click="captureToRule(r, capturePrompt.capture)"
+            >
+              Adicionar à regra “{{ r.name }}”
+            </button>
+            <button
+              type="button"
+              class="btn"
+              data-testid="capture-new-rule"
+              @click="captureToNewRule(capturePrompt.capture)"
+            >
+              Criar nova regra
+            </button>
+            <button
+              type="button"
+              class="btn"
+              data-testid="capture-dismiss"
+              @click="capturePrompt = null"
+            >
+              Descartar
+            </button>
+          </div>
+        </section>
         <RuleEditor
           v-if="editing"
           :key="editing.token"
@@ -202,11 +303,12 @@ watch(tab, () => (notice.value = null));
           :variables="config.variables"
           :external-change="externalChange"
           :save="saveRule"
+          :capture-focus="editing.focus"
           @cancel="editing = null"
           @reload="reloadEditor"
         />
         <RuleList
-          v-else
+          v-else-if="!capturePrompt"
           :rules="config.rules"
           :loaded="loaded"
           :missing-ids="permissions.missingRuleIds.value"

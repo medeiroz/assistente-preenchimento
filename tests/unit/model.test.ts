@@ -147,6 +147,8 @@ describe('isMessage', () => {
     expect(isMessage({ type: 'run/undo', payload: {} })).toBe(true);
     expect(isMessage({ type: 'tab/status' })).toBe(true);
     expect(isMessage({ type: 'site/pause', payload: { host: 'a.com', paused: true } })).toBe(true);
+    expect(isMessage({ type: 'picker/start' })).toBe(true);
+    expect(isMessage({ type: 'options/open-draft' })).toBe(true);
   });
 
   it('rejeita o resto', () => {

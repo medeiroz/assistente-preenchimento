@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, nextTick, onMounted, ref } from 'vue';
 import { FILTER_NAMES } from '../../../core/expressions';
 import type { Variable } from '../../../core/model';
 import {
@@ -24,8 +24,25 @@ const props = defineProps<{
   variables: Variable[];
   /** URL de exemplo para a pré-visualização. */
   exampleUrl: string;
+  /** Campo que recebe o foco (no input de Valor) ao montar, ex.: vindo do "Capturar campo". */
+  focusFieldId?: string | null;
+  /** Dicas por id de campo, mostradas sob o Valor (ex.: "valor atual na página: …"). */
+  hints?: Record<string, string>;
 }>();
 const emit = defineEmits<{ 'update:fields': [fields: FieldDraft[]] }>();
+
+const root = ref<HTMLElement | null>(null);
+
+onMounted(() => {
+  const id = props.focusFieldId;
+  if (!id) return;
+  void nextTick(() => {
+    const card = Array.from(
+      root.value?.querySelectorAll<HTMLElement>('[data-field-id]') ?? [],
+    ).find((c) => c.dataset.fieldId === id);
+    card?.querySelector<HTMLInputElement>('.f-value')?.focus();
+  });
+});
 
 const filters = FILTER_NAMES.join(', ');
 const suggestions = computed(() => valueSuggestions(props.variables));
@@ -78,7 +95,7 @@ function otherErrors(f: FieldDraft): string[] {
 </script>
 
 <template>
-  <fieldset class="panel">
+  <fieldset ref="root" class="panel">
     <legend>Campos a preencher</legend>
 
     <details class="help">
@@ -213,6 +230,7 @@ function otherErrors(f: FieldDraft): string[] {
             <p v-if="valueError(f)" :id="`f${i}-value-err`" class="error-text" role="alert">
               {{ valueError(f) }}
             </p>
+            <p v-if="hints?.[f.id]" class="hint" data-testid="value-hint">{{ hints[f.id] }}</p>
             <ValuePreview :value="f.value" :variables="variables" :example-url="exampleUrl" />
           </div>
         </div>
