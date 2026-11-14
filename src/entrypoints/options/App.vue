@@ -11,6 +11,7 @@ import ImportExport from './components/ImportExport.vue';
 import cePreset from '../../../presets/ce-nfse.json';
 import { parseAddition, planMerge, type Addition } from './composables/merge';
 import { useConfig } from './composables/useConfig';
+import { decideTabChange } from './composables/tabs';
 import { usePermissions } from './composables/permissions';
 import { duplicateRule, newRuleDraft, ruleToDraft, type RuleDraft } from './composables/draft';
 import {
@@ -55,6 +56,7 @@ interface Editing {
   focus: CaptureFocus | null;
 }
 const editing = ref<Editing | null>(null);
+const editorRef = ref<InstanceType<typeof RuleEditor> | null>(null);
 let token = 0;
 
 function open(
@@ -221,6 +223,22 @@ function onImported(): void {
   void reload();
 }
 
+/** Troca de aba; com o editor aberto, fecha-o (confirmando antes se houver alterações). */
+function selectTab(next: TabId): void {
+  const decision = decideTabChange({
+    editorOpen: editing.value !== null,
+    dirty: editorRef.value?.dirty ?? false,
+  });
+  if (
+    decision === 'confirm' &&
+    !window.confirm('Você tem alterações não salvas nesta regra. Descartar e sair?')
+  ) {
+    return;
+  }
+  if (decision !== 'switch') editing.value = null;
+  tab.value = next;
+}
+
 watch(tab, () => (notice.value = null));
 </script>
 
@@ -241,7 +259,7 @@ watch(tab, () => (notice.value = null));
         :aria-selected="tab === t.id"
         :aria-controls="`panel-${t.id}`"
         :tabindex="tab === t.id ? 0 : -1"
-        @click="tab = t.id"
+        @click="selectTab(t.id)"
       >
         {{ t.label }}
       </button>
@@ -328,6 +346,7 @@ watch(tab, () => (notice.value = null));
         </section>
         <RuleEditor
           v-if="editing"
+          ref="editorRef"
           :key="editing.token"
           :initial="editing.draft"
           :existing-ids="existingIds"
