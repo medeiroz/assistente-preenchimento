@@ -3,6 +3,7 @@ import type { Config, RunReport } from '../../core/model';
 import { chromeHistoryRepository, chromeSyncRepository } from '../../core/storage';
 import { isMessage, type TabStatus } from '../../shared/messages';
 import { createPageUi } from './page-ui';
+import { createPicker, deliverCapture } from './picker';
 
 const E2E = import.meta.env.MODE === 'e2e';
 
@@ -27,6 +28,15 @@ export default defineContentScript({
       ui: createPageUi(),
       onReport: (r: RunReport) => {
         history.append(r).catch((e: unknown) => console.warn('[assistente] histórico', e));
+      },
+    });
+
+    const picker = createPicker({
+      onCapture: (capture) => {
+        deliverCapture(capture, {
+          storage: browser.storage.local,
+          sendMessage: (m) => browser.runtime.sendMessage(m),
+        }).catch((e: unknown) => console.warn('[assistente] falha ao entregar a captura', e));
       },
     });
 
@@ -77,6 +87,10 @@ export default defineContentScript({
           sendResponse(status);
           return false;
         }
+        case 'picker/start':
+          picker.start();
+          sendResponse(undefined);
+          return false;
         default:
           return false;
       }

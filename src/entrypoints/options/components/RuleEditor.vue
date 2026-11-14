@@ -10,6 +10,7 @@ import {
   validateDraft,
   type RuleDraft,
 } from '../composables/draft';
+import type { CaptureFocus } from '../composables/picker';
 import { defaultExampleUrl, parseExampleUrl } from '../composables/preview';
 import FieldTable from './FieldTable.vue';
 import { classifyOrigins, hostOfOrigin } from '../../../shared/permissions';
@@ -22,6 +23,8 @@ const props = defineProps<{
   /** A regra em edição mudou (ou sumiu) no armazenamento enquanto o editor estava aberto. */
   externalChange: 'changed' | 'removed' | null;
   save: (rule: Rule) => Promise<void>;
+  /** Editor aberto a partir de "Capturar campo": campo a focar e dica do valor atual. */
+  captureFocus?: CaptureFocus | null;
 }>();
 const emit = defineEmits<{ cancel: []; reload: [] }>();
 
@@ -133,6 +136,18 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
       <button v-if="externalChange === 'changed'" type="button" class="btn" @click="emit('reload')">
         Descartar minhas alterações e recarregar
       </button>
+    </div>
+
+    <div
+      v-if="captureFocus?.duplicate"
+      class="notice warn"
+      role="status"
+      data-testid="capture-duplicate"
+    >
+      <p>
+        <strong>Este campo já está nesta regra.</strong>
+        Nada foi adicionado; o campo existente está em foco abaixo.
+      </p>
     </div>
 
     <div
@@ -311,6 +326,8 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
       :errors="shownErrors"
       :variables="variables"
       :example-url="exampleUrl"
+      :focus-field-id="captureFocus?.fieldId ?? null"
+      :hints="captureFocus ? { [captureFocus.fieldId]: captureFocus.hint } : {}"
     />
     <p v-if="err('fields')" class="error-text">{{ err('fields') }}</p>
 

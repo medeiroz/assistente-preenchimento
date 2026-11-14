@@ -1,5 +1,6 @@
 import { parseRule, type Rule } from '../core/model';
 import { chromeSyncRepository, seedIfEmpty } from '../core/storage';
+import { isMessage } from '../shared/messages';
 import { syncDynamicScripts, type DynamicSyncDeps } from '../shared/permissions';
 import ceNfse from '../../presets/ce-nfse.json';
 
@@ -51,6 +52,15 @@ export default defineBackground(() => {
   };
   browser.runtime.onInstalled.addListener((d) => {
     if (d.reason === 'install') run();
+  });
+  // A captura (content script) já gravou 'picker:draft'; aqui só abrimos/focamos as opções.
+  browser.runtime.onMessage.addListener((message: unknown) => {
+    if (isMessage(message) && message.type === 'options/open-draft') {
+      browser.runtime
+        .openOptionsPage()
+        .catch((e: unknown) => console.warn('[assistente] falha ao abrir as opções', e));
+    }
+    return false;
   });
   chromeSyncRepository().onChange(scheduleSync);
   browser.permissions.onAdded.addListener(scheduleSync);

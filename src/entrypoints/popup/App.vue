@@ -79,6 +79,20 @@ function lastReport(id: number): Promise<RunReport | null> {
   return sendToTab(id, { type: 'run/last-report' });
 }
 
+async function startCapture(): Promise<void> {
+  if (tabId === null || busy.value) return;
+  busy.value = true;
+  error.value = '';
+  try {
+    await sendToTab(tabId, { type: 'picker/start' });
+    window.close(); // o popup fecha para o usuário clicar no campo da página
+  } catch {
+    error.value = 'A página não respondeu. Tente novamente.';
+  } finally {
+    busy.value = false;
+  }
+}
+
 function openSettings(): void {
   void browser.runtime.openOptionsPage();
 }
@@ -127,6 +141,15 @@ onMounted(load);
         </button>
         <button type="button" class="btn" :disabled="busy || !canUndo" @click="undo">
           Desfazer
+        </button>
+        <button
+          type="button"
+          class="btn"
+          data-testid="capture-field"
+          :disabled="busy"
+          @click="startCapture"
+        >
+          Capturar campo
         </button>
         <button type="button" class="btn" @click="openSettings">Configurações</button>
       </div>

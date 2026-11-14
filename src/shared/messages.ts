@@ -17,6 +17,10 @@ export interface MessageMap {
   'run/undo': { payload: { ruleId?: string }; response: RunReport[] };
   'tab/status': { payload: undefined; response: TabStatus };
   'site/pause': { payload: { host: string; paused: boolean }; response: void };
+  /** popup -> content: liga o modo "Capturar campo". */
+  'picker/start': { payload: undefined; response: void };
+  /** content -> background: abre (ou foca) a página de opções para consumir `picker:draft`. */
+  'options/open-draft': { payload: undefined; response: void };
 }
 
 export type Message = {
@@ -35,6 +39,8 @@ const MESSAGE_TYPES: ReadonlySet<string> = new Set<keyof MessageMap>([
   'run/undo',
   'tab/status',
   'site/pause',
+  'picker/start',
+  'options/open-draft',
 ]);
 
 export function isMessage(x: unknown): x is Message {
