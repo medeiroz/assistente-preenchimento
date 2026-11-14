@@ -59,9 +59,12 @@ Na aba **Práticas de privacidade**:
 
 ## 6. Novas versões
 
-1. Aumente `version` em `package.json` (a loja exige versão maior que a publicada).
-2. `npm run zip`, abra o item no painel, **Pacote** › **Fazer upload da nova versão** e envie para
-   revisão.
+1. Faça o push na `main`: o GitHub Actions gera sozinho uma nova Release (patch automático).
+   Para uma versão minor ou major, edite `version` em `package.json` antes do push.
+2. Baixe o `.zip` da última [Release](https://github.com/medeiroz/assistente-preenchimento/releases)
+   (é o mesmo pacote que `npm run zip` geraria, já verificado pelo CI). A loja exige versão maior
+   que a publicada.
+3. No painel, abra o item, **Pacote** › **Fazer upload da nova versão** e envie para revisão.
 
 ## Lembretes
 
