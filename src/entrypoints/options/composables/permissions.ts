@@ -25,12 +25,15 @@ function pageApi(): PermissionsApi {
   return browser;
 }
 
+/** O que o pedido de permissão precisa de uma regra: só os padrões de URL. */
+export type RuleTrigger = Pick<Rule, 'trigger'>;
+
 export interface PermissionNotice {
   kind: 'denied' | 'granted';
   /** Hosts sem permissão (kind=denied). */
   hosts: string[];
   /** Regra cujo acesso foi negado, para o botão "Permitir acesso". */
-  rule: Rule | null;
+  rule: RuleTrigger | null;
 }
 
 export interface UsePermissions {
@@ -38,7 +41,9 @@ export interface UsePermissions {
   missingRuleIds: ComputedRef<Set<string>>;
   notice: Ref<PermissionNotice | null>;
   /** Chame DENTRO do gesto do usuário, sem nenhum await antes. */
-  request(rule: Rule): Promise<void>;
+  request(rule: RuleTrigger): Promise<void>;
+  /** Um único pedido para as origens de várias regras (ex.: regras adicionadas de um arquivo). */
+  requestAll(rules: readonly RuleTrigger[]): Promise<void>;
   dismiss(): void;
 }
 
@@ -70,7 +75,7 @@ export function usePermissions(rules: Ref<Rule[]>): UsePermissions {
     return ids;
   });
 
-  function request(rule: Rule): Promise<void> {
+  function request(rule: RuleTrigger): Promise<void> {
     // Chamada síncrona a requestForRule: preserva o gesto do usuário.
     const wasMissing = classifyRule(rule).needed.some((o) => !granted.value.has(o));
     const pending = requestForRule(rule, api, granted.value);
@@ -83,6 +88,11 @@ export function usePermissions(rules: Ref<Rule[]>): UsePermissions {
         notice.value = { kind: 'denied', hosts, rule };
       }
     });
+  }
+
+  function requestAll(list: readonly RuleTrigger[]): Promise<void> {
+    const urlPatterns = [...new Set(list.flatMap((r) => r.trigger.urlPatterns))];
+    return request({ trigger: { urlPatterns, settleMs: 300 } });
   }
 
   const onChanged = (): void => {
@@ -104,6 +114,7 @@ export function usePermissions(rules: Ref<Rule[]>): UsePermissions {
     missingRuleIds,
     notice,
     request,
+    requestAll,
     dismiss: () => (notice.value = null),
   };
 }

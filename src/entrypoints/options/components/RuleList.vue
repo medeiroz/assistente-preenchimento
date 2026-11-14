@@ -11,6 +11,7 @@ const emit = defineEmits<{
   remove: [rule: Rule];
   toggle: [rule: Rule, enabled: boolean];
   grant: [rule: Rule];
+  importExample: [];
 }>();
 
 const groups = computed(() => groupRulesBySite(props.rules));
@@ -30,9 +31,44 @@ function onToggle(rule: Rule, ev: Event): void {
     </div>
 
     <p v-if="!loaded" class="muted">Carregando…</p>
-    <p v-else-if="rules.length === 0" class="empty">
-      Você ainda não tem regras. Clique em “Nova regra” para criar a primeira.
-    </p>
+    <div v-else-if="rules.length === 0" class="empty-state" data-testid="empty-state">
+      <h3>Nenhuma regra ainda</h3>
+      <p>
+        Uma regra diz a um site quais campos preencher e com quais valores. Escolha por onde
+        começar:
+      </p>
+      <ul class="empty-paths">
+        <li>
+          <button
+            type="button"
+            class="btn primary"
+            data-testid="empty-new-rule"
+            @click="emit('create')"
+          >
+            Nova regra
+          </button>
+          <span class="hint">Descreva a página e os campos manualmente.</span>
+        </li>
+        <li data-testid="empty-capture">
+          <strong>Capturar campo</strong>
+          <span class="hint">
+            Abra o site, clique no ícone da extensão na barra do Chrome e use “Capturar campo nesta
+            página”; depois clique no campo desejado.
+          </span>
+        </li>
+        <li>
+          <button
+            type="button"
+            class="btn"
+            data-testid="empty-import-example"
+            @click="emit('importExample')"
+          >
+            Importar exemplo da Clínica Experts
+          </button>
+          <span class="hint">Uma regra pronta para usar de modelo; você pode editá-la depois.</span>
+        </li>
+      </ul>
+    </div>
 
     <section v-for="g in groups" :key="g.site" class="group" :aria-label="`Site: ${g.site}`">
       <h3 class="group-title">{{ g.site }}</h3>

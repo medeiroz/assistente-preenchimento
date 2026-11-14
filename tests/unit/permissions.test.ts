@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { describe, expect, it, vi } from 'vitest';
 import { parseRule, type Rule } from '../../src/core/model';
 import {
@@ -109,14 +110,25 @@ describe('originsForRule', () => {
 });
 
 describe('isStaticallyCovered', () => {
-  it('cobre a CE em qualquer caminho', () => {
-    expect(STATIC_MATCHES).toContain('https://app.clinicaexperts.com.br/*');
-    expect(isStaticallyCovered('https://app.clinicaexperts.com.br/nfse/1')).toBe(true);
-    expect(isStaticallyCovered('*://app.clinicaexperts.com.br/*')).toBe(true);
+  it('produção: o manifest não cobre site nenhum (nem a Clínica Experts)', () => {
+    expect(STATIC_MATCHES).toEqual([]); // o Vitest roda fora do modo e2e
+    expect(isStaticallyCovered('https://app.clinicaexperts.com.br/nfse/1')).toBe(false);
   });
-  it('não cobre outros sites nem subdomínios', () => {
-    expect(isStaticallyCovered('https://outro.com/*')).toBe(false);
-    expect(isStaticallyCovered('https://*.clinicaexperts.com.br/*')).toBe(false);
+  it('e2e: cobre o site de exemplo e localhost/127.0.0.1', async () => {
+    vi.stubEnv('MODE', 'e2e');
+    vi.resetModules();
+    const mod = await import('../../src/shared/permissions');
+    vi.unstubAllEnvs();
+    const e2e = mod.STATIC_MATCHES;
+    expect(e2e).toEqual([
+      'https://app.clinicaexperts.com.br/*',
+      'http://localhost/*',
+      'http://127.0.0.1/*',
+    ]);
+    expect(mod.isStaticallyCovered('https://app.clinicaexperts.com.br/nfse/1', e2e)).toBe(true);
+    expect(mod.isStaticallyCovered('*://app.clinicaexperts.com.br/*', e2e)).toBe(true);
+    expect(mod.isStaticallyCovered('https://*.clinicaexperts.com.br/*', e2e)).toBe(false);
+    expect(mod.isStaticallyCovered('https://outro.com/*', e2e)).toBe(false);
   });
   it('aceita a lista de estáticos injetada (modo e2e)', () => {
     expect(isStaticallyCovered('http://localhost/*', ['http://localhost/*'])).toBe(true);
@@ -135,9 +147,13 @@ describe('computeDynamicMatches', () => {
       'https://b.com/*',
     ]);
   });
-  it('ignora os cobertos estaticamente e http (evita injeção dupla)', () => {
-    const rules = [rule(['https://app.clinicaexperts.com.br/*', 'http://a.com/*'])];
+  it('ignora http (não suportado)', () => {
+    const rules = [rule(['http://a.com/*'])];
     expect(computeDynamicMatches(rules, all)).toEqual([]);
+  });
+  it('em produção a regra da Clínica Experts também é dinâmica', () => {
+    const rules = [rule(['https://app.clinicaexperts.com.br/*'])];
+    expect(computeDynamicMatches(rules, all)).toEqual(['https://app.clinicaexperts.com.br/*']);
   });
   it('deduplica entre regras', () => {
     const rules = [
@@ -154,21 +170,25 @@ describe('missingPermissions', () => {
     const rules = [
       rule(['https://a.com/*', 'https://b.com/*']),
       rule(['https://off.com/*'], { id: 'r2', enabled: false }),
-      rule(['https://app.clinicaexperts.com.br/*'], { id: 'r3' }),
     ];
     expect(await missingPermissions(rules, api)).toEqual(['https://b.com/*']);
+  });
+  it('usuário que já tinha a extensão: a regra da Clínica Experts passa a pedir permissão', async () => {
+    const preset = parseRule(JSON.parse(await readFile('presets/ce-nfse.json', 'utf8')));
+    if (!preset.ok) throw new Error(preset.errors.join(';'));
+    expect(await missingPermissions([preset.rule], fakeApi())).toEqual([
+      'https://app.clinicaexperts.com.br/*',
+    ]);
+    expect(
+      await missingPermissions([preset.rule], fakeApi(['https://app.clinicaexperts.com.br/*'])),
+    ).toEqual([]);
   });
 });
 
 describe('requestForRule', () => {
   it('pede só origens específicas, https e não estáticas', async () => {
     const api = fakeApi();
-    const r = rule([
-      'https://a.com/x',
-      'https://app.clinicaexperts.com.br/*',
-      'http://h.com/*',
-      'https://*/*',
-    ]);
+    const r = rule(['https://a.com/x', 'http://h.com/*', 'https://*/*']);
     const res = await requestForRule(r, api);
     expect(api.permissions.request).toHaveBeenCalledWith({ origins: ['https://a.com/*'] });
     expect(res).toEqual({ granted: true, unsupported: ['http://h.com/*'] });
@@ -178,7 +198,11 @@ describe('requestForRule', () => {
     const r = rule(['https://a.com/*', 'https://b.com/*']);
     await requestForRule(r, api, new Set(['https://a.com/*']));
     expect(api.permissions.request).toHaveBeenCalledWith({ origins: ['https://b.com/*'] });
-    const none = await requestForRule(rule(['https://app.clinicaexperts.com.br/*']), api);
+    const none = await requestForRule(
+      rule(['https://a.com/*', 'https://b.com/*']),
+      api,
+      new Set(['https://a.com/*', 'https://b.com/*']),
+    );
     expect(none.granted).toBe(true);
     expect(api.permissions.request).toHaveBeenCalledTimes(1);
   });
@@ -215,11 +239,10 @@ describe('syncDynamicScripts', () => {
       persistAcrossSessions: true,
     });
   });
-  it('não registra sem permissão, nem para regras estáticas ou desabilitadas', async () => {
+  it('não registra sem permissão, nem para regras desabilitadas', async () => {
     const api = fakeApi();
     const rules = [
       rule(['https://a.com/*']),
-      rule(['https://app.clinicaexperts.com.br/*'], { id: 'r2' }),
       rule(['https://b.com/*'], { id: 'r3', enabled: false }),
     ];
     expect(await run(api, rules)).toBe('unchanged');

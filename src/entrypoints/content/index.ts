@@ -3,6 +3,7 @@ import type { Config, RunReport } from '../../core/model';
 import { chromeHistoryRepository, chromeSyncRepository } from '../../core/storage';
 import { isMessage, type TabStatus } from '../../shared/messages';
 import { createPageUi } from './page-ui';
+import { claimPage } from './guard';
 import { createPicker, deliverCapture } from './picker';
 
 const E2E = import.meta.env.MODE === 'e2e';
@@ -12,10 +13,16 @@ function varsOf(config: Config): Record<string, string> {
 }
 
 export default defineContentScript({
+  // Produção: sem matches estáticos. O arquivo é gerado, mas não declarado no manifest; o
+  // background o registra por site (permissão concedida) e o popup o injeta sob demanda.
+  // Build e2e: declarado no manifest para localhost/127.0.0.1 (harness) e o site de exemplo.
   matches: E2E
     ? ['https://app.clinicaexperts.com.br/*', 'http://localhost/*', 'http://127.0.0.1/*']
-    : ['https://app.clinicaexperts.com.br/*'],
+    : [],
+  registration: E2E ? 'manifest' : 'runtime',
   async main() {
+    // Registro dinâmico + injeção sob demanda podem executar o script duas vezes na mesma página.
+    if (!claimPage(globalThis)) return;
     const repo = chromeSyncRepository();
     const history = chromeHistoryRepository();
     const host = location.hostname;

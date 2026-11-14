@@ -1,7 +1,17 @@
 {
   "name": "assistente-preenchimento",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "Extensão do Chrome que preenche campos de formulários automaticamente nos sites escolhidos, a partir de regras criadas pelo próprio usuário.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/medeiroz/assistente-preenchimento.git"
+  },
+  "homepage": "https://github.com/medeiroz/assistente-preenchimento",
+  "bugs": {
+    "url": "https://github.com/medeiroz/assistente-preenchimento/issues"
+  },
   "type": "module",
   "scripts": {
     "dev": "wxt",
@@ -13,7 +23,10 @@
     "build:e2e": "wxt build --mode e2e",
     "e2e": "npm run build:e2e && playwright test",
     "harness": "node tests/e2e/harness-server.ts",
-    "postinstall": "wxt prepare"
+    "postinstall": "wxt prepare",
+    "zip": "wxt zip",
+    "icons": "node scripts/generate-icons.mjs",
+    "screenshots": "npm run build:e2e && node scripts/generate-screenshots.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.0",

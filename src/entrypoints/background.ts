@@ -1,8 +1,8 @@
 import { parseRule, type Rule } from '../core/model';
 import { chromeSyncRepository, seedIfEmpty } from '../core/storage';
 import { isMessage } from '../shared/messages';
+import { contentScriptFile } from '../shared/content-script';
 import { syncDynamicScripts, type DynamicSyncDeps } from '../shared/permissions';
-import ceNfse from '../../presets/ce-nfse.json';
 
 const E2E = import.meta.env.MODE === 'e2e';
 
@@ -16,16 +16,25 @@ function parsePresets(raw: unknown[]): Rule[] {
   return rules;
 }
 
+/**
+ * Produção: nenhuma regra pré-instalada (a extensão é genérica), mas a instalação é marcada.
+ * Build e2e: semeia as regras de teste (dynamic import: some do bundle de produção).
+ */
 async function seed(): Promise<void> {
-  const raw: unknown[] = [ceNfse];
-  if (E2E) raw.push((await import('../../presets/e2e-harness.json')).default);
+  const raw: unknown[] = [];
+  if (E2E) {
+    raw.push((await import('../../presets/ce-nfse.json')).default);
+    raw.push((await import('../../presets/e2e-harness.json')).default);
+  }
   await seedIfEmpty(chromeSyncRepository(), parsePresets(raw));
 }
 
-/** Mesmo arquivo do content script estático gerado pelo WXT (ex.: content-scripts/content.js). */
-function contentScriptFile(): string {
-  const manifest = browser.runtime.getManifest();
-  return manifest.content_scripts?.[0]?.js?.[0] ?? 'content-scripts/content.js';
+// Uma única semeadura em andamento: onInstalled e a partida do worker chamam `run` quase juntos,
+// e duas gravações simultâneas disparam recargas duplicadas nas páginas abertas.
+let seeding: Promise<void> | undefined;
+function seedOnce(): Promise<void> {
+  seeding ??= seed();
+  return seeding;
 }
 
 function dynamicDeps(): DynamicSyncDeps {
@@ -33,7 +42,7 @@ function dynamicDeps(): DynamicSyncDeps {
   return {
     api: browser,
     loadRules: async () => (await repo.load()).rules,
-    scriptFile: contentScriptFile(),
+    scriptFile: contentScriptFile(browser.runtime.getManifest()),
   };
 }
 
@@ -46,7 +55,7 @@ function scheduleSync(): void {
 export default defineBackground(() => {
   console.info('[assistente] service worker iniciado');
   const run = (): void => {
-    seed()
+    seedOnce()
       .catch((e: unknown) => console.warn('[assistente] falha ao semear presets', e))
       .finally(scheduleSync);
   };

@@ -136,10 +136,7 @@ test('pausar impede o preenchimento; despausar volta a preencher', async ({
   await expect.poll(async () => (await state(page)).nbs, { timeout: 3000 }).toBe('126029000');
 });
 
-test('aba sem content script: "A extensão não atua nesta página"', async ({
-  context,
-  extensionId,
-}) => {
+test('aba sem content script: "Nenhuma regra para este site"', async ({ context, extensionId }) => {
   const { ext } = await openHarness(context, extensionId);
   const blank = await context.newPage();
   await blank.goto('about:blank');
@@ -151,6 +148,6 @@ test('aba sem content script: "A extensão não atua nesta página"', async ({
   });
   expect(blankId).toBeGreaterThan(-1);
   await ext.goto(popupUrl(extensionId, blankId));
-  await expect(ext.getByText('A extensão não atua nesta página')).toBeVisible({ timeout: 4000 });
+  await expect(ext.getByText('Nenhuma regra para este site')).toBeVisible({ timeout: 4000 });
   await expect(ext.getByRole('button', { name: 'Abrir configurações' })).toBeVisible();
 });
