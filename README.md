@@ -1,5 +1,7 @@
 # Assistente de Preenchimento
 
+[![CI](https://github.com/medeiroz/assistente-preenchimento/actions/workflows/ci.yml/badge.svg)](https://github.com/medeiroz/assistente-preenchimento/actions/workflows/ci.yml)
+
 > **English summary.** A Chrome (Manifest V3) extension that fills in form fields automatically on
 > the sites you choose, using rules you create yourself. No rule or site is built in: you pick the
 > site, the extension asks Chrome for access to that site only, and nothing leaves your browser.
@@ -86,6 +88,20 @@ campo é pulado e reportado, nunca preenchido com lixo.
 
 A extensão não coleta, não transmite e não vende dados. Veja a [política de privacidade](PRIVACY.md).
 Não guarde senhas em variáveis: elas sincronizam pela sua conta Google.
+
+## Releases
+
+A cada push na `main`, o GitHub Actions roda todos os checks (tipos, lint, testes, Prettier, build
+e E2E) e, se tudo passar, gera automaticamente uma nova versão: calcula o número, atualiza
+`package.json`, gera o zip, cria a tag `vX.Y.Z` e publica a Release. Pull requests só rodam os checks.
+
+Baixe o `.zip` (e o `.sha256`) na página de
+[Releases](https://github.com/medeiroz/assistente-preenchimento/releases). É o mesmo arquivo que
+se envia à Chrome Web Store (veja [store/PUBLICAR.md](store/PUBLICAR.md)).
+
+Regra de versão: se a `version` do `package.json` ainda não tem tag, ela é usada como está; se já
+tem, a release usa o próximo patch da maior tag existente. Para uma versão minor ou major, edite a
+`version` no `package.json` e faça o push.
 
 ## Desenvolvimento
 
