@@ -240,8 +240,8 @@ describe('buildCapture (casos inline)', () => {
   });
 
   it('sem adapter compatível: adapter "auto" e valor null', () => {
-    const doc = inline('<div><label>Obs</label><div contenteditable="true"></div></div>');
-    const c = capture(q(doc, '[contenteditable]'));
+    const doc = inline('<div><label>Obs</label><div role="combobox"></div></div>');
+    const c = capture(q(doc, '[role=combobox]'));
     expect(c.adapter).toBe('auto');
     expect(c.currentValue).toBeNull();
   });

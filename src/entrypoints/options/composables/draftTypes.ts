@@ -129,6 +129,21 @@ export const ADAPTER_OPTIONS: readonly Option<KnownAdapterChoice>[] = [
     description: 'Lista com busca, comum em sistemas feitos em Vue.',
   },
   { id: 'date', label: 'Data', description: 'Campo de data.' },
+  {
+    id: 'contenteditable',
+    label: 'Texto editável (contenteditable)',
+    description: 'Editores de texto da própria página, sem campo de formulário.',
+  },
+  {
+    id: 'react-select',
+    label: 'React-Select',
+    description: 'Lista com busca, comum em sistemas feitos em React.',
+  },
+  {
+    id: 'select2',
+    label: 'Select2',
+    description: 'Lista com busca baseada em jQuery.',
+  },
 ];
 
 export const LOCATOR_PLACEHOLDERS: Record<LocatorBy, string> = {

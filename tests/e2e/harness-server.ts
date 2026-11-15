@@ -2,6 +2,7 @@ import { createServer, type Server } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import type { AddressInfo } from 'node:net';
 import path from 'node:path';
+import { bundleLibs } from './libs-bundle';
 
 const root = path.resolve(import.meta.dirname, '../..');
 const harnessDir = path.join(root, 'tests/harness');
@@ -12,6 +13,7 @@ const vendor: Record<string, string> = {
     root,
     'node_modules/vue-multiselect-v2/dist/vue-multiselect.min.js',
   ),
+  '/vendor/select2.css': path.join(root, 'node_modules/select2/dist/css/select2.min.css'),
   '/vendor/vue-multiselect.min.css': path.join(
     root,
     'node_modules/vue-multiselect-v2/dist/vue-multiselect.min.css',
@@ -36,8 +38,14 @@ function resolveFile(pathname: string): string | null {
 
 export async function start(port = 0): Promise<string> {
   const s = createServer(async (req, res) => {
-    const file = resolveFile(new URL(req.url ?? '/', 'http://localhost').pathname);
+    const pathname = new URL(req.url ?? '/', 'http://localhost').pathname;
+    const file = resolveFile(pathname);
     try {
+      if (pathname === '/vendor/libs.js') {
+        res.writeHead(200, { 'content-type': types['.js'] });
+        res.end(await bundleLibs());
+        return;
+      }
       if (!file) throw new Error('forbidden');
       const body = await readFile(file);
       res.writeHead(200, {
