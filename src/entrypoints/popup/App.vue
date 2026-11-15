@@ -10,7 +10,8 @@ import { contentScriptFile } from '../../shared/content-script';
 import { injectAndStartPicker } from './lib/inject';
 import { hasFilled } from './lib/outcome';
 import { togglePausedHost } from './lib/pause';
-import { resolveTabId, sendToTab } from './lib/tab';
+import { resolveTabId, sendToTab, STATUS_TIMEOUT_MS } from './lib/tab';
+import { withTimeout } from './lib/timeout';
 import { recorderStatus, startRecording } from './lib/recorder';
 
 type View = 'loading' | 'unavailable' | 'ready';
@@ -32,7 +33,8 @@ async function load(): Promise<void> {
   try {
     tabId = await resolveTabId();
     if (tabId === null) throw new Error('sem aba');
-    await loadRecording(tabId);
+    // A gravação não bloqueia a tela: se o background não responder, o popup segue sem ela.
+    void loadRecording(tabId);
     const s = await sendToTab(tabId, { type: 'tab/status' });
     status.value = s;
     report.value = s.lastReport;
@@ -44,17 +46,18 @@ async function load(): Promise<void> {
 
 async function loadRecording(id: number): Promise<void> {
   try {
-    tabUrl = (await browser.tabs.get(id)).url;
+    tabUrl = (await withTimeout(browser.tabs.get(id), STATUS_TIMEOUT_MS)).url;
   } catch {
     tabUrl = undefined;
   }
-  recording.value = await recorderStatus(
-    id,
-    (t) =>
+  recording.value = await recorderStatus(id, (t) =>
+    withTimeout(
       browser.runtime.sendMessage({ type: 'recorder/status', payload: { tabId: t } }) as Promise<{
         active: boolean;
         count: number;
       }>,
+      STATUS_TIMEOUT_MS,
+    ),
   );
 }
 

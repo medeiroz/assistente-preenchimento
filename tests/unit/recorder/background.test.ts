@@ -188,4 +188,28 @@ describe('createRecorderBackground', () => {
     expect(local.data[RECORDING_DRAFT_KEY]).toBeDefined();
     expect(await bg.status(1)).toEqual(OFF);
   });
+
+  describe('dependência que nunca responde', () => {
+    const never = () => new Promise<never>(() => undefined);
+
+    it('inject travado não bloqueia status() seguinte', async () => {
+      const { bg } = setup({ inject: vi.fn(never), depTimeoutMs: 20 });
+      await expect(bg.start(1)).resolves.toEqual({ active: true, count: 0 });
+      await expect(bg.status(1)).resolves.toEqual({ active: true, count: 0 });
+    });
+
+    it('sendState travado não bloqueia status() seguinte', async () => {
+      const { bg } = setup({ sendState: vi.fn(never), depTimeoutMs: 20 });
+      await bg.start(1);
+      await expect(bg.status(1)).resolves.toEqual({ active: true, count: 0 });
+    });
+
+    it('openOptions travado não bloqueia a fila após parar', async () => {
+      const { bg } = setup({ openOptions: vi.fn(never), depTimeoutMs: 20 });
+      await bg.start(1);
+      await bg.field(1, field('A', '1'));
+      await expect(bg.stop(1, undefined)).resolves.toEqual(OFF);
+      await expect(bg.status(1)).resolves.toEqual(OFF);
+    });
+  });
 });

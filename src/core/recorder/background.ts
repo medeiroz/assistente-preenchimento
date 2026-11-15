@@ -25,6 +25,8 @@ export interface RecorderBackgroundDeps {
   /** Reinjeta o content script na aba (pode falhar: sem permissão de host). */
   inject(tabId: number): Promise<unknown>;
   now?(): number;
+  /** Tempo máximo (ms) de cada chamada a `inject`, `sendState` e `openOptions`; padrão 3000. */
+  depTimeoutMs?: number;
 }
 
 export interface RecorderBackground {
@@ -50,7 +52,33 @@ const INACTIVE: RecorderStatus = { active: false, count: 0 };
  */
 export function createRecorderBackground(deps: RecorderBackgroundDeps): RecorderBackground {
   const now = deps.now ?? Date.now;
+  const depTimeoutMs = deps.depTimeoutMs ?? 3000;
   let chain: Promise<unknown> = Promise.resolve();
+
+  /** Uma chamada que nunca termina travaria a fila inteira: vira falha após o prazo. */
+  function guarded<T>(call: () => Promise<T>): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('timeout')), depTimeoutMs);
+      let promise: Promise<T>;
+      try {
+        promise = call();
+      } catch (e) {
+        clearTimeout(timer);
+        reject(e);
+        return;
+      }
+      promise.then(
+        (v) => {
+          clearTimeout(timer);
+          resolve(v);
+        },
+        (e: unknown) => {
+          clearTimeout(timer);
+          reject(e);
+        },
+      );
+    });
+  }
 
   function enqueue<T>(job: () => Promise<T>): Promise<T> {
     const result = chain.then(job, job);
@@ -65,7 +93,7 @@ export function createRecorderBackground(deps: RecorderBackgroundDeps): Recorder
 
   async function push(tabId: number, status: RecorderStatus): Promise<void> {
     try {
-      await deps.sendState(tabId, status);
+      await guarded(() => deps.sendState(tabId, status));
     } catch {
       // Sem content script na aba (ainda não injetado ou aba fechada): ele pergunta no boot.
     }
@@ -76,7 +104,11 @@ export function createRecorderBackground(deps: RecorderBackgroundDeps): Recorder
     await deps.session.remove(RECORDER_SESSION_KEY);
     if (discard || session.fields.length === 0) return;
     await deps.local.set({ [RECORDING_DRAFT_KEY]: buildRecordingDraft(session, now()) });
-    await deps.openOptions();
+    try {
+      await guarded(() => deps.openOptions());
+    } catch {
+      // O rascunho já está salvo; se as opções não abrirem, ele aparece na próxima abertura.
+    }
   }
 
   return {
@@ -90,7 +122,7 @@ export function createRecorderBackground(deps: RecorderBackgroundDeps): Recorder
         // O popup pode ser fechado pelo pedido de permissão: quem injeta é o background, com a
         // sessão já gravada (o content script pergunta `recorder/status` ao iniciar).
         try {
-          await deps.inject(tabId);
+          await guarded(() => deps.inject(tabId));
         } catch {
           // Sem permissão de host nessa página: a barra não aparece, nada a fazer.
         }
@@ -130,7 +162,7 @@ export function createRecorderBackground(deps: RecorderBackgroundDeps): Recorder
         const session = await load();
         if (!session || session.tabId !== tabId) return;
         try {
-          await deps.inject(tabId);
+          await guarded(() => deps.inject(tabId));
         } catch {
           // Sem permissão de host nessa página: nada a fazer.
         }
