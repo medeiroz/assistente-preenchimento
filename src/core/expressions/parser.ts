@@ -58,7 +58,7 @@ function parseArgs(cur: Cursor): ArgNode[] {
     if (sep?.type === 'rparen') return args;
     if (sep?.type !== 'comma') {
       throw new ExpressionError(
-        `Esperado "," ou ")", encontrado ${describe(sep)}`,
+        t('exExpectedCommaParen', describe(sep)),
         sep ? sep.start : cur.eof,
       );
     }
@@ -127,7 +127,7 @@ function parseFilter(cur: Cursor): FilterCall {
   const nameTok = expect(cur, 'ident', t('exFilterName'));
   const def = getFilterDef(nameTok.value);
   if (!def) {
-    throw new ExpressionError(`Filtro desconhecido: "${nameTok.value}"`, nameTok.start);
+    throw new ExpressionError(t('exUnknownFilter', nameTok.value), nameTok.start);
   }
   const args = cur.peek()?.type === 'lparen' ? parseArgs(cur) : [];
   const last = args[args.length - 1];
@@ -136,19 +136,13 @@ function parseFilter(cur: Cursor): FilterCall {
     const exp =
       def.minArgs === def.args.length
         ? String(def.args.length)
-        : `${def.minArgs} a ${def.args.length}`;
-    throw new ExpressionError(
-      `O filtro "${nameTok.value}" espera ${exp} argumento(s), recebeu ${args.length}`,
-      nameTok.start,
-    );
+        : t('exArityRange', def.minArgs, def.args.length);
+    throw new ExpressionError(t('exFilterArity', nameTok.value, exp, args.length), nameTok.start);
   }
   args.forEach((a, idx) => {
     const type = def.args[idx];
     if (type === 'string' && a.kind !== 'string') {
-      throw new ExpressionError(
-        `Argumento ${idx + 1} de "${nameTok.value}" deve ser texto entre aspas`,
-        a.start,
-      );
+      throw new ExpressionError(t('exArgString', idx + 1, nameTok.value), a.start);
     }
     if (type === 'int' && (a.kind !== 'number' || !Number.isInteger(a.value))) {
       throw new ExpressionError(t('exArgInt', idx + 1, nameTok.value), a.start);

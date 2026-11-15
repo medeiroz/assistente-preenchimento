@@ -61,7 +61,7 @@ export const select2Adapter: FieldAdapter = {
   async write(root, value) {
     const select = findSelect(root);
     if (!select) throw new AdapterError(t('adSelect2NotFound'), 'control-not-found');
-    if (select.disabled) throw new AdapterError('Select desabilitado', 'write-failed');
+    if (select.disabled) throw new AdapterError(t('adSelect2Disabled'), 'write-failed');
     const option = findOption(select, normalizeSpaces(value));
     if (!option) throw new AdapterError(t('adOptionNotFound', value), 'option-not-found');
 
@@ -77,7 +77,7 @@ export const select2Adapter: FieldAdapter = {
   async clear(root) {
     const select = findSelect(root);
     if (!select) throw new AdapterError(t('adSelect2NotFound'), 'control-not-found');
-    if (select.disabled) throw new AdapterError('Select desabilitado', 'write-failed');
+    if (select.disabled) throw new AdapterError(t('adSelect2Disabled'), 'write-failed');
     if (renderedText(select) === null) return;
     const empty = Array.from(select.options).find((o) => o.value === '');
     if (empty) select.value = '';

@@ -17,13 +17,13 @@ const percent = computed(() => Math.min(100, Math.round((props.bytes / props.lim
 <template>
   <div class="size-meter" :class="`level-${level}`" data-testid="size-meter" :data-level="level">
     <div class="size-meter-head">
-      <span>Tamanho para sincronizar</span>
+      <span>{{ $t('sizeTitle') }}</span>
       <strong data-testid="size-meter-text">{{ label }}</strong>
     </div>
     <div
       class="size-meter-track"
       role="meter"
-      aria-label="Tamanho para sincronizar"
+      :aria-label="$t('sizeTitle')"
       aria-valuemin="0"
       :aria-valuemax="limit"
       :aria-valuenow="Math.min(bytes, limit)"
@@ -32,7 +32,7 @@ const percent = computed(() => Math.min(100, Math.round((props.bytes / props.lim
       <div class="size-meter-bar" :style="{ width: `${percent}%` }"></div>
     </div>
     <p v-if="level === 'error'" class="error-text" data-testid="size-meter-error">
-      Acima do limite: {{ overMessage }}
+      {{ $t('sizeOver', overMessage) }}
     </p>
   </div>
 </template>

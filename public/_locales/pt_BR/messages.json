@@ -1270,5 +1270,765 @@
         "content": "$1"
       }
     }
+  },
+  "tabsAria": {
+    "message": "Seções"
+  },
+  "addToRule": {
+    "message": "Adicionar à regra “$arg1$”",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "allow": {
+    "message": "Permitir"
+  },
+  "allowAccessFor": {
+    "message": "acesso para $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "edit": {
+    "message": "Editar"
+  },
+  "duplicate": {
+    "message": "Duplicar"
+  },
+  "delete": {
+    "message": "Excluir"
+  },
+  "remove": {
+    "message": "Remover"
+  },
+  "save": {
+    "message": "Salvar"
+  },
+  "saving": {
+    "message": "Salvando…"
+  },
+  "saveFailed": {
+    "message": "Não foi possível salvar: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "unsavedChanges": {
+    "message": "Alterações não salvas"
+  },
+  "confirmUnsaved": {
+    "message": "Há alterações não salvas. Descartar e sair?"
+  },
+  "editRule": {
+    "message": "Editar regra"
+  },
+  "ruleOn": {
+    "message": "Ligada"
+  },
+  "ruleOff": {
+    "message": "Desligada"
+  },
+  "ruleActiveAria": {
+    "message": "Regra ativa: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "noPermissionBadge": {
+    "message": "sem permissão"
+  },
+  "insecureBadge": {
+    "message": "conexão não segura"
+  },
+  "insecureTitle": {
+    "message": "Este site usa http: os valores preenchidos trafegam sem criptografia."
+  },
+  "rlSiteAria": {
+    "message": "Site: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "rlEmptyTitle": {
+    "message": "Nenhuma regra ainda"
+  },
+  "rlIntro": {
+    "message": "Uma regra diz a um site quais campos preencher e com quais valores. Escolha por onde começar:"
+  },
+  "rlNewHint": {
+    "message": "Descreva a página e os campos manualmente."
+  },
+  "rlCaptureHint": {
+    "message": "Abra o site, clique no ícone da extensão na barra do Chrome e use “Capturar campo nesta página”; depois clique no campo desejado."
+  },
+  "rlImportExample": {
+    "message": "Importar exemplo"
+  },
+  "rlExampleHint": {
+    "message": "Uma regra pronta para usar de modelo; você pode editá-la depois."
+  },
+  "capChoiceAria": {
+    "message": "Campo capturado"
+  },
+  "capCaptured": {
+    "message": "Campo capturado:"
+  },
+  "capChoiceQuestion": {
+    "message": "Já existe uma regra para esta página e este contêiner. O que deseja fazer?"
+  },
+  "capNewRule": {
+    "message": "Criar nova regra"
+  },
+  "permDeniedLead": {
+    "message": "Sem permissão para $arg1$:",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "permDeniedRest": {
+    "message": "a regra fica salva, mas só funciona depois que você permitir o acesso."
+  },
+  "permAllowAccess": {
+    "message": "Permitir acesso"
+  },
+  "permReload": {
+    "message": "Recarregue as abas abertas desse site para a extensão começar a atuar."
+  },
+  "permGotIt": {
+    "message": "Entendi"
+  },
+  "previewResult": {
+    "message": "Resultado:"
+  },
+  "previewUnresolved": {
+    "message": "Resultado: não foi possível resolver — $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "confirmClearHistory": {
+    "message": "Limpar todo o histórico? Esta ação não pode ser desfeita."
+  },
+  "histRefresh": {
+    "message": "Atualizar"
+  },
+  "histClear": {
+    "message": "Limpar histórico"
+  },
+  "histHint": {
+    "message": "As últimas execuções, guardadas só neste computador. Não são sincronizadas com outros dispositivos."
+  },
+  "histEmpty": {
+    "message": "Nenhuma execução registrada ainda."
+  },
+  "histDetails": {
+    "message": "Detalhes por campo"
+  },
+  "histAuto": {
+    "message": "Preenchimento automático"
+  },
+  "histManual": {
+    "message": "Preenchimento manual"
+  },
+  "recReviewAria": {
+    "message": "Gravação concluída"
+  },
+  "recReviewTitle": {
+    "message": "Gravação concluída: $arg1$ regra(s) sugerida(s)",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "recDone": {
+    "message": "(tratada)"
+  },
+  "recContainer": {
+    "message": "Contêiner: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "recCreateRule": {
+    "message": "Criar regra"
+  },
+  "sizeTitle": {
+    "message": "Tamanho para sincronizar"
+  },
+  "sizeOver": {
+    "message": "Acima do limite: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "sizeOverFields": {
+    "message": "reduza o número de campos"
+  },
+  "sizeOverVars": {
+    "message": "reduza as variáveis sincronizadas ou marque algumas como Só neste navegador"
+  },
+  "edChangedElsewhere": {
+    "message": "Esta regra foi alterada em outro lugar."
+  },
+  "edRemovedExternally": {
+    "message": "Ela foi excluída; se você salvar, ela será criada de novo."
+  },
+  "edChangedExternally": {
+    "message": "Se você salvar, suas alterações substituem a versão salva."
+  },
+  "edDiscardReload": {
+    "message": "Descartar minhas alterações e recarregar"
+  },
+  "edDuplicateField": {
+    "message": "Este campo já está nesta regra."
+  },
+  "edDuplicateFieldNote": {
+    "message": "Nada foi adicionado; o campo existente está em foco abaixo."
+  },
+  "edFixItems": {
+    "message": "Corrija os itens abaixo para salvar:"
+  },
+  "edExampleUrl": {
+    "message": "URL de exemplo (só para a pré-visualização dos valores)"
+  },
+  "edExampleUrlInvalid": {
+    "message": "URL inválida; a pré-visualização usa https://exemplo.com/."
+  },
+  "edIdentification": {
+    "message": "Identificação"
+  },
+  "edNamePlaceholder": {
+    "message": "Ex.: NFS-e: NBS e consumo pessoal"
+  },
+  "edWhere": {
+    "message": "Onde a regra vale"
+  },
+  "edUrlHintA": {
+    "message": "Endereços das páginas, no formato"
+  },
+  "edUrlHintB": {
+    "message": "(o"
+  },
+  "edUrlHintC": {
+    "message": "vale para qualquer final)."
+  },
+  "edRemovePatternAria": {
+    "message": "Remover padrão de URL $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "edInsecure": {
+    "message": "Conexão não segura ($arg1$). Este site usa http: os valores preenchidos trafegam sem criptografia.",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "edBroad": {
+    "message": "Esse padrão vale para qualquer site. Informe um site específico (por exemplo https://site.com/*): a extensão não pede permissão para todos os sites."
+  },
+  "edNeedsPermission": {
+    "message": "Ao salvar, o navegador vai pedir permissão para acessar $arg1$.",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "edOverlap": {
+    "message": "Outra regra também pode atuar nestas páginas: $arg1$. Se forem para o mesmo formulário, a de maior prioridade preenche primeiro.",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "edAddPattern": {
+    "message": "Adicionar padrão de URL"
+  },
+  "edAllFrames": {
+    "message": "Atuar também em iframes"
+  },
+  "edFramesOn": {
+    "message": "Esta regra atua em iframes: cada iframe cuja própria URL case com o padrão acima é preenchido. Iframes de outro site precisam de permissão para o endereço deles."
+  },
+  "edFramesOff": {
+    "message": "Sem isto, a regra só preenche a página principal, não os formulários dentro de iframes."
+  },
+  "edContainerSelector": {
+    "message": "Contêiner: seletor CSS (opcional)"
+  },
+  "edContainerText": {
+    "message": "Contêiner: texto que deve conter (opcional)"
+  },
+  "edContainerTextPlaceholder": {
+    "message": "Emitir Nota Fiscal"
+  },
+  "edContainerHint": {
+    "message": "Use para a regra só valer dentro de uma parte da página, por exemplo um modal. Ex.: o título do modal."
+  },
+  "edAdvWait": {
+    "message": "Avançado: tempo de espera"
+  },
+  "edSettleLabel": {
+    "message": "Espera antes de preencher (milissegundos)"
+  },
+  "edSettleHint": {
+    "message": "Tempo que a extensão aguarda a página parar de mudar antes de preencher. Padrão: 300."
+  },
+  "edBehavior": {
+    "message": "Comportamento"
+  },
+  "edWhen": {
+    "message": "Quando preencher"
+  },
+  "edOverwrite": {
+    "message": "Sobrescrever valores existentes"
+  },
+  "edAdvPriority": {
+    "message": "Avançado: prioridade"
+  },
+  "edPriorityLabel": {
+    "message": "Prioridade (0 a 100)"
+  },
+  "edPriorityHint": {
+    "message": "Quando várias regras atuam no mesmo formulário, a de maior prioridade preenche primeiro e as outras pulam os campos que ela já preencheu. Vazio = padrão (50). Em empate, vale a ordem das regras."
+  },
+  "ftLegend": {
+    "message": "Campos a preencher"
+  },
+  "ftHelpSummary": {
+    "message": "Como escrever valores com"
+  },
+  "ftHelpIntro": {
+    "message": "Escreva o texto que será digitado no campo. Para valores que mudam, use blocos"
+  },
+  "ftHelpVar": {
+    "message": "— variável cadastrada"
+  },
+  "ftHelpUrl": {
+    "message": "— parâmetro da URL"
+  },
+  "ftHelpNow": {
+    "message": "— data de hoje"
+  },
+  "ftHelpDefault": {
+    "message": "— com valor reserva"
+  },
+  "ftFilters": {
+    "message": "Filtros disponíveis:"
+  },
+  "ftEmpty": {
+    "message": "Nenhum campo ainda. Use “Adicionar campo” para dizer o que preencher."
+  },
+  "ftDrag": {
+    "message": "Arrastar para reordenar"
+  },
+  "ftBadgeTyping": {
+    "message": "digitação"
+  },
+  "ftMoveUp": {
+    "message": "Mover campo $arg1$ para cima",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftMoveDown": {
+    "message": "Mover campo $arg1$ para baixo",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftRemoveAria": {
+    "message": "Remover campo $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftHowToFind": {
+    "message": "Como encontrar"
+  },
+  "ftLocatorOfField": {
+    "message": "$arg1$ do campo",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftType": {
+    "message": "Tipo"
+  },
+  "ftValue": {
+    "message": "Valor"
+  },
+  "ftAdvanced": {
+    "message": "Avançado"
+  },
+  "ftDefaultLabel": {
+    "message": "Valor padrão (opcional)"
+  },
+  "ftDefaultHint": {
+    "message": "Se o sistema já preenche o campo com um valor fixo, informe-o aqui para a regra tratá-lo como “vazio”."
+  },
+  "ftDelayLabel": {
+    "message": "Esperar antes de preencher (ms)"
+  },
+  "ftTypingLabel": {
+    "message": "Simular digitação (tecla por tecla)"
+  },
+  "ftTypingOnly": {
+    "message": "Disponível só para campos de texto e data."
+  },
+  "ftKeyDelayLabel": {
+    "message": "Intervalo entre teclas (ms)"
+  },
+  "ftAdvHint": {
+    "message": "Use a digitação simulada em campos com máscara ou busca automática (ex.: CPF/CNPJ que consulta um cadastro). A espera é útil quando o campo só aparece ou habilita depois do anterior: o campo é procurado só depois dela."
+  },
+  "ftAdd": {
+    "message": "Adicionar campo"
+  },
+  "ftEnabled": {
+    "message": "Ativo"
+  },
+  "varWarning": {
+    "message": "Variáveis “Sincronizar” vão para a sua conta Google e aparecem em todos os seus dispositivos. Para dados sensíveis, como senhas, use “Só neste navegador”: o valor fica apenas aqui, não é sincronizado nem entra na exportação (a menos que você peça), mas não é criptografado."
+  },
+  "varUseAs": {
+    "message": "Use em qualquer campo como"
+  },
+  "varInUse": {
+    "message": "A variável “$arg1$” está em uso.",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "varInUseRest": {
+    "message": "Se você excluí-la, estes campos ficarão sem valor (o preenchimento deles será ignorado):"
+  },
+  "varDeleteAnyway": {
+    "message": "Excluir mesmo assim"
+  },
+  "varEmpty": {
+    "message": "Nenhuma variável ainda. Use “Adicionar variável” para criar uma."
+  },
+  "varKey": {
+    "message": "Chave"
+  },
+  "varLabel": {
+    "message": "Nome amigável"
+  },
+  "varLabelPlaceholder": {
+    "message": "Código de teste"
+  },
+  "varScope": {
+    "message": "Onde guardar"
+  },
+  "varScopeSync": {
+    "message": "Sincronizar"
+  },
+  "varScopeLocal": {
+    "message": "Só neste navegador"
+  },
+  "varNoValue": {
+    "message": "sem valor neste navegador"
+  },
+  "varUsedIn": {
+    "message": "Usada em:"
+  },
+  "varUnused": {
+    "message": "Não usada em nenhuma regra."
+  },
+  "varNoKey": {
+    "message": "sem chave"
+  },
+  "varDeleteAria": {
+    "message": "Excluir a variável $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "varSave": {
+    "message": "Salvar variáveis"
+  },
+  "varAdd": {
+    "message": "Adicionar variável"
+  },
+  "countRuleOne": {
+    "message": "1 regra"
+  },
+  "countRuleMany": {
+    "message": "$arg1$ regras",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "countVarOne": {
+    "message": "1 variável"
+  },
+  "countVarMany": {
+    "message": "$arg1$ variáveis",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ieFileGenerated": {
+    "message": "Arquivo $arg1$ gerado.",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ieExportFailed": {
+    "message": "Não foi possível exportar: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ieImported": {
+    "message": "Configuração importada com sucesso."
+  },
+  "ieImportFailed": {
+    "message": "Não foi possível importar: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ieReadCurrentFailed": {
+    "message": "Não foi possível ler a configuração atual: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ieTotalUsage": {
+    "message": "Uso total da sincronização: $arg1$ de $arg2$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      },
+      "arg2": {
+        "content": "$2"
+      }
+    }
+  },
+  "ieExportTitle": {
+    "message": "Exportar"
+  },
+  "ieExportHint": {
+    "message": "Baixa um arquivo com todas as suas regras, variáveis e preferências, útil como cópia de segurança ou para levar a outro computador. Os valores das variáveis “Só neste navegador” ficam de fora, a menos que você marque a opção abaixo."
+  },
+  "ieIncludeLocal": {
+    "message": "Incluir valores das variáveis locais"
+  },
+  "ieLocalWarning": {
+    "message": "O arquivo vai conter os valores das variáveis “Só neste navegador” em texto aberto. Guarde-o com cuidado e não o compartilhe."
+  },
+  "ieExportButton": {
+    "message": "Exportar configuração"
+  },
+  "ieAddTitle": {
+    "message": "Adicionar regras de um arquivo"
+  },
+  "ieAddHintA": {
+    "message": "Escolha um arquivo com"
+  },
+  "ieAddHintB": {
+    "message": "uma regra"
+  },
+  "ieAddHintC": {
+    "message": "(como o exemplo em"
+  },
+  "ieAddHintD": {
+    "message": "ou uma configuração exportada. As regras são"
+  },
+  "ieAddHintE": {
+    "message": "adicionadas"
+  },
+  "ieAddHintF": {
+    "message": "às que você já tem; nada é apagado nem substituído."
+  },
+  "ieAddFileLabel": {
+    "message": "Arquivo de regra ou configuração (.json)"
+  },
+  "ieWillAdd": {
+    "message": "vai adicionar $arg1$:",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ieRenamedOne": {
+    "message": "Uma regra já usava o mesmo identificador e receberam um novo: nenhuma regra existente é alterada."
+  },
+  "ieRenamedMany": {
+    "message": "Algumas regras já usavam o mesmo identificador e receberam um novo: nenhuma regra existente é alterada."
+  },
+  "ieNewVars": {
+    "message": "Variáveis novas: $arg1$.",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ieKeptVars": {
+    "message": "Variáveis que você já tem (mantidas): $arg1$.",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ieWarnings": {
+    "message": "Avisos:"
+  },
+  "ieNewSitesHint": {
+    "message": "Para sites novos, o Chrome vai pedir permissão de acesso ao clicar em adicionar."
+  },
+  "ieAddConfirm": {
+    "message": "Adicionar à minha configuração"
+  },
+  "ieImportTitle": {
+    "message": "Importar"
+  },
+  "ieImportHintA": {
+    "message": "Escolha um arquivo exportado antes. Você verá um resumo e poderá confirmar. A importação"
+  },
+  "ieImportHintB": {
+    "message": "substitui"
+  },
+  "ieImportHintC": {
+    "message": "toda a configuração atual."
+  },
+  "ieImportFileLabel": {
+    "message": "Arquivo de configuração (.json)"
+  },
+  "ieImportCounts": {
+    "message": "$arg1$ e $arg2$.",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      },
+      "arg2": {
+        "content": "$2"
+      }
+    }
+  },
+  "ieImportConfirm": {
+    "message": "Substituir minha configuração"
+  },
+  "varUseExample": {
+    "message": "{{ var.sua_chave }}"
+  },
+  "varKeyPlaceholder": {
+    "message": "codigo_teste"
+  },
+  "exExpectedCommaParen": {
+    "message": "Esperado \",\" ou \")\", encontrado $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "exArityRange": {
+    "message": "$arg1$ a $arg2$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      },
+      "arg2": {
+        "content": "$2"
+      }
+    }
+  },
+  "exFilterArity": {
+    "message": "O filtro \"$arg1$\" espera $arg2$ argumento(s), recebeu $arg3$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      },
+      "arg2": {
+        "content": "$2"
+      },
+      "arg3": {
+        "content": "$3"
+      }
+    }
+  },
+  "exArgString": {
+    "message": "Argumento $arg1$ de \"$arg2$\" deve ser texto entre aspas",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      },
+      "arg2": {
+        "content": "$2"
+      }
+    }
+  },
+  "adControlDisabled": {
+    "message": "Controle desabilitado"
+  },
+  "adSelectDisabled": {
+    "message": "select desabilitado"
+  },
+  "adSelect2Disabled": {
+    "message": "Select desabilitado"
+  },
+  "adReadOnlyOrDisabled": {
+    "message": "Controle somente leitura ou desabilitado"
+  },
+  "adRadioDisabled": {
+    "message": "Radio desabilitado"
+  },
+  "adCheckboxDisabled": {
+    "message": "Checkbox desabilitado"
   }
 }

@@ -16,7 +16,7 @@ function onKeydown(e: KeyboardEvent, id: TabId): void {
 </script>
 
 <template>
-  <div role="tablist" aria-label="Seções" class="tabs">
+  <div role="tablist" :aria-label="$t('tabsAria')" class="tabs">
     <button
       v-for="t in TABS"
       :id="`tab-${t.id}`"

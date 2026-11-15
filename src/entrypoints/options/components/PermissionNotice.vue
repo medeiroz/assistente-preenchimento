@@ -8,8 +8,8 @@ defineEmits<{ request: [rule: RuleTrigger]; dismiss: [] }>();
 <template>
   <div v-if="notice?.kind === 'denied'" class="notice warn" role="status" data-testid="perm-denied">
     <p>
-      <strong>Sem permissão para {{ notice.hosts.join(', ') }}:</strong>
-      a regra fica salva, mas só funciona depois que você permitir o acesso.
+      <strong>{{ $t('permDeniedLead', notice.hosts.join(', ')) }}</strong>
+      {{ $t('permDeniedRest') }}
     </p>
     <button
       type="button"
@@ -17,7 +17,7 @@ defineEmits<{ request: [rule: RuleTrigger]; dismiss: [] }>();
       data-testid="perm-allow"
       @click="notice.rule && $emit('request', notice.rule)"
     >
-      Permitir acesso
+      {{ $t('permAllowAccess') }}
     </button>
   </div>
   <div
@@ -26,7 +26,9 @@ defineEmits<{ request: [rule: RuleTrigger]; dismiss: [] }>();
     role="status"
     data-testid="perm-granted"
   >
-    <p>Recarregue as abas abertas desse site para a extensão começar a atuar.</p>
-    <button type="button" class="btn" @click="$emit('dismiss')">Entendi</button>
+    <p>{{ $t('permReload') }}</p>
+    <button type="button" class="btn" @click="$emit('dismiss')">
+      {{ $t('permGotIt') }}
+    </button>
   </div>
 </template>

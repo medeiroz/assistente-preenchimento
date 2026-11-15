@@ -131,7 +131,7 @@ export const nativeChoiceAdapter: FieldAdapter = {
     if (kind === 'radio') {
       const radio = findRadio(root, value);
       if (!radio) throw new AdapterError(t('adOptionNotFound', value), 'option-not-found');
-      if (radio.disabled) throw new AdapterError('Radio desabilitado', 'write-failed');
+      if (radio.disabled) throw new AdapterError(t('adRadioDisabled'), 'write-failed');
       if (!radio.checked) radio.click();
       return;
     }
@@ -140,7 +140,7 @@ export const nativeChoiceAdapter: FieldAdapter = {
     if (!box || wanted === null) {
       throw new AdapterError(t('adInvalidBoolean', value), 'write-failed');
     }
-    if (box.disabled) throw new AdapterError('Checkbox desabilitado', 'write-failed');
+    if (box.disabled) throw new AdapterError(t('adCheckboxDisabled'), 'write-failed');
     if (box.checked !== (wanted === 'Sim')) box.click();
   },
   /** Só checkbox: desmarca. Radios e toggles não têm estado "vazio" seguro, então falham. */
@@ -150,7 +150,7 @@ export const nativeChoiceAdapter: FieldAdapter = {
     }
     const box = inputs(root, 'checkbox')[0];
     if (!box) throw new AdapterError(t('adCheckboxNotFound'), 'control-not-found');
-    if (box.disabled) throw new AdapterError('Checkbox desabilitado', 'write-failed');
+    if (box.disabled) throw new AdapterError(t('adCheckboxDisabled'), 'write-failed');
     if (box.checked) box.click();
   },
   verify(root, value) {

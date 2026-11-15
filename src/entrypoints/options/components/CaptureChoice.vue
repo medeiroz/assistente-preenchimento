@@ -7,11 +7,15 @@ defineEmits<{ addToRule: [rule: Rule]; newRule: []; dismiss: [] }>();
 </script>
 
 <template>
-  <section class="notice" role="group" aria-label="Campo capturado" data-testid="capture-choice">
+  <section
+    class="notice"
+    role="group"
+    :aria-label="$t('capChoiceAria')"
+    data-testid="capture-choice"
+  >
     <p>
-      <strong>Campo capturado:</strong>
-      {{ capture.label ?? 'campo sem rótulo' }}. Já existe uma regra para esta página e este
-      contêiner. O que deseja fazer?
+      <strong>{{ $t('capCaptured') }}</strong>
+      {{ capture.label ?? $t('fieldNoLabelLower') }}. {{ $t('capChoiceQuestion') }}
     </p>
     <div class="actions-bar">
       <button
@@ -22,13 +26,13 @@ defineEmits<{ addToRule: [rule: Rule]; newRule: []; dismiss: [] }>();
         data-testid="capture-add-to-rule"
         @click="$emit('addToRule', r)"
       >
-        Adicionar à regra “{{ r.name }}”
+        {{ $t('addToRule', r.name) }}
       </button>
       <button type="button" class="btn" data-testid="capture-new-rule" @click="$emit('newRule')">
-        Criar nova regra
+        {{ $t('capNewRule') }}
       </button>
       <button type="button" class="btn" data-testid="capture-dismiss" @click="$emit('dismiss')">
-        Descartar
+        {{ $t('barDiscard') }}
       </button>
     </div>
   </section>

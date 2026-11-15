@@ -69,7 +69,7 @@ function normalized(text: string): string {
  * datas (o valor é definido programaticamente). Só desabilitado é recusado.
  */
 function assertEnabled(el: HTMLInputElement): void {
-  if (el.disabled) throw new AdapterError('Controle desabilitado', 'write-failed');
+  if (el.disabled) throw new AdapterError(t('adControlDisabled'), 'write-failed');
 }
 
 export const dateAdapter: FieldAdapter = {

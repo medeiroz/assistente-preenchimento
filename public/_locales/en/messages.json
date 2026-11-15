@@ -1270,5 +1270,765 @@
         "content": "$1"
       }
     }
+  },
+  "tabsAria": {
+    "message": "Sections"
+  },
+  "addToRule": {
+    "message": "Add to rule “$arg1$”",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "allow": {
+    "message": "Allow"
+  },
+  "allowAccessFor": {
+    "message": "access for $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "edit": {
+    "message": "Edit"
+  },
+  "duplicate": {
+    "message": "Duplicate"
+  },
+  "delete": {
+    "message": "Delete"
+  },
+  "remove": {
+    "message": "Remove"
+  },
+  "save": {
+    "message": "Save"
+  },
+  "saving": {
+    "message": "Saving…"
+  },
+  "saveFailed": {
+    "message": "Could not save: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "unsavedChanges": {
+    "message": "Unsaved changes"
+  },
+  "confirmUnsaved": {
+    "message": "You have unsaved changes. Discard and leave?"
+  },
+  "editRule": {
+    "message": "Edit rule"
+  },
+  "ruleOn": {
+    "message": "On"
+  },
+  "ruleOff": {
+    "message": "Off"
+  },
+  "ruleActiveAria": {
+    "message": "Rule active: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "noPermissionBadge": {
+    "message": "no permission"
+  },
+  "insecureBadge": {
+    "message": "insecure connection"
+  },
+  "insecureTitle": {
+    "message": "This site uses http: the filled-in values travel unencrypted."
+  },
+  "rlSiteAria": {
+    "message": "Site: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "rlEmptyTitle": {
+    "message": "No rules yet"
+  },
+  "rlIntro": {
+    "message": "A rule tells a site which fields to fill in and with which values. Choose where to start:"
+  },
+  "rlNewHint": {
+    "message": "Describe the page and the fields manually."
+  },
+  "rlCaptureHint": {
+    "message": "Open the site, click the extension icon in the Chrome toolbar and use “Capture a field on this page”; then click the field you want."
+  },
+  "rlImportExample": {
+    "message": "Import example"
+  },
+  "rlExampleHint": {
+    "message": "A ready-made rule to use as a template; you can edit it later."
+  },
+  "capChoiceAria": {
+    "message": "Captured field"
+  },
+  "capCaptured": {
+    "message": "Captured field:"
+  },
+  "capChoiceQuestion": {
+    "message": "A rule already exists for this page and container. What would you like to do?"
+  },
+  "capNewRule": {
+    "message": "Create new rule"
+  },
+  "permDeniedLead": {
+    "message": "No permission for $arg1$:",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "permDeniedRest": {
+    "message": "the rule is saved, but only works after you allow access."
+  },
+  "permAllowAccess": {
+    "message": "Allow access"
+  },
+  "permReload": {
+    "message": "Reload the open tabs of this site so the extension can start working."
+  },
+  "permGotIt": {
+    "message": "Got it"
+  },
+  "previewResult": {
+    "message": "Result:"
+  },
+  "previewUnresolved": {
+    "message": "Result: could not resolve — $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "confirmClearHistory": {
+    "message": "Clear the entire history? This cannot be undone."
+  },
+  "histRefresh": {
+    "message": "Refresh"
+  },
+  "histClear": {
+    "message": "Clear history"
+  },
+  "histHint": {
+    "message": "The latest runs, stored only on this computer. They are not synced to other devices."
+  },
+  "histEmpty": {
+    "message": "No runs recorded yet."
+  },
+  "histDetails": {
+    "message": "Details per field"
+  },
+  "histAuto": {
+    "message": "Automatic fill"
+  },
+  "histManual": {
+    "message": "Manual fill"
+  },
+  "recReviewAria": {
+    "message": "Recording finished"
+  },
+  "recReviewTitle": {
+    "message": "Recording finished: $arg1$ suggested rule(s)",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "recDone": {
+    "message": "(handled)"
+  },
+  "recContainer": {
+    "message": "Container: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "recCreateRule": {
+    "message": "Create rule"
+  },
+  "sizeTitle": {
+    "message": "Size to sync"
+  },
+  "sizeOver": {
+    "message": "Over the limit: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "sizeOverFields": {
+    "message": "reduce the number of fields"
+  },
+  "sizeOverVars": {
+    "message": "reduce the synced variables or mark some as This browser only"
+  },
+  "edChangedElsewhere": {
+    "message": "This rule was changed elsewhere."
+  },
+  "edRemovedExternally": {
+    "message": "It was deleted; if you save, it will be created again."
+  },
+  "edChangedExternally": {
+    "message": "If you save, your changes replace the saved version."
+  },
+  "edDiscardReload": {
+    "message": "Discard my changes and reload"
+  },
+  "edDuplicateField": {
+    "message": "This field is already in this rule."
+  },
+  "edDuplicateFieldNote": {
+    "message": "Nothing was added; the existing field is focused below."
+  },
+  "edFixItems": {
+    "message": "Fix the items below to save:"
+  },
+  "edExampleUrl": {
+    "message": "Example URL (only for the value preview)"
+  },
+  "edExampleUrlInvalid": {
+    "message": "Invalid URL; the preview uses https://exemplo.com/."
+  },
+  "edIdentification": {
+    "message": "Identification"
+  },
+  "edNamePlaceholder": {
+    "message": "E.g.: Invoice: tax code and personal use"
+  },
+  "edWhere": {
+    "message": "Where the rule applies"
+  },
+  "edUrlHintA": {
+    "message": "Page addresses, in the format"
+  },
+  "edUrlHintB": {
+    "message": "(the"
+  },
+  "edUrlHintC": {
+    "message": "matches any ending)."
+  },
+  "edRemovePatternAria": {
+    "message": "Remove URL pattern $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "edInsecure": {
+    "message": "Insecure connection ($arg1$). This site uses http: the filled-in values travel unencrypted.",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "edBroad": {
+    "message": "This pattern matches any site. Enter a specific site (for example https://site.com/*): the extension does not ask for permission on all sites."
+  },
+  "edNeedsPermission": {
+    "message": "When you save, the browser will ask for permission to access $arg1$.",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "edOverlap": {
+    "message": "Another rule may also act on these pages: $arg1$. If they target the same form, the one with the higher priority fills first.",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "edAddPattern": {
+    "message": "Add URL pattern"
+  },
+  "edAllFrames": {
+    "message": "Also run in iframes"
+  },
+  "edFramesOn": {
+    "message": "This rule also runs in iframes: each iframe whose own URL matches the pattern above is filled in. Iframes from another site need permission for their address."
+  },
+  "edFramesOff": {
+    "message": "Without this, the rule only fills the main page, not the forms inside iframes."
+  },
+  "edContainerSelector": {
+    "message": "Container: CSS selector (optional)"
+  },
+  "edContainerText": {
+    "message": "Container: text it must contain (optional)"
+  },
+  "edContainerTextPlaceholder": {
+    "message": "Issue Invoice"
+  },
+  "edContainerHint": {
+    "message": "Use it to make the rule apply only inside part of the page, for example a modal. E.g.: the modal title."
+  },
+  "edAdvWait": {
+    "message": "Advanced: wait time"
+  },
+  "edSettleLabel": {
+    "message": "Wait before filling (milliseconds)"
+  },
+  "edSettleHint": {
+    "message": "How long the extension waits for the page to stop changing before filling. Default: 300."
+  },
+  "edBehavior": {
+    "message": "Behavior"
+  },
+  "edWhen": {
+    "message": "When to fill"
+  },
+  "edOverwrite": {
+    "message": "Overwrite existing values"
+  },
+  "edAdvPriority": {
+    "message": "Advanced: priority"
+  },
+  "edPriorityLabel": {
+    "message": "Priority (0 to 100)"
+  },
+  "edPriorityHint": {
+    "message": "When several rules act on the same form, the one with the highest priority fills first and the others skip the fields it already filled. Empty = default (50). On a tie, rule order applies."
+  },
+  "ftLegend": {
+    "message": "Fields to fill"
+  },
+  "ftHelpSummary": {
+    "message": "How to write values with"
+  },
+  "ftHelpIntro": {
+    "message": "Write the text that will be typed into the field. For values that change, use blocks"
+  },
+  "ftHelpVar": {
+    "message": "— saved variable"
+  },
+  "ftHelpUrl": {
+    "message": "— URL parameter"
+  },
+  "ftHelpNow": {
+    "message": "— today's date"
+  },
+  "ftHelpDefault": {
+    "message": "— with a fallback value"
+  },
+  "ftFilters": {
+    "message": "Available filters:"
+  },
+  "ftEmpty": {
+    "message": "No fields yet. Use “Add field” to say what to fill in."
+  },
+  "ftDrag": {
+    "message": "Drag to reorder"
+  },
+  "ftBadgeTyping": {
+    "message": "typing"
+  },
+  "ftMoveUp": {
+    "message": "Move field $arg1$ up",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftMoveDown": {
+    "message": "Move field $arg1$ down",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftRemoveAria": {
+    "message": "Remove field $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftHowToFind": {
+    "message": "How to find it"
+  },
+  "ftLocatorOfField": {
+    "message": "$arg1$ of the field",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftType": {
+    "message": "Type"
+  },
+  "ftValue": {
+    "message": "Value"
+  },
+  "ftAdvanced": {
+    "message": "Advanced"
+  },
+  "ftDefaultLabel": {
+    "message": "Default value (optional)"
+  },
+  "ftDefaultHint": {
+    "message": "If the system already fills the field with a fixed value, enter it here so the rule treats it as “empty”."
+  },
+  "ftDelayLabel": {
+    "message": "Wait before filling (ms)"
+  },
+  "ftTypingLabel": {
+    "message": "Simulate typing (key by key)"
+  },
+  "ftTypingOnly": {
+    "message": "Only available for text and date fields."
+  },
+  "ftKeyDelayLabel": {
+    "message": "Interval between keys (ms)"
+  },
+  "ftAdvHint": {
+    "message": "Use simulated typing on fields with a mask or automatic lookup (e.g. a tax ID that queries a registry). The wait is useful when the field only appears or becomes enabled after the previous one: the field is only looked up after it."
+  },
+  "ftAdd": {
+    "message": "Add field"
+  },
+  "ftEnabled": {
+    "message": "Enabled"
+  },
+  "varWarning": {
+    "message": "Variables set to “Sync” go to your Google account and appear on all your devices. For sensitive data, such as passwords, use “This browser only”: the value stays only here, is not synced and is not included in exports (unless you ask), but it is not encrypted."
+  },
+  "varUseAs": {
+    "message": "Use it in any field as"
+  },
+  "varInUse": {
+    "message": "The variable “$arg1$” is in use.",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "varInUseRest": {
+    "message": "If you delete it, these fields will have no value (they will be skipped when filling):"
+  },
+  "varDeleteAnyway": {
+    "message": "Delete anyway"
+  },
+  "varEmpty": {
+    "message": "No variables yet. Use “Add variable” to create one."
+  },
+  "varKey": {
+    "message": "Key"
+  },
+  "varLabel": {
+    "message": "Friendly name"
+  },
+  "varLabelPlaceholder": {
+    "message": "Test code"
+  },
+  "varScope": {
+    "message": "Where to store"
+  },
+  "varScopeSync": {
+    "message": "Sync"
+  },
+  "varScopeLocal": {
+    "message": "This browser only"
+  },
+  "varNoValue": {
+    "message": "no value in this browser"
+  },
+  "varUsedIn": {
+    "message": "Used in:"
+  },
+  "varUnused": {
+    "message": "Not used in any rule."
+  },
+  "varNoKey": {
+    "message": "no key"
+  },
+  "varDeleteAria": {
+    "message": "Delete variable $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "varSave": {
+    "message": "Save variables"
+  },
+  "varAdd": {
+    "message": "Add variable"
+  },
+  "countRuleOne": {
+    "message": "1 rule"
+  },
+  "countRuleMany": {
+    "message": "$arg1$ rules",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "countVarOne": {
+    "message": "1 variable"
+  },
+  "countVarMany": {
+    "message": "$arg1$ variables",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ieFileGenerated": {
+    "message": "File $arg1$ generated.",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ieExportFailed": {
+    "message": "Could not export: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ieImported": {
+    "message": "Configuration imported successfully."
+  },
+  "ieImportFailed": {
+    "message": "Could not import: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ieReadCurrentFailed": {
+    "message": "Could not read the current configuration: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ieTotalUsage": {
+    "message": "Total sync usage: $arg1$ of $arg2$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      },
+      "arg2": {
+        "content": "$2"
+      }
+    }
+  },
+  "ieExportTitle": {
+    "message": "Export"
+  },
+  "ieExportHint": {
+    "message": "Downloads a file with all your rules, variables and preferences, useful as a backup or to move to another computer. The values of “This browser only” variables are left out unless you tick the option below."
+  },
+  "ieIncludeLocal": {
+    "message": "Include values of local variables"
+  },
+  "ieLocalWarning": {
+    "message": "The file will contain the values of “This browser only” variables in plain text. Keep it safe and do not share it."
+  },
+  "ieExportButton": {
+    "message": "Export configuration"
+  },
+  "ieAddTitle": {
+    "message": "Add rules from a file"
+  },
+  "ieAddHintA": {
+    "message": "Choose a file with"
+  },
+  "ieAddHintB": {
+    "message": "one rule"
+  },
+  "ieAddHintC": {
+    "message": "(like the example in"
+  },
+  "ieAddHintD": {
+    "message": "or an exported configuration. The rules are"
+  },
+  "ieAddHintE": {
+    "message": "added"
+  },
+  "ieAddHintF": {
+    "message": "to the ones you already have; nothing is deleted or replaced."
+  },
+  "ieAddFileLabel": {
+    "message": "Rule or configuration file (.json)"
+  },
+  "ieWillAdd": {
+    "message": "will add $arg1$:",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ieRenamedOne": {
+    "message": "One rule already used the same identifier and was given a new one: no existing rule is changed."
+  },
+  "ieRenamedMany": {
+    "message": "Some rules already used the same identifier and were given new ones: no existing rule is changed."
+  },
+  "ieNewVars": {
+    "message": "New variables: $arg1$.",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ieKeptVars": {
+    "message": "Variables you already have (kept): $arg1$.",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ieWarnings": {
+    "message": "Warnings:"
+  },
+  "ieNewSitesHint": {
+    "message": "For new sites, Chrome will ask for access permission when you click add."
+  },
+  "ieAddConfirm": {
+    "message": "Add to my configuration"
+  },
+  "ieImportTitle": {
+    "message": "Import"
+  },
+  "ieImportHintA": {
+    "message": "Choose a file you exported earlier. You will see a summary and can confirm. Importing"
+  },
+  "ieImportHintB": {
+    "message": "replaces"
+  },
+  "ieImportHintC": {
+    "message": "your entire current configuration."
+  },
+  "ieImportFileLabel": {
+    "message": "Configuration file (.json)"
+  },
+  "ieImportCounts": {
+    "message": "$arg1$ and $arg2$.",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      },
+      "arg2": {
+        "content": "$2"
+      }
+    }
+  },
+  "ieImportConfirm": {
+    "message": "Replace my configuration"
+  },
+  "varUseExample": {
+    "message": "{{ var.your_key }}"
+  },
+  "varKeyPlaceholder": {
+    "message": "test_code"
+  },
+  "exExpectedCommaParen": {
+    "message": "Expected \",\" or \")\", found $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "exArityRange": {
+    "message": "$arg1$ to $arg2$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      },
+      "arg2": {
+        "content": "$2"
+      }
+    }
+  },
+  "exFilterArity": {
+    "message": "The filter \"$arg1$\" expects $arg2$ argument(s), got $arg3$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      },
+      "arg2": {
+        "content": "$2"
+      },
+      "arg3": {
+        "content": "$3"
+      }
+    }
+  },
+  "exArgString": {
+    "message": "Argument $arg1$ of \"$arg2$\" must be quoted text",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      },
+      "arg2": {
+        "content": "$2"
+      }
+    }
+  },
+  "adControlDisabled": {
+    "message": "Control is disabled"
+  },
+  "adSelectDisabled": {
+    "message": "select is disabled"
+  },
+  "adSelect2Disabled": {
+    "message": "Select is disabled"
+  },
+  "adReadOnlyOrDisabled": {
+    "message": "Control is read-only or disabled"
+  },
+  "adRadioDisabled": {
+    "message": "Radio is disabled"
+  },
+  "adCheckboxDisabled": {
+    "message": "Checkbox is disabled"
   }
 }

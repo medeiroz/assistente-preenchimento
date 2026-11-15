@@ -47,7 +47,7 @@ export const nativeSelectAdapter: FieldAdapter = {
   async write(root, value) {
     const select = findSelect(root);
     if (!select) throw new AdapterError(t('adSelectNotFound'), 'control-not-found');
-    if (select.disabled) throw new AdapterError('select desabilitado', 'write-failed');
+    if (select.disabled) throw new AdapterError(t('adSelectDisabled'), 'write-failed');
     const wanted = normalizeSpaces(value);
     const options = Array.from(select.options);
     const byText = options.findIndex((o) => optionText(o) === wanted);
@@ -62,7 +62,7 @@ export const nativeSelectAdapter: FieldAdapter = {
   async clear(root) {
     const select = findSelect(root);
     if (!select) throw new AdapterError(t('adSelectNotFound'), 'control-not-found');
-    if (select.disabled) throw new AdapterError('select desabilitado', 'write-failed');
+    if (select.disabled) throw new AdapterError(t('adSelectDisabled'), 'write-failed');
     const index = Array.from(select.options).findIndex((o) => o.value === '');
     if (index < 0) throw new AdapterError(t('adCannotClear'), 'write-failed');
     setNativeSelectedIndex(select, index);

@@ -40,7 +40,7 @@ export const nativeTextAdapter: FieldAdapter = {
     const el = findControl(root);
     if (!el) throw new AdapterError(t('adTextNotFound'), 'control-not-found');
     if (el.readOnly || el.disabled) {
-      throw new AdapterError('Controle somente leitura ou desabilitado', 'write-failed');
+      throw new AdapterError(t('adReadOnlyOrDisabled'), 'write-failed');
     }
     if (options?.typing) {
       await typeText(
