@@ -21,7 +21,15 @@ export const LocatorSchema = z.discriminatedUnion('by', [
   }),
   z.looseObject({
     by: z.literal('selector'),
-    css: z.string().min(1, 'o seletor CSS não pode ser vazio'),
+    // Aceita a cadeia `a >>> b >>> c` (atravessa shadow roots abertos). Equivalente local de
+    // splitDeepSelector (core/locator), para o modelo não depender do locator.
+    css: z
+      .string()
+      .min(1, 'o seletor CSS não pode ser vazio')
+      .refine((css) => css.split('>>>').every((seg) => seg.trim() !== ''), {
+        message:
+          'seletor com ">>>" inválido: cada trecho antes e depois de ">>>" precisa ter um seletor CSS',
+      }),
   }),
   z.looseObject({
     by: z.literal('name'),
@@ -47,6 +55,8 @@ export const TriggerSchema = z.looseObject({
     })
     .optional(),
   settleMs: z.number().int().min(0).max(10000).default(300),
+  /** Em quais frames a regra roda. Ausente = 'top' (ver triggerFrames). */
+  frames: z.enum(['top', 'all'], "frames deve ser 'top' ou 'all'").optional(),
 });
 
 export const BehaviorSchema = z.looseObject({
@@ -102,6 +112,13 @@ export const RuleSchema = z
     id: z.string().min(1, 'o id da regra não pode ser vazio'),
     name: z.string().min(1, 'o nome da regra não pode ser vazio'),
     enabled: z.boolean().default(true),
+    /** Inteiro 0-100; maior vence. Ausente = 50 (ver rulePriority). */
+    priority: z
+      .number('a prioridade deve ser um número')
+      .int('a prioridade deve ser um número inteiro')
+      .min(0, 'a prioridade mínima é 0')
+      .max(100, 'a prioridade máxima é 100')
+      .optional(),
     trigger: TriggerSchema,
     behavior: BehaviorSchema.prefault({}),
     fields: z.array(FieldRuleSchema),
@@ -127,6 +144,11 @@ export const VariableSchema = z.looseObject({
     ),
   label: z.string(),
   value: z.string(),
+  /**
+   * Ausente = 'sync' (ver variableScope). Variável 'local' grava no sync só key, label, scope e
+   * `value: ''`; o valor real fica em storage.local (implementado no WP-C3).
+   */
+  scope: z.enum(['sync', 'local'], "scope deve ser 'sync' ou 'local'").optional(),
 });
 
 export const SettingsSchema = z.looseObject({
@@ -171,6 +193,23 @@ export type Variable = z.output<typeof VariableSchema>;
 export type Settings = z.output<typeof SettingsSchema>;
 export type Config = z.output<typeof ConfigSchema>;
 export type RuleInput = z.input<typeof RuleSchema>;
+
+export const DEFAULT_RULE_PRIORITY = 50;
+
+/** Prioridade efetiva da regra (ausente = 50). */
+export function rulePriority(rule: Pick<Rule, 'priority'>): number {
+  return rule.priority ?? DEFAULT_RULE_PRIORITY;
+}
+
+/** Escopo efetivo da variável (ausente = 'sync'). */
+export function variableScope(v: Pick<Variable, 'scope'>): 'sync' | 'local' {
+  return v.scope ?? 'sync';
+}
+
+/** Frames em que o gatilho vale (ausente = 'top'). */
+export function triggerFrames(t: Pick<Trigger, 'frames'>): 'top' | 'all' {
+  return t.frames ?? 'top';
+}
 
 /** Converte os issues do Zod em mensagens "caminho: motivo". */
 export function formatZodIssues(error: z.ZodError): string[] {
