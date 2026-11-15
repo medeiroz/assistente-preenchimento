@@ -46,6 +46,20 @@ describe('page-ui', () => {
     document.removeEventListener('click', docClick);
   });
 
+  it('toast: status educado no normal e alerta quando há erro', () => {
+    const ui = createPageUi();
+    ui.showReport(report('filled'));
+    let box = shadowOf(TOAST_HOST_ATTR)?.querySelector('.toast');
+    expect(box?.getAttribute('role')).toBe('status');
+    expect(box?.getAttribute('aria-live')).toBe('polite');
+    const failing = report('filled');
+    failing.fields[0]!.outcome = 'error';
+    ui.showReport(failing);
+    box = shadowOf(TOAST_HOST_ATTR)?.querySelector('.toast');
+    expect(box?.getAttribute('role')).toBe('alert');
+    expect(box?.getAttribute('aria-live')).toBe('assertive');
+  });
+
   it('múltiplos botões, um por regra', () => {
     const ui = createPageUi();
     ui.showActionButton('r1', 'Preencher: A', vi.fn());

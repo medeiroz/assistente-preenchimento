@@ -31,6 +31,7 @@ const STYLE = `
 .title { flex: 1; font-weight: 600; }
 .close { all: unset; cursor: pointer; padding: 0 4px; font-size: 16px; line-height: 1; opacity: 0.8; }
 .close:hover { opacity: 1; }
+.close:focus-visible, summary:focus-visible { outline: 2px solid #93c5fd; outline-offset: 2px; }
 .summary { margin-top: 4px; color: #d1d5db; }
 details { margin-top: 6px; }
 summary { cursor: pointer; color: #93c5fd; }
@@ -50,7 +51,11 @@ function buildToast(report: RunReport, onClose: () => void, onUndo?: () => void)
   const s = summarize(report);
   const box = document.createElement('div');
   box.className = 'toast';
-  box.setAttribute('role', 'status');
+  // Erros interrompem (alert); o resumo normal é anunciado com educação (status, polite).
+  const failed = s.errors > 0 || s.notFound > 0;
+  box.setAttribute('role', failed ? 'alert' : 'status');
+  box.setAttribute('aria-live', failed ? 'assertive' : 'polite');
+  box.setAttribute('aria-atomic', 'true');
 
   const head = document.createElement('div');
   head.className = 'head';
