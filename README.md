@@ -24,6 +24,11 @@ a partir de regras que você mesmo cria, sem programar.
   sensíveis), e **histórico** de execuções.
 - **Sites `http://`** (sistemas internos) além de https, com aviso de conexão não segura.
 - **Shadow DOM**: campos dentro de web components (shadow roots abertos) também são encontrados.
+- **Iframes**: marque "Atuar também em iframes" no editor para a regra preencher formulários dentro
+  de iframes. Cada iframe é casado pela própria URL (iframes `srcdoc` herdam a do site que os
+  contém), e um iframe de outro site precisa de permissão para o endereço dele. Capturar um campo
+  dentro de um iframe já cria a regra assim. A pausa vale pelo site da página principal, onde também
+  aparecem o aviso de resultado e o botão de ação.
 - **Componentes suportados**: texto (input e textarea), select nativo, radio, checkbox e botões de
   escolha, datas (`type=date` e datepickers de texto), texto editável (`contenteditable`),
   vue-multiselect, React-Select (v5) e Select2 (4.x).
