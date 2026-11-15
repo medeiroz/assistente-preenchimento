@@ -7,6 +7,7 @@ export {
   StorageQuotaError,
   ReadOnlyConfigError,
   MAX_ITEM_BYTES,
+  LOCAL_VARS_KEY,
 } from './chrome-sync';
 export type {
   StorageAreaLike,

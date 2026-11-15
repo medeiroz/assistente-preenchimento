@@ -21,15 +21,16 @@ const props = defineProps<{
 let nextUid = 1;
 function toRows(vars: readonly Variable[]): VariableRow[] {
   return vars.map((v) => {
-    const { key, label, value, ...rest } = v;
-    const row: VariableRow = { uid: nextUid++, key, label, value };
+    const { key, label, value, scope, ...rest } = v;
+    const row: VariableRow = { uid: nextUid++, key, label, value, scope: scope ?? 'sync' };
     if (Object.keys(rest).length > 0) row.extra = rest;
     return row;
   });
 }
-type Triple = [string, string, string];
-const triples = (list: readonly { key: string; label: string; value: string }[]): Triple[] =>
-  list.map((r) => [r.key, r.label, r.value]);
+type Triple = [string, string, string, string];
+const triples = (
+  list: readonly { key: string; label: string; value: string; scope: string }[],
+): Triple[] => list.map((r) => [r.key, r.label, r.value, r.scope]);
 
 const rows = ref<VariableRow[]>(toRows(props.variables));
 let baseline: Triple[] = triples(rows.value);
@@ -67,7 +68,7 @@ function usageOf(r: VariableRow) {
 }
 
 function add(): void {
-  rows.value.push({ uid: nextUid++, key: '', label: '', value: '' });
+  rows.value.push({ uid: nextUid++, key: '', label: '', value: '', scope: 'sync' });
 }
 
 // -------------------------------------------------------------- exclusão
@@ -128,6 +129,10 @@ async function submit(): Promise<void> {
   }
 }
 
+function onScope(r: VariableRow, ev: Event): void {
+  r.scope = (ev.target as HTMLSelectElement).value === 'local' ? 'local' : 'sync';
+}
+
 function onField(r: VariableRow, key: 'key' | 'label' | 'value', ev: Event): void {
   r[key] = (ev.target as HTMLInputElement).value;
 }
@@ -141,7 +146,10 @@ function onField(r: VariableRow, key: 'key' | 'label' | 'value', ev: Event): voi
       </div>
 
       <p class="notice warn" data-testid="vars-warning">
-        Variáveis sincronizam pela sua conta Google — não guarde senhas aqui.
+        Variáveis “Sincronizar” vão para a sua conta Google e aparecem em todos os seus
+        dispositivos. Para dados sensíveis, como senhas, use “Só neste navegador”: o valor fica
+        apenas aqui, não é sincronizado nem entra na exportação (a menos que você peça), mas não é
+        criptografado.
       </p>
       <p class="hint">
         Use em qualquer campo como <code v-pre>{{ var.sua_chave }}</code>
@@ -226,7 +234,27 @@ function onField(r: VariableRow, key: 'key' | 'label' | 'value', ev: Event): voi
                 @input="onField(r, 'value', $event)"
               />
             </div>
+            <div class="control">
+              <label :for="`v${r.uid}-scope`">Onde guardar</label>
+              <select
+                :id="`v${r.uid}-scope`"
+                class="v-scope"
+                data-testid="var-scope"
+                :value="r.scope"
+                @change="onScope(r, $event)"
+              >
+                <option value="sync">Sincronizar</option>
+                <option value="local">Só neste navegador</option>
+              </select>
+            </div>
           </div>
+          <p
+            v-if="r.scope === 'local' && r.value === ''"
+            class="hint v-novalue"
+            data-testid="var-no-value"
+          >
+            sem valor neste navegador
+          </p>
           <p v-if="rowError(r)" :id="`v${r.uid}-err`" class="error-text" role="alert">
             {{ rowError(r) }}
           </p>
