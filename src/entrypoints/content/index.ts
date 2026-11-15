@@ -5,6 +5,8 @@ import { isMessage, type TabStatus } from '../../shared/messages';
 import { createPageUi } from './page-ui';
 import { claimPage } from './guard';
 import { createPicker, deliverCapture } from './picker';
+import { createRecorder } from './recorder';
+import type { RecorderStatus } from '../../core/recorder/types';
 
 const E2E = import.meta.env.MODE === 'e2e';
 
@@ -23,6 +25,52 @@ export default defineContentScript({
   async main() {
     // Registro dinâmico + injeção sob demanda podem executar o script duas vezes na mesma página.
     if (!claimPage(globalThis)) return;
+    // A gravação retoma antes do carregamento da configuração: picker, gravador e o ouvinte de
+    // `recorder/state` não dependem dela, e o estado é pedido ao background logo em seguida.
+    const picker = createPicker({
+      trustedOnly: true,
+      onCapture: (capture) => {
+        deliverCapture(capture, {
+          storage: browser.storage.local,
+          sendMessage: (m) => browser.runtime.sendMessage(m),
+        }).catch((e: unknown) => console.warn('[assistente] falha ao entregar a captura', e));
+      },
+    });
+
+    const recorder = createRecorder({
+      isPaused: () => picker.active,
+      send: (field) =>
+        browser.runtime.sendMessage({
+          type: 'recorder/field',
+          payload: { field },
+        }) as Promise<RecorderStatus>,
+      onStop: (discard) => {
+        browser.runtime
+          .sendMessage({ type: 'recorder/stop', payload: { discard } })
+          .catch((e: unknown) => console.warn('[assistente] falha ao encerrar a gravação', e));
+      },
+    });
+
+    browser.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
+      if (!isMessage(message) || message.type !== 'recorder/state') return false;
+      recorder.update(message.payload);
+      sendResponse(undefined);
+      return false;
+    });
+
+    // Retoma a gravação depois de uma navegação completa (o background pode estar dormindo).
+    (
+      browser.runtime.sendMessage({ type: 'recorder/status', payload: {} }) as Promise<
+        RecorderStatus | undefined
+      >
+    )
+      .then((status) => {
+        if (status?.active) recorder.start(status);
+      })
+      .catch(() => {
+        // Sem resposta do background: sem gravação a retomar.
+      });
+
     const repo = chromeSyncRepository();
     const history = chromeHistoryRepository();
     const host = location.hostname;
@@ -35,16 +83,6 @@ export default defineContentScript({
       ui: createPageUi(),
       onReport: (r: RunReport) => {
         history.append(r).catch((e: unknown) => console.warn('[assistente] histórico', e));
-      },
-    });
-
-    const picker = createPicker({
-      trustedOnly: true,
-      onCapture: (capture) => {
-        deliverCapture(capture, {
-          storage: browser.storage.local,
-          sendMessage: (m) => browser.runtime.sendMessage(m),
-        }).catch((e: unknown) => console.warn('[assistente] falha ao entregar a captura', e));
       },
     });
 

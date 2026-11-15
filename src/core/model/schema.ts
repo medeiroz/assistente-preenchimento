@@ -60,6 +60,23 @@ export const FieldRuleSchema = z.object({
   adapter: z.union([z.literal('auto'), AdapterIdSchema]).default('auto'),
   value: z.string(),
   defaultValue: z.string().optional(),
+  /** Espera (ms) ANTES de localizar e preencher este campo. Ausente = sem espera. */
+  delayMs: z
+    .number('o atraso deve ser um número')
+    .int('o atraso deve ser um número inteiro de milissegundos')
+    .min(0, 'o atraso não pode ser negativo')
+    .max(60000, 'o atraso máximo é 60000 ms (60 s)')
+    .optional(),
+  /** Presença = simular digitação tecla por tecla, com este intervalo entre as teclas. */
+  typing: z
+    .object({
+      keyDelayMs: z
+        .number('o intervalo entre teclas deve ser um número')
+        .int('o intervalo entre teclas deve ser um número inteiro de milissegundos')
+        .min(0, 'o intervalo entre teclas não pode ser negativo')
+        .max(2000, 'o intervalo máximo entre teclas é 2000 ms'),
+    })
+    .optional(),
 });
 
 function findDuplicates(values: string[]): string[] {

@@ -379,3 +379,62 @@ test('l) clicar na aba Regras com o editor aberto volta para a lista', async ({
   await expect(page.getByRole('heading', { name: 'Editar regra' })).toHaveCount(0);
   await expect(item(page, E2E_ID)).toBeVisible();
 });
+
+test('m) arrastar um campo para outra posição e salvar grava a nova ordem', async ({
+  context,
+  extensionId,
+}) => {
+  const page = await openOptions(context, extensionId);
+  // Viewport alto: origem e destino precisam estar visíveis ao mesmo tempo para o arrasto.
+  await page.setViewportSize({ width: 1280, height: 3200 });
+  await editE2eRule(page);
+  const ids = () =>
+    page
+      .locator('[data-field-id]')
+      .evaluateAll((els) => els.map((e) => e.getAttribute('data-field-id')));
+  expect(await ids()).toEqual(['nbs', 'consumo-pessoal', 'interno']);
+
+  // Arrasta o 1º campo para a metade de baixo do último card.
+  const handle = fieldCard(page, 'nbs').getByTestId('field-drag');
+  const target = fieldCard(page, 'interno');
+  const box = await target.boundingBox();
+  if (!box) throw new Error('card de destino sem posição');
+  await handle.dragTo(target, { targetPosition: { x: box.width / 2, y: box.height - 4 } });
+  await expect.poll(ids).toEqual(['consumo-pessoal', 'interno', 'nbs']);
+
+  // Os inputs continuam editáveis (só a alça arrasta).
+  await fieldCard(page, 'nbs').locator('.f-value').fill('333333333');
+
+  await page.getByTestId('save-rule').click();
+  await expect(page.getByTestId('notice')).toHaveText('Regra salva');
+  const rule = await storedRule(page, E2E_ID);
+  expect(rule?.fields.map((f) => f.id)).toEqual(['consumo-pessoal', 'interno', 'nbs']);
+  expect(rule?.fields.find((f) => f.id === 'nbs')?.value).toBe('333333333');
+});
+
+test('n) atraso e digitação simulada no editor: badges, validação e gravação', async ({
+  context,
+  extensionId,
+}) => {
+  const page = await openOptions(context, extensionId);
+  await editE2eRule(page);
+  const card = fieldCard(page, 'interno');
+  await card.locator('summary', { hasText: 'Avançado' }).click();
+  await card.getByTestId('field-delay').fill('70000');
+  await expect(card.locator('.error-text').first()).toContainText('60000');
+  await card.getByTestId('field-delay').fill('500');
+  await card.getByTestId('field-typing').check();
+  await expect(card.getByTestId('field-key-delay')).toHaveValue('50');
+  await expect(card.getByTestId('field-badge-delay')).toHaveText('⏱ 500 ms');
+  await expect(card.getByTestId('field-badge-typing')).toBeVisible();
+  await card.getByTestId('field-key-delay').fill('80');
+  await page.getByTestId('save-rule').click();
+  await expect(page.getByTestId('notice')).toHaveText('Regra salva');
+  const rule = (await storedRule(page, E2E_ID)) as unknown as {
+    fields: { id: string; delayMs?: number; typing?: { keyDelayMs: number } }[];
+  };
+  const interno = rule.fields.find((f) => f.id === 'interno');
+  expect(interno?.delayMs).toBe(500);
+  expect(interno?.typing).toEqual({ keyDelayMs: 80 });
+  expect(rule.fields.find((f) => f.id === 'nbs')).not.toHaveProperty('delayMs');
+});

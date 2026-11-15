@@ -159,6 +159,8 @@ type FieldRule = {
   adapter: "auto" | AdapterId;
   value: string;                // "126029000" ou "{{ var.codigo_energia }}"
   defaultValue?: string;        // como o campo é "no padrão", se diferente de vazio/placeholder
+  delayMs?: number;             // 0–60000: espera ANTES de localizar e preencher este campo (ex.: aparece só depois da busca do anterior)
+  typing?: { keyDelayMs: number }; // presença = simula digitação tecla por tecla (0–2000 ms entre teclas), para campos com máscara/busca automática
 };
 
 type Locator =
@@ -253,10 +255,19 @@ interface FieldAdapter {
   detect(root: Element): boolean;            // este adaptador entende este campo?
   read(root: Element): string | null;        // valor atual, legível
   isDefault(root: Element, hint?: string): boolean;
-  write(root: Element, value: string): Promise<void>;
-  verify(root: Element, value: string): boolean;
+  write(root: Element, value: string, options?: WriteOptions): Promise<void>;
+  verify(root: Element, value: string, options?: WriteOptions): boolean;
 }
+
+// Opcional; adaptadores que não digitam ignoram.
+type WriteOptions = {
+  typing?: { keyDelayMs: number };       // só native-text e date (input de texto, não readonly)
+  sleep?: (ms: number) => Promise<void>; // injetável; a sessão a interrompe ao terminar
+  aborted?: () => boolean;
+};
 ```
+
+A digitação simulada envia só teclas imprimíveis (keydown, keypress, input, keyup) e termina com `change` e `blur`; nunca Escape/Enter/Tab. Com `typing`, `verify` aceita o valor reformatado por uma máscara (igualdade ignorando pontuação).
 
 Com `adapter: "auto"`, o motor testa os adaptadores em ordem de especificidade e usa o primeiro cujo `detect` aceitar.
 

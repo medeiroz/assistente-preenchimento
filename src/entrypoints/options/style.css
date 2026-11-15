@@ -465,6 +465,35 @@ summary {
   flex-wrap: wrap;
 }
 
+.drag-handle {
+  cursor: grab;
+  user-select: none;
+  padding: 0 4px;
+  font-size: 1.2em;
+  line-height: 1;
+  color: var(--muted);
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.field-card {
+  position: relative;
+}
+
+.field-card.dragging {
+  opacity: 0.5;
+}
+
+.field-card.drop-before {
+  box-shadow: 0 -3px 0 0 var(--primary);
+}
+
+.field-card.drop-after {
+  box-shadow: 0 3px 0 0 var(--primary);
+}
+
 .field-number {
   font-weight: 700;
 }
@@ -643,4 +672,24 @@ summary {
   flex-direction: column;
   align-items: flex-start;
   gap: 4px;
+}
+
+/* revisão da gravação de preenchimento */
+.recording-card {
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+
+.recording-card.done {
+  opacity: 0.6;
+}
+
+.recording-card h3 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+}
+
+.recording-fields {
+  margin: 4px 0 8px;
+  padding-left: 20px;
 }
