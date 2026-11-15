@@ -8,6 +8,8 @@ import { createPageUi } from './page-ui';
 import { claimPage } from './guard';
 import { createPicker, deliverCapture } from './picker';
 import { createRecorder } from './recorder';
+import { trackContextTarget } from './context-target';
+import { buildCapture, type Capture } from '../../core/locator';
 import type { RecorderStatus } from '../../core/recorder/types';
 
 const E2E = import.meta.env.MODE === 'e2e';
@@ -40,20 +42,24 @@ export default defineContentScript({
         .sendMessage({ type: 'picker/stop' })
         .catch((e: unknown) => console.warn('[assistente] falha ao encerrar a captura', e));
     };
+    const deliver = (capture: Capture): void => {
+      // Capturado num iframe: a regra nasce atuando em iframes.
+      const out = isTop ? capture : { ...capture, frames: 'all' as const };
+      deliverCapture(out, {
+        storage: browser.storage.local,
+        sendMessage: (m) => browser.runtime.sendMessage(m),
+      }).catch((e: unknown) => console.warn('[assistente] falha ao entregar a captura', e));
+    };
     const picker = createPicker({
       trustedOnly: true,
       compact: !isTop,
       onCapture: (capture) => {
-        // Capturado num iframe: a regra nasce atuando em iframes.
-        const out = isTop ? capture : { ...capture, frames: 'all' as const };
-        deliverCapture(out, {
-          storage: browser.storage.local,
-          sendMessage: (m) => browser.runtime.sendMessage(m),
-        }).catch((e: unknown) => console.warn('[assistente] falha ao entregar a captura', e));
+        deliver(capture);
         stopPickers();
       },
       onCancel: stopPickers,
     });
+    const contextTarget = trackContextTarget(window);
 
     // A gravação vive só no frame de topo.
     const recorder = isTop
@@ -204,6 +210,14 @@ export default defineContentScript({
           picker.stop();
           sendResponse(undefined);
           return false;
+        case 'picker/capture-target': {
+          // Menu de contexto: captura o alvo do último `contextmenu`, como o clique do picker.
+          const target = contextTarget.take();
+          const capture = target ? buildCapture(target, document, frameUrlOf(window)) : null;
+          if (capture) deliver(capture);
+          sendResponse(capture !== null);
+          return false;
+        }
         case 'picker/start':
           picker.start();
           sendResponse(undefined);

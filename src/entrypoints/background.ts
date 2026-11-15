@@ -4,6 +4,14 @@ import { createRecorderBackground } from '../core/recorder';
 import { chromeSyncRepository, seedIfEmpty } from '../core/storage';
 import { isMessage } from '../shared/messages';
 import { contentScriptFile } from '../shared/content-script';
+import {
+  createMenuController,
+  handleMenuClick,
+  type ClickDeps,
+  type ClickInfo,
+  type ClickTab,
+  type MenuItem,
+} from '../shared/context-menu';
 import { syncDynamicScripts, type DynamicSyncDeps } from '../shared/permissions';
 
 const E2E = import.meta.env.MODE === 'e2e';
@@ -62,6 +70,22 @@ function warnRecorder(e: unknown): void {
   console.warn('[assistente] falha na gravação', e);
 }
 
+type ChromeMenuItem = Parameters<typeof browser.contextMenus.create>[0];
+
+function menuApi() {
+  return {
+    removeAll: (): Promise<void> => browser.contextMenus.removeAll(),
+    create: (item: MenuItem): Promise<void> =>
+      new Promise((resolve, reject) => {
+        browser.contextMenus.create(item as ChromeMenuItem, () => {
+          const err = browser.runtime.lastError;
+          if (err) reject(new Error(err.message));
+          else resolve();
+        });
+      }),
+  };
+}
+
 export default defineBackground(() => {
   console.info('[assistente] service worker iniciado');
   const run = (): void => {
@@ -84,15 +108,54 @@ export default defineBackground(() => {
         files: [contentScriptFile(browser.runtime.getManifest()) as never],
       }),
   });
+  const registry = createFrameRegistry({
+    session: browser.storage.session,
+    tabUrl: async (tabId) => (await browser.tabs.get(tabId)).url,
+  });
   const frames = createFramesBackground({
-    registry: createFrameRegistry({
-      session: browser.storage.session,
-      tabUrl: async (tabId) => (await browser.tabs.get(tabId)).url,
-    }),
+    registry,
     sendToFrame: (tabId, frameId, message) => browser.tabs.sendMessage(tabId, message, { frameId }),
     broadcast: (tabId, message) => browser.tabs.sendMessage(tabId, message),
     pausedHosts: async () => (await chromeSyncRepository().load()).settings.pausedHosts,
   });
+  // Menu de contexto: itens estáticos + dinâmicos (regras da aba ativa, pausar/retomar).
+  const menu = createMenuController({
+    menus: menuApi(),
+    activeTab: async () => {
+      const [tab] = await browser.tabs.query({ active: true, lastFocusedWindow: true });
+      if (tab?.id === undefined) return null;
+      const paused = (await chromeSyncRepository().load()).settings.pausedHosts;
+      return { tabId: tab.id, aggregate: await registry.aggregate(tab.id, paused) };
+    },
+    onError: (e) => console.warn('[assistente] falha no menu de contexto', e),
+  });
+  const clickDeps: ClickDeps = {
+    sendToFrame: (tabId, frameId, message) => browser.tabs.sendMessage(tabId, message, { frameId }),
+    injectFrame: (tabId, frameId) =>
+      browser.scripting.executeScript({
+        target: { tabId, frameIds: [frameId] },
+        files: [contentScriptFile(browser.runtime.getManifest()) as never],
+      }),
+    frames: (tabId) => registry.frames(tabId),
+    loadSettings: async () => (await chromeSyncRepository().load()).settings,
+    saveSettings: (settings) => chromeSyncRepository().saveSettings(settings),
+    sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
+  };
+  const onMenuClick = (info: ClickInfo, tab: ClickTab | undefined): Promise<void> =>
+    handleMenuClick(info, tab, clickDeps);
+  if (E2E) {
+    // Só no build de testes: o menu nativo não é automatizável; o teste chama o handler direto.
+    (globalThis as { __assistenteMenu?: unknown }).__assistenteMenu = { click: onMenuClick };
+  }
+  browser.contextMenus.onClicked.addListener((info, tab) => {
+    onMenuClick(info, tab).catch((e: unknown) =>
+      console.warn('[assistente] falha no menu de contexto', e),
+    );
+  });
+  browser.tabs.onActivated.addListener(() => menu.schedule());
+  browser.windows.onFocusChanged.addListener(() => menu.schedule());
+  browser.runtime.onInstalled.addListener(() => void menu.init());
+  void menu.init();
   browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
     recorder.tabUpdated(tabId, changeInfo.status).catch(warnRecorder);
     frames.tabUpdated(tabId, changeInfo).catch(warnFrames);
@@ -110,6 +173,9 @@ export default defineBackground(() => {
       ...(sender.tab?.url ? { tabUrl: sender.tab.url } : {}),
     });
     if (framesJob) {
+      if (message.type === 'frame/hello' || message.type === 'frame/bye') {
+        framesJob.then(() => menu.scheduleForTab(senderTab), warnFrames);
+      }
       framesJob.then(sendResponse, (e: unknown) => {
         warnFrames(e);
         sendResponse(undefined);
@@ -146,6 +212,7 @@ export default defineBackground(() => {
     return true;
   });
   chromeSyncRepository().onChange(scheduleSync);
+  chromeSyncRepository().onChange(() => menu.schedule()); // pausa mudou
   browser.permissions.onAdded.addListener(scheduleSync);
   browser.permissions.onRemoved.addListener(scheduleSync);
   run();

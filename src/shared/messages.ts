@@ -80,6 +80,12 @@ export interface MessageMap {
   'site/pause': { payload: { host: string; paused: boolean }; response: void };
   /** popup -> content: liga o modo "Capturar campo". */
   'picker/start': { payload: undefined; response: void };
+  /**
+   * background -> content (menu de contexto): gera a captura do último elemento que recebeu o
+   * `contextmenu`, como o clique do picker. Resposta `false`: não há alvo (o background liga o
+   * modo "Capturar campo" normal no frame).
+   */
+  'picker/capture-target': { payload: undefined; response: boolean };
   /** content -> background: abre (ou foca) a página de opções para consumir `picker:draft`. */
   'options/open-draft': { payload: undefined; response: void };
   /** popup -> background: liga a gravação na aba (antes de injetar o content script). */
@@ -126,6 +132,7 @@ const MESSAGE_TYPES: ReadonlySet<string> = new Set<keyof MessageMap>([
   'picker/stop',
   'site/pause',
   'picker/start',
+  'picker/capture-target',
   'options/open-draft',
   'recorder/start',
   'recorder/stop',

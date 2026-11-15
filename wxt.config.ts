@@ -18,7 +18,13 @@ export default defineConfig({
       'Preenche campos de formulários automaticamente nos sites que você escolher, com regras que você mesmo cria.',
     homepage_url: 'https://github.com/medeiroz/assistente-preenchimento',
     // "tabs" só no build e2e: permite ao teste achar o tabId do harness por URL.
-    permissions: ['storage', 'scripting', 'activeTab', ...(mode === 'e2e' ? ['tabs'] : [])],
+    permissions: [
+      'storage',
+      'scripting',
+      'activeTab',
+      'contextMenus',
+      ...(mode === 'e2e' ? ['tabs'] : []),
+    ],
     ...(mode === 'e2e' ? { host_permissions: E2E_HOSTS } : {}),
     action: {
       default_icon: {
