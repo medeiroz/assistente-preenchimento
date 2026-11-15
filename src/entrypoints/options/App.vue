@@ -8,6 +8,8 @@ import RuleEditor from './components/RuleEditor.vue';
 import HistoryView from './components/HistoryView.vue';
 import VariablesView from './components/VariablesView.vue';
 import ImportExport from './components/ImportExport.vue';
+import RecordingReview from './components/RecordingReview.vue';
+import type { RecordingDraft, RecordingGroup } from '../../core/recorder/types';
 import cePreset from '../../../presets/ce-nfse.json';
 import { parseAddition, planMerge, type Addition } from './composables/merge';
 import { useConfig } from './composables/useConfig';
@@ -22,6 +24,12 @@ import {
   type CaptureEditor,
   type CaptureFocus,
 } from './composables/picker';
+import {
+  findMatchingRulesForGroup,
+  groupIntoRule,
+  groupToNewRule,
+  useRecordingDraft,
+} from './composables/recording';
 
 // Para incluir uma aba nova (ex.: Variáveis), acrescente aqui e um painel no template.
 const TABS = [
@@ -54,6 +62,8 @@ interface Editing {
   token: number;
   /** Presente quando o editor veio do "Capturar campo". */
   focus: CaptureFocus | null;
+  /** Índice do grupo da gravação que originou o editor (volta ao painel ao fechar). */
+  group: number | null;
 }
 const editing = ref<Editing | null>(null);
 const editorRef = ref<InstanceType<typeof RuleEditor> | null>(null);
@@ -63,8 +73,9 @@ function open(
   draft: RuleDraft,
   baseUpdatedAt: string | null,
   focus: CaptureFocus | null = null,
+  group: number | null = null,
 ): void {
-  editing.value = { draft, baseUpdatedAt, token: ++token, focus };
+  editing.value = { draft, baseUpdatedAt, token: ++token, focus, group };
 }
 
 function createRule(): void {
@@ -98,7 +109,7 @@ async function saveRule(rule: Rule): Promise<void> {
   const asking = permissions.request(rule);
   await repo.saveRule(rule);
   await reload();
-  editing.value = null;
+  closeEditor();
   showNotice('ok', 'Regra salva');
   await asking;
 }
@@ -107,6 +118,15 @@ async function saveVariables(variables: Variable[]): Promise<void> {
   await repo.saveVariables(variables);
   await reload();
   showNotice('ok', 'Variáveis salvas');
+}
+
+/** Fecha o editor; se veio de uma gravação, marca o grupo como tratado (o painel reaparece). */
+function closeEditor(): void {
+  const g = editing.value?.group ?? null;
+  if (g !== null && recording.value && !recording.value.handled.includes(g)) {
+    recording.value.handled.push(g);
+  }
+  editing.value = null;
 }
 
 // ------------------------------------------------------------ ações da lista
@@ -189,6 +209,38 @@ async function onPicked(picked: PickerDraft): Promise<void> {
 }
 usePickerDraft(onPicked);
 
+// ------------------------------------------------------------ gravação de preenchimento
+interface RecordingReviewState {
+  groups: RecordingGroup[];
+  handled: number[];
+}
+const recording = ref<RecordingReviewState | null>(null);
+
+function recordingNewRule(index: number): void {
+  const group = recording.value?.groups[index];
+  if (group) open(groupToNewRule(group), null, null, index);
+}
+
+function recordingAddToRule(index: number, rule: Rule): void {
+  const group = recording.value?.groups[index];
+  if (group) open(groupIntoRule(rule, group), rule.updatedAt, null, index);
+}
+
+/** Chega uma gravação (já apagada do storage: consumo único). */
+async function onRecorded(rec: RecordingDraft): Promise<void> {
+  await untilLoaded();
+  if (editing.value && !window.confirm('Descartar a edição aberta e usar a gravação?')) return;
+  tab.value = 'rules';
+  editing.value = null;
+  capturePrompt.value = null;
+  recording.value = { groups: rec.groups, handled: [] };
+  const only = rec.groups.length === 1 ? rec.groups[0] : undefined;
+  if (only && findMatchingRulesForGroup(config.value.rules, only).length === 0) {
+    recordingNewRule(0);
+  }
+}
+useRecordingDraft(onRecorded);
+
 /**
  * Adiciona regras (de um arquivo ou do exemplo) sem apagar nada. Síncrono até o pedido de
  * permissão: ele precisa começar dentro do clique do usuário.
@@ -235,7 +287,7 @@ function selectTab(next: TabId): void {
   ) {
     return;
   }
-  if (decision !== 'switch') editing.value = null;
+  if (decision !== 'switch') closeEditor();
   tab.value = next;
 }
 
@@ -344,6 +396,15 @@ watch(tab, () => (notice.value = null));
             </button>
           </div>
         </section>
+        <RecordingReview
+          v-if="recording && !editing"
+          :groups="recording.groups"
+          :rules="config.rules"
+          :handled="recording.handled"
+          @create="recordingNewRule"
+          @add-to-rule="recordingAddToRule"
+          @dismiss="recording = null"
+        />
         <RuleEditor
           v-if="editing"
           ref="editorRef"
@@ -354,11 +415,11 @@ watch(tab, () => (notice.value = null));
           :external-change="externalChange"
           :save="saveRule"
           :capture-focus="editing.focus"
-          @cancel="editing = null"
+          @cancel="closeEditor"
           @reload="reloadEditor"
         />
         <RuleList
-          v-else-if="!capturePrompt"
+          v-else-if="!capturePrompt && !recording"
           :rules="config.rules"
           :loaded="loaded"
           :missing-ids="permissions.missingRuleIds.value"

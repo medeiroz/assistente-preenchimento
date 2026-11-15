@@ -644,3 +644,23 @@ summary {
   align-items: flex-start;
   gap: 4px;
 }
+
+/* revisão da gravação de preenchimento */
+.recording-card {
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+
+.recording-card.done {
+  opacity: 0.6;
+}
+
+.recording-card h3 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+}
+
+.recording-fields {
+  margin: 4px 0 8px;
+  padding-left: 20px;
+}
