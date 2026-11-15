@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <title>Harness — Shadow DOM</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 16px;
+      }
+      .eui-field,
+      .f {
+        margin: 12px 0;
+      }
+      label {
+        display: block;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Contêiner igual ao do preset e2e: a regra "e2e-harness" casa esta página. -->
+    <div class="eui-modal-wrapper is-active" id="shadow-modal">
+      <h2 class="eui-modal-title">Emitir Nota Fiscal de Serviços Eletrônica</h2>
+
+      <!-- (a) rótulo fora, input dentro do shadow do host -->
+      <div class="eui-field" id="case-a">
+        <label class="eui-label">Campo A (rótulo fora)</label>
+        <x-open-input id="host-a"></x-open-input>
+      </div>
+
+      <!-- (b) rótulo e input ambos dentro do shadow -->
+      <div class="eui-field" id="case-b">
+        <x-labeled-input id="host-b"></x-labeled-input>
+      </div>
+
+      <!-- (c) shadow aninhado em 2 níveis -->
+      <div class="eui-field" id="case-c">
+        <x-nested id="host-c"></x-nested>
+      </div>
+
+      <!-- (d) shadow root CLOSED: inacessível por design, deve ser ignorado sem erro -->
+      <div class="eui-field" id="case-d">
+        <x-closed-input id="host-d"></x-closed-input>
+      </div>
+
+      <!-- (e) campo que aparece depois (500 ms) dentro do shadow -->
+      <div class="eui-field" id="case-e">
+        <x-late-input id="host-e"></x-late-input>
+      </div>
+
+      <!-- (f) input dentro do shadow SEM rótulo: a captura precisa gerar `host >>> interno` -->
+      <div class="eui-field" id="case-f">
+        <x-bare-input id="host-f"></x-bare-input>
+      </div>
+    </div>
+
+    <script>
+      // Eventos que chegam ao document vindos de dentro de um shadow (precisam ser `composed`).
+      window.__shadowEvents = [];
+      for (const type of ['input', 'change']) {
+        document.addEventListener(type, (ev) => {
+          const origin = ev.composedPath()[0];
+          if (origin && origin.id) window.__shadowEvents.push(type + ':' + origin.id);
+        });
+      }
+
+      function field(label, inputId) {
+        return (
+          '<div class="f">' +
+          (label ? '<label>' + label + '</label>' : '') +
+          '<input id="' +
+          inputId +
+          '" type="text">' +
+          '</div>'
+        );
+      }
+
+      // (a)
+      customElements.define(
+        'x-open-input',
+        class extends HTMLElement {
+          constructor() {
+            super();
+            this.attachShadow({ mode: 'open' }).innerHTML = '<input id="a-input" type="text">';
+          }
+        },
+      );
+
+      // (b)
+      customElements.define(
+        'x-labeled-input',
+        class extends HTMLElement {
+          constructor() {
+            super();
+            this.attachShadow({ mode: 'open' }).innerHTML = field(
+              'Campo B (rótulo dentro)',
+              'b-input',
+            );
+          }
+        },
+      );
+
+      // (c)
+      customElements.define(
+        'x-inner',
+        class extends HTMLElement {
+          constructor() {
+            super();
+            this.attachShadow({ mode: 'open' }).innerHTML = field('Campo C (aninhado)', 'c-input');
+          }
+        },
+      );
+      customElements.define(
+        'x-nested',
+        class extends HTMLElement {
+          constructor() {
+            super();
+            this.attachShadow({ mode: 'open' }).innerHTML = '<x-inner id="host-c-inner"></x-inner>';
+          }
+        },
+      );
+
+      // (d)
+      customElements.define(
+        'x-closed-input',
+        class extends HTMLElement {
+          constructor() {
+            super();
+            this.attachShadow({ mode: 'closed' }).innerHTML = field('Campo D (closed)', 'd-input');
+          }
+        },
+      );
+
+      // (e)
+      customElements.define(
+        'x-late-input',
+        class extends HTMLElement {
+          constructor() {
+            super();
+            this.attachShadow({ mode: 'open' });
+          }
+          connectedCallback() {
+            setTimeout(() => {
+              this.shadowRoot.innerHTML = field('Campo E (tardio)', 'e-input');
+            }, 500);
+          }
+        },
+      );
+
+      // (f)
+      customElements.define(
+        'x-bare-input',
+        class extends HTMLElement {
+          constructor() {
+            super();
+            this.attachShadow({ mode: 'open' }).innerHTML = '<input id="f-input" type="text">';
+          }
+        },
+      );
+    </script>
+  </body>
+</html>

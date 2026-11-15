@@ -43,6 +43,12 @@ function isElement(x: EventTarget | null): x is Element {
   return x !== null && (x as Node).nodeType === 1;
 }
 
+/** Alvo real do evento: dentro de shadow roots abertos `ev.target` é só o host (retargeting). */
+function realTarget(ev: Event): Element | null {
+  const first = ev.composedPath()[0] ?? ev.target;
+  return isElement(first) ? first : null;
+}
+
 function isEscape(ev: Event): boolean {
   return (ev as Partial<KeyboardEvent>).key === 'Escape';
 }
@@ -96,15 +102,16 @@ export function createPicker(deps: PickerDeps): Picker {
 
   function onMove(ev: Event): void {
     if (!overlay || ignored(ev) || overlay.owns(ev)) return;
-    pendingTarget = isElement(ev.target) ? ev.target : null;
+    pendingTarget = realTarget(ev);
     schedule(paint);
   }
 
   function onPointer(ev: Event): void {
     if (!overlay || ignored(ev) || overlay.owns(ev)) return;
     swallow(ev);
-    if (ev.type !== 'click' || !isElement(ev.target)) return;
-    const capture = buildCapture(ev.target, doc, win.location.href);
+    const target = realTarget(ev);
+    if (ev.type !== 'click' || !target) return;
+    const capture = buildCapture(target, doc, win.location.href);
     if (!capture) {
       overlay.notify('Isso não parece ser um campo. Tente outro.');
       clearTimeout(noteTimer);

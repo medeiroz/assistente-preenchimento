@@ -1,6 +1,6 @@
 import type { FieldReport, Rule, RunReport } from '../model';
 import { createDefaultRegistry } from '../adapters';
-import { locate } from '../locator';
+import { deepQuery, locate } from '../locator';
 import { resolveValue } from '../expressions';
 import { rulesForUrl } from './matcher';
 import { createContextWatcher, createUrlWatcher } from './watcher';
@@ -135,7 +135,7 @@ export function createController(o: ControllerOptions): Controller {
           url: new URL(win.location.href),
           now: new Date(),
           field: fieldValue,
-          text: (sel) => win.document.querySelector(sel)?.textContent?.trim() ?? null,
+          text: (sel) => deepQuery.querySelector(win.document, sel)?.textContent?.trim() ?? null,
         }),
       now: () => new Date(),
       url: () => win.location.href,

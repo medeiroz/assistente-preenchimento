@@ -1,4 +1,5 @@
 import type { Locator } from '../model';
+import { compareDeepOrder, composedParent, deepContains, deepQuery } from './deep-query';
 import { normalizeLabel } from './normalize';
 import type { LocateFn } from './types';
 
@@ -20,9 +21,9 @@ function isControl(el: Element): boolean {
   return el.matches(CONTROL_SELECTOR);
 }
 
-function ownerDoc(scope: ParentNode): Document {
-  if (isElement(scope)) return scope.ownerDocument;
-  return scope as Document;
+/** Árvore (documento ou shadow root) onde os ids do elemento são resolvidos. */
+function treeOf(el: Element): Document | ShadowRoot {
+  return el.getRootNode() as Document | ShadowRoot;
 }
 
 /** Texto do candidato; ícones (svg e `<i>` sem texto) não contribuem. */
@@ -40,45 +41,48 @@ export function candidateText(el: Element): string {
 }
 
 function inScope(el: Element, scope: ParentNode): boolean {
-  return !isElement(scope) || scope === el || scope.contains(el);
+  return !isElement(scope) || scope === el || deepContains(scope, el);
 }
 
 /** Menor ancestral estrito de `from` que contém `target` (limitado ao escopo). */
 function commonAncestor(from: Element, target: Element, scope: ParentNode): Element | null {
-  let cur = from.parentElement;
+  let cur = composedParent(from);
   while (cur) {
     if (!inScope(cur, scope)) return null;
-    if (cur.contains(target)) return cur;
-    cur = cur.parentElement;
+    if (deepContains(cur, target)) return cur;
+    cur = composedParent(cur);
   }
   return null;
 }
 
 /** Menor ancestral estrito de `from` que contém algum controle. */
 function ancestorWithControl(from: Element, scope: ParentNode): Element | null {
-  let cur = from.parentElement;
+  let cur = composedParent(from);
   while (cur) {
     if (!inScope(cur, scope)) return null;
-    if (cur.querySelector(CONTROL_SELECTOR)) return cur;
-    cur = cur.parentElement;
+    if (deepQuery.querySelector(cur, CONTROL_SELECTOR)) return cur;
+    cur = composedParent(cur);
   }
   return null;
 }
 
-function controlsReferencing(id: string, scope: ParentNode): Element[] {
-  return Array.from(scope.querySelectorAll('[aria-labelledby]')).filter((c) =>
-    (c.getAttribute('aria-labelledby') ?? '').split(/\s+/).includes(id),
-  );
+/** Controles que referenciam `candidate` por aria-labelledby (ids valem dentro da mesma árvore). */
+function controlsReferencing(candidate: Element, id: string, scope: ParentNode): Element[] {
+  const tree = treeOf(candidate);
+  return deepQuery
+    .querySelectorAll(scope, '[aria-labelledby]')
+    .filter(
+      (c) =>
+        treeOf(c) === tree && (c.getAttribute('aria-labelledby') ?? '').split(/\s+/).includes(id),
+    );
 }
 
 /** Raízes de campo possíveis para um candidato (normalmente uma). */
 function rootsFor(candidate: Element, scope: ParentNode): Element[] {
-  const doc = ownerDoc(scope);
-
   // a. label[for]
   const forId = candidate.tagName === 'LABEL' ? candidate.getAttribute('for') : null;
   if (forId) {
-    const control = doc.getElementById(forId);
+    const control = treeOf(candidate).getElementById(forId);
     if (control) {
       const root = commonAncestor(candidate, control, scope);
       if (root) return [root];
@@ -87,9 +91,9 @@ function rootsFor(candidate: Element, scope: ParentNode): Element[] {
 
   // b. controle descendente (ou o próprio elemento, p.ex. input[aria-label])
   if (isControl(candidate)) return [candidate];
-  if (candidate.querySelector(CONTROL_SELECTOR)) {
+  if (deepQuery.querySelector(candidate, CONTROL_SELECTOR)) {
     if (candidate.tagName === 'LABEL') {
-      const parent = candidate.parentElement;
+      const parent = composedParent(candidate);
       return parent && inScope(parent, scope) ? [parent] : [candidate];
     }
     return [candidate];
@@ -98,7 +102,7 @@ function rootsFor(candidate: Element, scope: ParentNode): Element[] {
   // c. aria-labelledby
   if (candidate.id) {
     const roots: Element[] = [];
-    for (const control of controlsReferencing(candidate.id, scope)) {
+    for (const control of controlsReferencing(candidate, candidate.id, scope)) {
       const root = commonAncestor(candidate, control, scope);
       if (root) roots.push(root);
     }
@@ -111,23 +115,21 @@ function rootsFor(candidate: Element, scope: ParentNode): Element[] {
 }
 
 function collectCandidates(scope: ParentNode): Element[] {
-  const found = scope.querySelectorAll(CANDIDATE_SELECTOR);
+  const found = deepQuery.querySelectorAll(scope, CANDIDATE_SELECTOR);
   const set = new Set<Element>(found);
   const sizeBefore = set.size;
-  const doc = ownerDoc(scope);
-  for (const control of Array.from(scope.querySelectorAll('[aria-labelledby]'))) {
+  for (const control of deepQuery.querySelectorAll(scope, '[aria-labelledby]')) {
+    const tree = treeOf(control);
     for (const id of (control.getAttribute('aria-labelledby') ?? '').split(/\s+/)) {
       if (!id) continue;
-      const el = doc.getElementById(id);
+      const el = tree.getElementById(id);
       if (el && inScope(el, scope)) set.add(el);
     }
   }
   const all = Array.from(set);
-  // querySelectorAll já devolve em ordem de documento; só reordena se entraram referências extras.
+  // a consulta já devolve em ordem de documento; só reordena se entraram referências extras.
   if (set.size === sizeBefore) return all;
-  return all.sort((a, b) =>
-    a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1,
-  );
+  return all.sort(compareDeepOrder);
 }
 
 /**
@@ -180,15 +182,15 @@ function escapeAttr(value: string): string {
 function locateByName(name: string, scope: ParentNode): Element | null {
   let control: Element | null;
   try {
-    control = scope.querySelector(`[name="${escapeAttr(name)}"]`);
+    control = deepQuery.querySelector(scope, `[name="${escapeAttr(name)}"]`);
   } catch {
     return null;
   }
   if (!control) return null;
-  let cur = control.parentElement;
+  let cur = composedParent(control);
   while (cur && inScope(cur, scope)) {
-    if (cur.querySelector('label, legend')) return cur;
-    cur = cur.parentElement;
+    if (deepQuery.querySelector(cur, 'label, legend')) return cur;
+    cur = composedParent(cur);
   }
   return control;
 }
@@ -199,7 +201,7 @@ export const locate: LocateFn = (locator, scope) => {
       return locateByLabel(locator, scope);
     case 'selector':
       try {
-        return scope.querySelector(locator.css);
+        return deepQuery.querySelector(scope, locator.css);
       } catch {
         return null;
       }

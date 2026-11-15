@@ -1,5 +1,6 @@
 import { AdapterError, type FieldAdapter } from './types';
 import { normalizeSpaces, waitFor } from './dom';
+import { deepQuery } from '../locator/deep-query';
 
 type Kind = 'toggle' | 'radio' | 'checkbox';
 
@@ -8,8 +9,10 @@ const TRUE_VALUES = new Set(['sim', 'true', '1', 'on']);
 const FALSE_VALUES = new Set(['não', 'nao', 'false', '0', 'off']);
 
 function toggleButtons(root: Element): HTMLButtonElement[] {
-  const group = root.matches('.eui-button-group') ? root : root.querySelector('.eui-button-group');
-  return group ? Array.from(group.querySelectorAll('button')) : [];
+  const group = root.matches('.eui-button-group')
+    ? root
+    : deepQuery.querySelector(root, '.eui-button-group');
+  return group ? (deepQuery.querySelectorAll(group, 'button') as HTMLButtonElement[]) : [];
 }
 
 function isActive(button: Element): boolean {
@@ -20,7 +23,7 @@ function isActive(button: Element): boolean {
 }
 
 function inputs(root: Element, type: string): HTMLInputElement[] {
-  return Array.from(root.querySelectorAll<HTMLInputElement>('input')).filter(
+  return (deepQuery.querySelectorAll(root, 'input') as HTMLInputElement[]).filter(
     (i) => (i.getAttribute('type') ?? '').toLowerCase() === type,
   );
 }
@@ -36,7 +39,7 @@ function radioGroup(root: Element): HTMLInputElement[] {
 }
 
 function kindOf(root: Element): Kind | null {
-  if (root.querySelector('.multiselect')) return null;
+  if (deepQuery.querySelector(root, '.multiselect')) return null;
   if (toggleButtons(root).length >= 2) return 'toggle';
   if (radioGroup(root).length >= 2) return 'radio';
   if (inputs(root, 'checkbox').length === 1) return 'checkbox';
@@ -45,9 +48,9 @@ function kindOf(root: Element): Kind | null {
 
 function labelOf(input: HTMLInputElement): string {
   if (input.id) {
-    const byFor = Array.from(input.ownerDocument.querySelectorAll('label')).find(
-      (l) => l.htmlFor === input.id,
-    );
+    const byFor = Array.from(
+      (input.getRootNode() as Document | ShadowRoot).querySelectorAll('label'),
+    ).find((l) => l.htmlFor === input.id);
     if (byFor) return normalizeSpaces(byFor.textContent);
   }
   const ancestor = input.closest('label');

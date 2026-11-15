@@ -1,5 +1,6 @@
 import { AdapterError, type FieldAdapter } from './types';
 import { defaultSleep, dispatch, setNativeValue, typeText, valueMatches } from './dom';
+import { deepQuery } from '../locator/deep-query';
 
 /** Controle de data (input[type=date], .eui-input-datepicker, máscara dd/mm/aaaa, data-date-format). */
 export function isDateControl(el: Element): el is HTMLInputElement {
@@ -25,8 +26,8 @@ export function isDateControl(el: Element): el is HTMLInputElement {
 }
 
 function findInput(root: Element): HTMLInputElement | null {
-  if (root.querySelector('.multiselect')) return null;
-  const candidates = root.matches('input') ? [root] : Array.from(root.querySelectorAll('input'));
+  if (deepQuery.querySelector(root, '.multiselect')) return null;
+  const candidates = root.matches('input') ? [root] : deepQuery.querySelectorAll(root, 'input');
   return candidates.find(isDateControl) ?? null;
 }
 
