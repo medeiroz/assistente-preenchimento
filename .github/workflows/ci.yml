@@ -30,6 +30,12 @@ jobs:
       - run: npm test
       - run: npx prettier --check .
       - run: npm run build
+      - name: Pacote de produção sem hosts de teste
+        run: |
+          if grep -rIl -e 'clinicaexperts' -e 'Clínica Experts' .output/chrome-mv3; then
+            echo "O pacote de produção cita o site de teste." >&2
+            exit 1
+          fi
 
   e2e:
     name: E2E (Playwright)
