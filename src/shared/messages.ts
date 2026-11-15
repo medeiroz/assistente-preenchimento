@@ -18,6 +18,27 @@ export interface TabStatusAggregate {
   frames: FrameStatus[];
 }
 
+export interface UiToast {
+  report: RunReport;
+  /** Preenchido pelo background (frame de origem). */
+  frameId?: number;
+  canUndo: boolean;
+}
+
+export interface UiButton {
+  frameId?: number;
+  id: string;
+  label: string;
+  shown: boolean;
+}
+
+export interface UiAction {
+  frameId: number;
+  kind: 'undo' | 'button';
+  /** Id do botão (kind 'button'). */
+  id?: string;
+}
+
 /** Mapa tipo da mensagem -> payload e resposta. Fonte única de verdade. */
 export interface MessageMap {
   'config/get': { payload: undefined; response: Config };
@@ -35,11 +56,27 @@ export interface MessageMap {
       activeRules: TabStatus['activeRules'];
       lastReport: RunReport | null;
     };
-    response: void;
+    /** `topUrl`: URL (ou origem) do frame de topo, quando o background a conhece pela aba. */
+    response: { topUrl?: string } | undefined;
   };
   'frame/bye': { payload: Record<string, never>; response: void };
   /** Frame filho -> background -> frame de topo. */
   'frame/report': { payload: { report: RunReport; frameId: number }; response: void };
+  /** popup -> background: estado agregado dos frames registrados da aba. */
+  'tab/frames': { payload: { tabId: number }; response: TabStatusAggregate };
+  /**
+   * Frame filho -> background -> frame de topo: mostra o toast no topo. Resposta (do background):
+   * `true` se o topo tem motor registrado e recebeu; `false` e o frame mostra o toast sozinho.
+   */
+  'ui/toast': { payload: UiToast; response: boolean };
+  /** Idem para o botão de ação de uma regra do frame filho (`shown: false` remove). */
+  'ui/button': { payload: UiButton; response: boolean };
+  /** Frame de topo -> background -> frame filho: o usuário clicou no botão/desfazer relayados. */
+  'ui/action': { payload: UiAction; response: void };
+  /** Background -> frame de topo: o frame filho saiu; remove os botões dele. */
+  'ui/frame-gone': { payload: { frameId: number }; response: void };
+  /** Frame -> background -> demais frames: a captura terminou ou foi cancelada. */
+  'picker/stop': { payload: undefined; response: void };
   'site/pause': { payload: { host: string; paused: boolean }; response: void };
   /** popup -> content: liga o modo "Capturar campo". */
   'picker/start': { payload: undefined; response: void };
@@ -81,6 +118,12 @@ const MESSAGE_TYPES: ReadonlySet<string> = new Set<keyof MessageMap>([
   'frame/hello',
   'frame/bye',
   'frame/report',
+  'tab/frames',
+  'ui/toast',
+  'ui/button',
+  'ui/action',
+  'ui/frame-gone',
+  'picker/stop',
   'site/pause',
   'picker/start',
   'options/open-draft',

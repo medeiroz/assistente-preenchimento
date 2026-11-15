@@ -1,4 +1,4 @@
-import type { Rule } from '../core/model';
+import { triggerFrames, type Rule } from '../core/model';
 
 /**
  * Permissões sob demanda (WP4.3).
@@ -136,6 +136,8 @@ export interface ScriptRegistration {
   js: string[];
   runAt: 'document_idle';
   allFrames: boolean;
+  /** Frames `about:blank`/`srcdoc` herdam a origem do pai. Só junto com `allFrames`. */
+  matchOriginAsFallback?: boolean;
   persistAcrossSessions: boolean;
 }
 
@@ -143,7 +145,9 @@ export interface ScriptingApi {
   scripting: {
     getRegisteredContentScripts(filter: {
       ids: string[];
-    }): Promise<{ id: string; matches?: string[] }[]>;
+    }): Promise<
+      { id: string; matches?: string[]; allFrames?: boolean; matchOriginAsFallback?: boolean }[]
+    >;
     registerContentScripts(scripts: ScriptRegistration[]): Promise<void>;
     updateContentScripts(scripts: ScriptRegistration[]): Promise<void>;
     unregisterContentScripts(filter: { ids: string[] }): Promise<void>;
@@ -203,6 +207,22 @@ export function computeDynamicMatches(
   return [...out].sort();
 }
 
+/**
+ * Algum padrão registrado vale para iframes? Sim quando uma regra habilitada com `frames: 'all'`
+ * tem ao menos uma origem registrada (permissão concedida).
+ */
+export function needsAllFrames(
+  rules: readonly Rule[],
+  grantedCheck: (origin: string) => boolean,
+): boolean {
+  return rules.some(
+    (r) =>
+      r.enabled &&
+      triggerFrames(r.trigger) === 'all' &&
+      classifyRule(r).needed.some((o) => grantedCheck(o)),
+  );
+}
+
 export interface DynamicSyncDeps {
   api: PermissionsApi & ScriptingApi;
   loadRules(): Promise<Rule[]>;
@@ -226,6 +246,7 @@ export async function syncDynamicScripts(deps: DynamicSyncDeps): Promise<Dynamic
       if (await api.permissions.contains({ origins: [o] })) granted.add(o);
     }
     const matches = computeDynamicMatches(rules, (o) => granted.has(o));
+    const allFrames = needsAllFrames(rules, (o) => granted.has(o));
     const [existing] = await api.scripting.getRegisteredContentScripts({
       ids: [DYNAMIC_SCRIPT_ID],
     });
@@ -240,7 +261,8 @@ export async function syncDynamicScripts(deps: DynamicSyncDeps): Promise<Dynamic
       matches,
       js: [deps.scriptFile],
       runAt: 'document_idle',
-      allFrames: false,
+      allFrames,
+      ...(allFrames ? { matchOriginAsFallback: true } : {}),
       persistAcrossSessions: true,
     };
     if (!existing) {
@@ -248,7 +270,14 @@ export async function syncDynamicScripts(deps: DynamicSyncDeps): Promise<Dynamic
       return 'registered';
     }
     const current = [...(existing.matches ?? [])].sort();
-    if (current.length === matches.length && current.every((m, i) => m === matches[i])) {
+    const sameFrames =
+      (existing.allFrames ?? false) === allFrames &&
+      (existing.matchOriginAsFallback ?? false) === allFrames;
+    if (
+      sameFrames &&
+      current.length === matches.length &&
+      current.every((m, i) => m === matches[i])
+    ) {
       return 'unchanged';
     }
     await api.scripting.updateContentScripts([script]);

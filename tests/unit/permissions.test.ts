@@ -8,6 +8,7 @@ import {
   computeDynamicMatches,
   isBroadOrigin,
   isStaticallyCovered,
+  needsAllFrames,
   missingPermissions,
   originsForRule,
   requestForRule,
@@ -313,5 +314,76 @@ describe('syncDynamicScripts', () => {
       scriptFile: file,
     });
     expect(failing).toBe('error');
+  });
+});
+
+describe('registro dinâmico com iframes', () => {
+  const file = 'content-scripts/content.js';
+  const run = (api: FakeApi, rules: Rule[]) =>
+    syncDynamicScripts({ api, loadRules: () => Promise.resolve(rules), scriptFile: file });
+  const withFrames = (patterns: string[], over: Partial<Rule> = {}): Rule => {
+    const r = rule(patterns, over);
+    return { ...r, trigger: { ...r.trigger, frames: 'all' } };
+  };
+
+  it('needsAllFrames: só regra habilitada, com frames "all" e permissão concedida', () => {
+    const granted = (o: string) => o === 'https://a.com/*';
+    expect(needsAllFrames([rule(['https://a.com/*'])], granted)).toBe(false);
+    expect(needsAllFrames([withFrames(['https://a.com/*'])], granted)).toBe(true);
+    expect(needsAllFrames([withFrames(['https://b.com/*'])], granted)).toBe(false);
+    expect(needsAllFrames([withFrames(['https://a.com/*'], { enabled: false })], granted)).toBe(
+      false,
+    );
+  });
+
+  it('computeDynamicMatches não muda com frames (continua um único script)', () => {
+    const granted = () => true;
+    expect(computeDynamicMatches([withFrames(['https://a.com/p/*'])], granted)).toEqual(
+      computeDynamicMatches([rule(['https://a.com/p/*'])], granted),
+    );
+  });
+
+  it('com frames "all": allFrames e matchOriginAsFallback', async () => {
+    const api = fakeApi(['https://a.com/*']);
+    expect(await run(api, [withFrames(['https://a.com/*'])])).toBe('registered');
+    expect(api.registered.get(DYNAMIC_SCRIPT_ID)).toEqual({
+      id: DYNAMIC_SCRIPT_ID,
+      matches: ['https://a.com/*'],
+      js: [file],
+      runAt: 'document_idle',
+      allFrames: true,
+      matchOriginAsFallback: true,
+      persistAcrossSessions: true,
+    });
+  });
+
+  it('sem frames "all": allFrames false e sem matchOriginAsFallback', async () => {
+    const api = fakeApi(['https://a.com/*']);
+    await run(api, [rule(['https://a.com/*'])]);
+    const reg = api.registered.get(DYNAMIC_SCRIPT_ID);
+    expect(reg?.allFrames).toBe(false);
+    expect(reg).not.toHaveProperty('matchOriginAsFallback');
+  });
+
+  it('re-registra quando só allFrames muda (mesmos matches) e fica quieto depois', async () => {
+    const api = fakeApi(['https://a.com/*']);
+    await run(api, [rule(['https://a.com/*'])]);
+    expect(await run(api, [withFrames(['https://a.com/*'])])).toBe('updated');
+    expect(api.registered.get(DYNAMIC_SCRIPT_ID)?.allFrames).toBe(true);
+    expect(await run(api, [withFrames(['https://a.com/*'])])).toBe('unchanged');
+    expect(await run(api, [rule(['https://a.com/*'])])).toBe('updated');
+    expect(api.registered.get(DYNAMIC_SCRIPT_ID)?.allFrames).toBe(false);
+  });
+
+  it('registro antigo (sem allFrames) com regra sem iframes continua igual', async () => {
+    const api = fakeApi(['https://a.com/*']);
+    api.registered.set(DYNAMIC_SCRIPT_ID, {
+      id: DYNAMIC_SCRIPT_ID,
+      matches: ['https://a.com/*'],
+      js: [file],
+      runAt: 'document_idle',
+      persistAcrossSessions: true,
+    } as unknown as ScriptRegistration);
+    expect(await run(api, [rule(['https://a.com/*'])])).toBe('unchanged');
   });
 });

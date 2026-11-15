@@ -1,3 +1,4 @@
+import { frameUrlOf } from '../../../core/engine';
 import { buildCapture, resolveField, type Capture } from '../../../core/locator';
 import { createOverlay, type Overlay } from './overlay';
 
@@ -17,6 +18,9 @@ const TYPE_LABEL: Record<string, string> = {
   'native-choice': 'Escolha',
   'vue-multiselect': 'Lista com busca',
   date: 'Data',
+  contenteditable: 'Texto editável',
+  'react-select': 'Lista com busca',
+  select2: 'Lista com busca',
   auto: 'Campo',
 };
 
@@ -28,6 +32,8 @@ export interface PickerDeps {
    * engolidos. Sem isso, um preenchimento em andamento "clicaria" sozinho e encerraria a captura.
    */
   trustedOnly?: boolean;
+  /** Sem a faixa de instruções (iframes): só o destaque do campo. */
+  compact?: boolean;
   /** Chamado uma vez, depois que o modo captura já foi encerrado. */
   onCapture(capture: Capture): void;
   onCancel?(): void;
@@ -111,7 +117,7 @@ export function createPicker(deps: PickerDeps): Picker {
     swallow(ev);
     const target = realTarget(ev);
     if (ev.type !== 'click' || !target) return;
-    const capture = buildCapture(target, doc, win.location.href);
+    const capture = buildCapture(target, doc, frameUrlOf(win));
     if (!capture) {
       overlay.notify('Isso não parece ser um campo. Tente outro.');
       clearTimeout(noteTimer);
@@ -178,7 +184,7 @@ export function createPicker(deps: PickerDeps): Picker {
     },
     start() {
       if (overlay) return;
-      overlay = createOverlay(doc, cancel);
+      overlay = createOverlay(doc, cancel, deps.compact === true);
       for (const type of POINTER_EVENTS) win.addEventListener(type, onPointer, true);
       win.addEventListener('keydown', onKey, true);
       win.addEventListener('keyup', onKey, true);

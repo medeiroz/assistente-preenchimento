@@ -6,7 +6,7 @@ import {
   type Capture,
   type PickerDraft,
 } from '../../../core/locator';
-import type { Rule } from '../../../core/model';
+import { triggerFrames, type Rule } from '../../../core/model';
 import {
   hostOfPattern,
   newFieldDraft,
@@ -47,7 +47,10 @@ function sameContainer(rule: Rule, capture: Capture): boolean {
 /** Regras cujo gatilho já cobre a página e o contêiner capturados (candidatas a receber o campo). */
 export function findMatchingRules(rules: readonly Rule[], capture: Capture): Rule[] {
   return rules.filter(
-    (r) => r.trigger.urlPatterns.includes(capture.urlPattern) && sameContainer(r, capture),
+    (r) =>
+      r.trigger.urlPatterns.includes(capture.urlPattern) &&
+      sameContainer(r, capture) &&
+      triggerFrames(r.trigger) === (capture.frames ?? 'top'),
   );
 }
 
@@ -94,6 +97,7 @@ export function newRuleFromCapture(capture: Capture): CaptureEditor {
   const draft = newRuleDraft();
   draft.name = suggestRuleName(capture);
   draft.urlPatterns = [capture.urlPattern];
+  if (capture.frames === 'all') draft.allFrames = true;
   draft.containerSelector = capture.container?.selector ?? '';
   draft.containerText = capture.container?.textContains ?? '';
   const field = captureToFieldDraft(capture, draft.fields);

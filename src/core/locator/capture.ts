@@ -20,8 +20,10 @@ export interface Capture {
   /** Rótulo detectado, sem `*` nem `:` no fim (null se o campo não tem rótulo). */
   label: string | null;
   container?: CaptureContainer;
-  /** `protocolo//host/*` da página. */
+  /** `protocolo//host/*` da página (do frame, quando capturado num iframe). */
   urlPattern: string;
+  /** 'all' quando capturado num iframe: a regra nasce atuando em iframes. */
+  frames?: 'all';
 }
 
 /** Resultado da resolução da raiz sob um elemento qualquer (usado também no hover). */

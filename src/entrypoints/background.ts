@@ -1,4 +1,5 @@
 import { parseRule, type Rule } from '../core/model';
+import { createFramesBackground, createFrameRegistry } from '../core/frames';
 import { createRecorderBackground } from '../core/recorder';
 import { chromeSyncRepository, seedIfEmpty } from '../core/storage';
 import { isMessage } from '../shared/messages';
@@ -53,6 +54,10 @@ function scheduleSync(): void {
   syncChain = syncChain.then(() => syncDynamicScripts(dynamicDeps()));
 }
 
+function warnFrames(e: unknown): void {
+  console.warn('[assistente] falha no registro de frames', e);
+}
+
 function warnRecorder(e: unknown): void {
   console.warn('[assistente] falha na gravação', e);
 }
@@ -79,15 +84,38 @@ export default defineBackground(() => {
         files: [contentScriptFile(browser.runtime.getManifest()) as never],
       }),
   });
+  const frames = createFramesBackground({
+    registry: createFrameRegistry({
+      session: browser.storage.session,
+      tabUrl: async (tabId) => (await browser.tabs.get(tabId)).url,
+    }),
+    sendToFrame: (tabId, frameId, message) => browser.tabs.sendMessage(tabId, message, { frameId }),
+    broadcast: (tabId, message) => browser.tabs.sendMessage(tabId, message),
+    pausedHosts: async () => (await chromeSyncRepository().load()).settings.pausedHosts,
+  });
   browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
     recorder.tabUpdated(tabId, changeInfo.status).catch(warnRecorder);
+    frames.tabUpdated(tabId, changeInfo).catch(warnFrames);
   });
   browser.tabs.onRemoved.addListener((tabId) => {
     recorder.tabRemoved(tabId).catch(warnRecorder);
+    frames.tabRemoved(tabId).catch(warnFrames);
   });
   browser.runtime.onMessage.addListener((message: unknown, sender, sendResponse) => {
     if (!isMessage(message)) return false;
     const senderTab = sender.tab?.id;
+    const framesJob = frames.handle(message, {
+      ...(senderTab !== undefined ? { tabId: senderTab } : {}),
+      ...(sender.frameId !== undefined ? { frameId: sender.frameId } : {}),
+      ...(sender.tab?.url ? { tabUrl: sender.tab.url } : {}),
+    });
+    if (framesJob) {
+      framesJob.then(sendResponse, (e: unknown) => {
+        warnFrames(e);
+        sendResponse(undefined);
+      });
+      return true;
+    }
     let job: Promise<unknown> | null = null;
     switch (message.type) {
       // A captura (content script) já gravou 'picker:draft'; aqui só abrimos/focamos as opções.
