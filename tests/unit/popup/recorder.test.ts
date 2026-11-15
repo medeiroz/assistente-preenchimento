@@ -16,9 +16,13 @@ function deps(over: Partial<StartRecordingDeps> = {}): StartRecordingDeps {
 }
 
 describe('originToRequest', () => {
-  it('só pede https e ignora o que o manifest já cobre', () => {
+  it('pede https e http e ignora o que o manifest já cobre', () => {
     expect(originToRequest('https://app.exemplo.com/a/b?x=1')).toBe('https://app.exemplo.com/*');
-    expect(originToRequest('http://localhost:3000/x')).toBeNull();
+    expect(originToRequest('http://intranet.exemplo.com:8080/x')).toBe(
+      'http://intranet.exemplo.com/*',
+    );
+    expect(originToRequest('http://localhost:3000/x', ['http://localhost/*'])).toBeNull();
+    expect(originToRequest('chrome://extensions/')).toBeNull();
     expect(originToRequest(undefined)).toBeNull();
     expect(originToRequest('https://app.exemplo.com/', ['https://app.exemplo.com/*'])).toBeNull();
   });

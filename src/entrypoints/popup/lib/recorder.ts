@@ -8,12 +8,12 @@ export interface StartRecordingDeps {
   statics?: readonly string[];
 }
 
-/** Padrão de permissão (`https://host/*`) a pedir para a URL da aba; null se não se aplica. */
+/** Padrão de permissão (`https://host/*` ou `http://host/*`) a pedir para a URL da aba; null se não se aplica. */
 export function originToRequest(
   url: string | undefined,
   statics?: readonly string[],
 ): string | null {
-  if (!url?.startsWith('https://')) return null;
+  if (!url?.startsWith('https://') && !url?.startsWith('http://')) return null;
   let origin: string | null = null;
   try {
     origin = toOriginPattern(`${new URL(url).origin}/*`);
