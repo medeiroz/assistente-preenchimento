@@ -5,6 +5,7 @@ export {
   chromeSyncDeps,
   seedIfEmpty,
   StorageQuotaError,
+  ReadOnlyConfigError,
   MAX_ITEM_BYTES,
 } from './chrome-sync';
 export type {

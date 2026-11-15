@@ -3,7 +3,13 @@ import { computed } from 'vue';
 import type { Rule } from '../../../core/model';
 import { fieldCountLabel, groupRulesBySite, modeLabel } from '../composables/draft';
 
-const props = defineProps<{ rules: Rule[]; loaded: boolean; missingIds: ReadonlySet<string> }>();
+const props = defineProps<{
+  rules: Rule[];
+  loaded: boolean;
+  missingIds: ReadonlySet<string>;
+  /** Configuração de versão mais nova: nada pode ser criado, alterado nem excluído. */
+  readOnly?: boolean;
+}>();
 const emit = defineEmits<{
   create: [];
   edit: [rule: Rule];
@@ -25,7 +31,13 @@ function onToggle(rule: Rule, ev: Event): void {
   <section aria-labelledby="rules-title">
     <div class="section-head">
       <h2 id="rules-title">Regras</h2>
-      <button type="button" class="btn primary" data-testid="new-rule" @click="emit('create')">
+      <button
+        type="button"
+        class="btn primary"
+        data-testid="new-rule"
+        :disabled="readOnly"
+        @click="emit('create')"
+      >
         Nova regra
       </button>
     </div>
@@ -43,6 +55,7 @@ function onToggle(rule: Rule, ev: Event): void {
             type="button"
             class="btn primary"
             data-testid="empty-new-rule"
+            :disabled="readOnly"
             @click="emit('create')"
           >
             Nova regra
@@ -61,6 +74,7 @@ function onToggle(rule: Rule, ev: Event): void {
             type="button"
             class="btn"
             data-testid="empty-import-example"
+            :disabled="readOnly"
             @click="emit('importExample')"
           >
             Importar exemplo da Clínica Experts
@@ -99,6 +113,7 @@ function onToggle(rule: Rule, ev: Event): void {
               type="checkbox"
               role="switch"
               :checked="r.enabled"
+              :disabled="readOnly"
               :aria-label="`Regra ativa: ${r.name}`"
               @change="onToggle(r, $event)"
             />
@@ -109,13 +124,20 @@ function onToggle(rule: Rule, ev: Event): void {
             <button type="button" class="btn" data-action="edit" @click="emit('edit', r)">
               Editar<span class="sr-only"> {{ r.name }}</span>
             </button>
-            <button type="button" class="btn" data-action="duplicate" @click="emit('duplicate', r)">
+            <button
+              type="button"
+              class="btn"
+              data-action="duplicate"
+              :disabled="readOnly"
+              @click="emit('duplicate', r)"
+            >
               Duplicar<span class="sr-only"> {{ r.name }}</span>
             </button>
             <button
               type="button"
               class="btn danger"
               data-action="remove"
+              :disabled="readOnly"
               @click="emit('remove', r)"
             >
               Excluir<span class="sr-only"> {{ r.name }}</span>

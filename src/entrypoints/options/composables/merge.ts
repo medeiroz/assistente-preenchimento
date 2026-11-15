@@ -40,7 +40,14 @@ export function parseAddition(text: string): AdditionParse {
     return { ok: true, addition: { rules: [r.rule], variables: [], warnings: [] } };
   }
   if (typeof raw.schemaVersion === 'number') {
-    const { config, warnings } = migrateConfig(raw);
+    const { config, warnings, readOnly } = migrateConfig(raw);
+    if (readOnly) {
+      return {
+        ok: false,
+        error:
+          'Este arquivo foi exportado por uma versão mais nova da extensão. Atualize a extensão para importá-lo.',
+      };
+    }
     const rawRules = Array.isArray(raw.rules) ? raw.rules.length : 0;
     if (warnings.some((w) => w.includes('usando configuração vazia'))) {
       return { ok: false, error: warnings.join(' ') };

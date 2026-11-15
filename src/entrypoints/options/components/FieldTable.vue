@@ -7,7 +7,9 @@ import {
   LOCATOR_OPTIONS,
   LOCATOR_PLACEHOLDERS,
   DEFAULT_KEY_DELAY_MS,
+  adapterLabel,
   adapterSupportsTyping,
+  isKnownAdapterChoice,
   dropTarget,
   fieldValueError,
   moveField,
@@ -65,7 +67,8 @@ function onText(index: number, key: 'locatorValue' | 'value' | 'defaultValue', e
 function onSelect(index: number, key: 'locatorBy' | 'adapter', ev: Event): void {
   const v = (ev.target as HTMLSelectElement).value;
   if (key === 'locatorBy') {
-    patch(index, { locatorBy: v as LocatorBy });
+    // As chaves extras do localizador pertencem à variante anterior: não valem na nova.
+    patch(index, { locatorBy: v as LocatorBy, locatorExtra: undefined });
     return;
   }
   const adapter = v as AdapterChoice;
@@ -324,6 +327,9 @@ function otherErrors(f: FieldDraft): string[] {
               :value="f.adapter"
               @change="onSelect(i, 'adapter', $event)"
             >
+              <option v-if="!isKnownAdapterChoice(f.adapter)" :value="f.adapter">
+                {{ adapterLabel(f.adapter) }}
+              </option>
               <option v-for="o in ADAPTER_OPTIONS" :key="o.id" :value="o.id">{{ o.label }}</option>
             </select>
           </div>

@@ -1,4 +1,4 @@
-import type { AdapterId } from '../model';
+import type { AdapterId, AdapterRef } from '../model';
 
 export class AdapterError extends Error {
   constructor(
@@ -40,6 +40,6 @@ export interface FieldAdapter {
 
 export interface AdapterRegistry {
   register(adapter: FieldAdapter, priority: number): void; // maior prioridade é testada primeiro no 'auto'
-  resolve(root: Element, requested: 'auto' | AdapterId): FieldAdapter | null;
+  resolve(root: Element, requested: AdapterRef): FieldAdapter | null;
   list(): readonly FieldAdapter[];
 }

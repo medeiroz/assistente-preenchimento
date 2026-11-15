@@ -41,7 +41,7 @@ const TABS = [
 type TabId = (typeof TABS)[number]['id'];
 
 const tab = ref<TabId>('rules');
-const { repo, config, loaded, loadError, reload } = useConfig();
+const { repo, config, loaded, loadError, readOnly, reload } = useConfig();
 const historyRepo = chromeHistoryRepository();
 const permissions = usePermissions(computed(() => config.value.rules));
 
@@ -304,6 +304,16 @@ watch(tab, () => (notice.value = null));
       <h1>Assistente de Preenchimento — Configurações</h1>
     </header>
 
+    <p
+      v-if="readOnly"
+      class="notice warn sticky-warning"
+      role="alert"
+      data-testid="read-only-warning"
+    >
+      Esta configuração foi salva por uma versão mais nova da extensão. Atualize a extensão para
+      editar.
+    </p>
+
     <div role="tablist" aria-label="Seções" class="tabs">
       <button
         v-for="t in TABS"
@@ -418,6 +428,7 @@ watch(tab, () => (notice.value = null));
           :variables="config.variables"
           :external-change="externalChange"
           :save="saveRule"
+          :read-only="readOnly"
           :capture-focus="editing.focus"
           @cancel="closeEditor"
           @reload="reloadEditor"
@@ -427,6 +438,7 @@ watch(tab, () => (notice.value = null));
           :rules="config.rules"
           :loaded="loaded"
           :missing-ids="permissions.missingRuleIds.value"
+          :read-only="readOnly"
           @grant="permissions.request"
           @create="createRule"
           @import-example="importExample"
@@ -448,6 +460,7 @@ watch(tab, () => (notice.value = null));
           :rules="config.rules"
           :loaded="loaded"
           :save="saveVariables"
+          :read-only="readOnly"
         />
       </div>
 
@@ -466,7 +479,12 @@ watch(tab, () => (notice.value = null));
         role="tabpanel"
         aria-labelledby="tab-import-export"
       >
-        <ImportExport :repo="repo" @imported="onImported" @add-rules="addRules" />
+        <ImportExport
+          :repo="repo"
+          :read-only="readOnly"
+          @imported="onImported"
+          @add-rules="addRules"
+        />
       </div>
     </main>
   </div>

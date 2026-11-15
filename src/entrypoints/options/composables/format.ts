@@ -38,7 +38,14 @@ export function parseImport(text: string): ImportParse {
       error: 'O arquivo não parece ser uma configuração exportada por este assistente.',
     };
   }
-  const { config, warnings } = migrateConfig(raw);
+  const { config, warnings, readOnly } = migrateConfig(raw);
+  if (readOnly) {
+    return {
+      ok: false,
+      error:
+        'Este arquivo foi exportado por uma versão mais nova da extensão. Atualize a extensão para importá-lo.',
+    };
+  }
   const rawRules = Array.isArray(raw.rules) ? raw.rules.length : 0;
   if (rawRules > 0 && config.rules.length === 0) {
     return {

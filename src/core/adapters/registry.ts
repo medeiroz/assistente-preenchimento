@@ -1,4 +1,4 @@
-import type { AdapterId } from '../model';
+import { AdapterIdSchema, type AdapterRef } from '../model';
 import type { AdapterRegistry, FieldAdapter } from './types';
 import { nativeTextAdapter } from './native-text';
 import { nativeSelectAdapter } from './native-select';
@@ -13,9 +13,11 @@ export function createAdapterRegistry(): AdapterRegistry {
     register(adapter, priority) {
       entries.push({ adapter, priority, order: entries.length });
     },
-    resolve(root: Element, requested: 'auto' | AdapterId) {
+    resolve(root: Element, requested: AdapterRef) {
+      // Id desconhecido (regra de versão futura) vale como 'auto'.
+      const known = requested !== 'auto' && AdapterIdSchema.safeParse(requested).success;
       for (const { adapter } of sorted()) {
-        if (requested !== 'auto' && adapter.id !== requested) continue;
+        if (known && adapter.id !== requested) continue;
         if (adapter.detect(root)) return adapter;
       }
       return null;

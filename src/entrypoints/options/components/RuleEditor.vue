@@ -25,6 +25,8 @@ const props = defineProps<{
   save: (rule: Rule) => Promise<void>;
   /** Editor aberto a partir de "Capturar campo": campo a focar e dica do valor atual. */
   captureFocus?: CaptureFocus | null;
+  /** Configuração de versão mais nova: a regra pode ser vista, mas não salva. */
+  readOnly?: boolean;
 }>();
 const emit = defineEmits<{ cancel: []; reload: [] }>();
 
@@ -335,7 +337,12 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
     <p v-if="err('fields')" class="error-text">{{ err('fields') }}</p>
 
     <div class="actions-bar">
-      <button type="submit" class="btn primary" :disabled="saving" data-testid="save-rule">
+      <button
+        type="submit"
+        class="btn primary"
+        :disabled="saving || readOnly"
+        data-testid="save-rule"
+      >
         {{ saving ? 'Salvando…' : 'Salvar' }}
       </button>
       <button type="button" class="btn" data-testid="cancel-edit" @click="cancel">Cancelar</button>

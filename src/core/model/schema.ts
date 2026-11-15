@@ -10,18 +10,20 @@ export const AdapterIdSchema = z.enum([
   'date',
 ]);
 
+// Todos os objetos aceitam chaves desconhecidas (z.looseObject) e as devolvem intactas:
+// versões futuras podem acrescentar campos, e esta versão não deve apagá-los ao salvar.
 export const LocatorSchema = z.discriminatedUnion('by', [
-  z.object({
+  z.looseObject({
     by: z.literal('label'),
     text: z.string().min(1, 'o texto do rótulo não pode ser vazio'),
     exact: z.boolean().optional(),
     index: z.number().int().min(0).optional(),
   }),
-  z.object({
+  z.looseObject({
     by: z.literal('selector'),
     css: z.string().min(1, 'o seletor CSS não pode ser vazio'),
   }),
-  z.object({
+  z.looseObject({
     by: z.literal('name'),
     name: z.string().min(1, 'o atributo name não pode ser vazio'),
   }),
@@ -29,7 +31,7 @@ export const LocatorSchema = z.discriminatedUnion('by', [
 
 const MATCH_PATTERN = /^(https?|\*):\/\/[^/]+\/.*$/;
 
-export const TriggerSchema = z.object({
+export const TriggerSchema = z.looseObject({
   urlPatterns: z
     .array(
       z
@@ -39,7 +41,7 @@ export const TriggerSchema = z.object({
     .min(1, 'informe ao menos um padrão de URL'),
   queryParams: z.record(z.string(), z.string()).optional(),
   container: z
-    .object({
+    .looseObject({
       selector: z.string().min(1, 'o seletor do contêiner não pode ser vazio'),
       textContains: z.string().optional(),
     })
@@ -47,17 +49,23 @@ export const TriggerSchema = z.object({
   settleMs: z.number().int().min(0).max(10000).default(300),
 });
 
-export const BehaviorSchema = z.object({
+export const BehaviorSchema = z.looseObject({
   mode: z.enum(['auto', 'button', 'off']).default('auto'),
   overwrite: z.enum(['onlyIfDefault', 'always']).default('onlyIfDefault'),
   refill: z.literal('oncePerAppearance').default('oncePerAppearance'),
 });
 
-export const FieldRuleSchema = z.object({
+export const FieldRuleSchema = z.looseObject({
   id: z.string().min(1, 'o id do campo não pode ser vazio'),
   enabled: z.boolean().default(true),
   locator: LocatorSchema,
-  adapter: z.union([z.literal('auto'), AdapterIdSchema]).default('auto'),
+  // Qualquer id não vazio: um adaptador criado por versão futura não descarta a regra.
+  // Em tempo de execução, id desconhecido vale como 'auto' (ver adapters/registry.ts).
+  adapter: z
+    .string()
+    .min(1, 'o adaptador não pode ser vazio')
+    .default('auto')
+    .transform((id): AdapterRef => id),
   value: z.string(),
   defaultValue: z.string().optional(),
   /** Espera (ms) ANTES de localizar e preencher este campo. Ausente = sem espera. */
@@ -69,7 +77,7 @@ export const FieldRuleSchema = z.object({
     .optional(),
   /** Presença = simular digitação tecla por tecla, com este intervalo entre as teclas. */
   typing: z
-    .object({
+    .looseObject({
       keyDelayMs: z
         .number('o intervalo entre teclas deve ser um número')
         .int('o intervalo entre teclas deve ser um número inteiro de milissegundos')
@@ -90,7 +98,7 @@ function findDuplicates(values: string[]): string[] {
 }
 
 export const RuleSchema = z
-  .object({
+  .looseObject({
     id: z.string().min(1, 'o id da regra não pode ser vazio'),
     name: z.string().min(1, 'o nome da regra não pode ser vazio'),
     enabled: z.boolean().default(true),
@@ -110,7 +118,7 @@ export const RuleSchema = z
     }
   });
 
-export const VariableSchema = z.object({
+export const VariableSchema = z.looseObject({
   key: z
     .string()
     .regex(
@@ -121,7 +129,7 @@ export const VariableSchema = z.object({
   value: z.string(),
 });
 
-export const SettingsSchema = z.object({
+export const SettingsSchema = z.looseObject({
   pausedHosts: z.array(z.string()).default([]),
 });
 
@@ -152,6 +160,8 @@ export const ConfigSchema = z
   });
 
 export type AdapterId = z.output<typeof AdapterIdSchema>;
+/** Id de adaptador conhecido, 'auto', ou um id desconhecido (vindo de versão futura). */
+export type AdapterRef = 'auto' | AdapterId | (string & {});
 export type Locator = z.output<typeof LocatorSchema>;
 export type Trigger = z.output<typeof TriggerSchema>;
 export type Behavior = z.output<typeof BehaviorSchema>;

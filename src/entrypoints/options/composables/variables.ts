@@ -19,6 +19,8 @@ export interface VariableRow {
   key: string;
   label: string;
   value: string;
+  /** Chaves desconhecidas (de versões futuras), preservadas ao salvar. */
+  extra?: Record<string, unknown>;
 }
 
 /** Erros por `uid` (chave inválida, vazia ou repetida). Linhas válidas não aparecem. */
@@ -41,7 +43,12 @@ export function validateVariableRows(rows: readonly VariableRow[]): Map<number, 
 }
 
 export function rowsToVariables(rows: readonly VariableRow[]): Variable[] {
-  return rows.map((r) => ({ key: r.key.trim(), label: r.label.trim(), value: r.value }));
+  return rows.map((r) => ({
+    ...r.extra,
+    key: r.key.trim(),
+    label: r.label.trim(),
+    value: r.value,
+  }));
 }
 
 export interface VariableUse {

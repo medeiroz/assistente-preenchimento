@@ -8,6 +8,8 @@ export interface UseConfig {
   config: Ref<Config>;
   loaded: Ref<boolean>;
   loadError: Ref<string | null>;
+  /** Configuração salva por uma versão mais nova da extensão: só leitura. */
+  readOnly: Ref<boolean>;
   reload(): Promise<void>;
 }
 
@@ -16,11 +18,13 @@ export function useConfig(repo: ConfigRepository = chromeSyncRepository()): UseC
   const config = ref<Config>(emptyConfig());
   const loaded = ref(false);
   const loadError = ref<string | null>(null);
+  const readOnly = ref(false);
   let off: (() => void) | undefined;
 
   async function reload(): Promise<void> {
     try {
       config.value = await repo.load();
+      readOnly.value = await repo.isReadOnly();
       loadError.value = null;
     } catch (e) {
       loadError.value = e instanceof Error ? e.message : String(e);
@@ -31,12 +35,13 @@ export function useConfig(repo: ConfigRepository = chromeSyncRepository()): UseC
 
   onMounted(() => {
     void reload();
-    off = repo.onChange((c) => {
+    off = repo.onChange((c, state) => {
       config.value = c;
+      readOnly.value = state.readOnly;
       loaded.value = true;
     });
   });
   onUnmounted(() => off?.());
 
-  return { repo, config, loaded, loadError, reload };
+  return { repo, config, loaded, loadError, readOnly, reload };
 }
