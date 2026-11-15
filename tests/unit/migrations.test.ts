@@ -58,11 +58,24 @@ describe('migrateConfig', () => {
     expect(warnings).toHaveLength(2);
   });
 
-  it('schemaVersion desconhecida vira vazia com warning', () => {
-    const { config, warnings } = migrateConfig({ schemaVersion: 99, rules: [validRule('a')] });
-    expect(config).toEqual(emptyConfig());
-    expect(warnings).toHaveLength(1);
-    expect(warnings[0]).toContain('99');
+  it('schemaVersion mais nova carrega o que valida e sinaliza somente leitura', () => {
+    const { config, warnings, readOnly } = migrateConfig({
+      schemaVersion: 99,
+      rules: [validRule('a'), { id: 'ruim' }],
+    });
+    expect(readOnly).toBe(true);
+    expect(config.rules.map((r) => r.id)).toEqual(['a']);
+    expect(warnings.some((w) => w.includes('99'))).toBe(true);
+    expect(warnings.some((w) => w.includes('"ruim"'))).toBe(true);
+  });
+
+  it('schemaVersion inválida (não inteira ou < 1) vira vazia com warning', () => {
+    for (const v of [0, 1.5, -1]) {
+      const { config, warnings, readOnly } = migrateConfig({ schemaVersion: v, rules: [] });
+      expect(config).toEqual(emptyConfig());
+      expect(warnings).toHaveLength(1);
+      expect(readOnly).toBeUndefined();
+    }
   });
 
   it('objeto sem schemaVersion vira vazio com warning', () => {

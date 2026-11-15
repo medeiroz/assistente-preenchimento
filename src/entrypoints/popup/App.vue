@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue';
 import type { RunReport } from '../../core/model';
-import { chromeSyncRepository } from '../../core/storage';
+import { ReadOnlyConfigError, chromeSyncRepository } from '../../core/storage';
 import type { TabStatus } from '../../shared/messages';
 import ReportList from './components/ReportList.vue';
 import RuleList from './components/RuleList.vue';
@@ -118,8 +118,9 @@ async function setActive(on: boolean): Promise<void> {
     const config = await repo.load();
     await repo.saveSettings(togglePausedHost(config.settings, status.value.host, !on));
     status.value = { ...status.value, paused: !on };
-  } catch {
-    error.value = 'Não foi possível salvar a preferência.';
+  } catch (e) {
+    error.value =
+      e instanceof ReadOnlyConfigError ? e.message : 'Não foi possível salvar a preferência.';
   }
 }
 

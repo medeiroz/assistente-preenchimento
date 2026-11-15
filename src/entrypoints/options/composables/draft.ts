@@ -1,10 +1,48 @@
-import { parseRule, type AdapterId, type Rule, type RuleInput } from '../../../core/model';
+import {
+  parseRule,
+  type AdapterId,
+  type AdapterRef,
+  type Rule,
+  type RuleInput,
+} from '../../../core/model';
 import { validateTemplate } from '../../../core/expressions';
 
 export type LocatorBy = 'label' | 'selector' | 'name';
 export type Mode = 'auto' | 'button' | 'off';
 export type Overwrite = 'onlyIfDefault' | 'always';
-export type AdapterChoice = 'auto' | AdapterId;
+/** 'auto', um adaptador conhecido ou um id desconhecido (de versão futura), mantido como está. */
+export type AdapterChoice = AdapterRef;
+type KnownAdapterChoice = 'auto' | AdapterId;
+
+/** Chaves que a tela não conhece (de versões futuras): vão e voltam sem alteração. */
+export type Extra = Record<string, unknown>;
+
+function pickExtra(obj: object, known: readonly string[]): Extra | undefined {
+  const out: Extra = {};
+  for (const [k, v] of Object.entries(obj)) if (!known.includes(k)) out[k] = v;
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+const RULE_KEYS = ['id', 'name', 'enabled', 'trigger', 'behavior', 'fields', 'updatedAt'];
+const TRIGGER_KEYS = ['urlPatterns', 'queryParams', 'container', 'settleMs'];
+const CONTAINER_KEYS = ['selector', 'textContains'];
+const BEHAVIOR_KEYS = ['mode', 'overwrite', 'refill'];
+const FIELD_KEYS = [
+  'id',
+  'enabled',
+  'locator',
+  'adapter',
+  'value',
+  'defaultValue',
+  'delayMs',
+  'typing',
+];
+const LOCATOR_KEYS: Record<LocatorBy, readonly string[]> = {
+  label: ['by', 'text', 'exact', 'index'],
+  selector: ['by', 'css'],
+  name: ['by', 'name'],
+};
+const TYPING_KEYS = ['keyDelayMs'];
 
 export interface FieldDraft {
   id: string;
@@ -14,6 +52,10 @@ export interface FieldDraft {
   /** Propriedades do localizador de rótulo que a tela não edita, mas que não devem se perder. */
   locatorExact?: boolean;
   locatorIndex?: number;
+  /** Chaves desconhecidas do localizador, do campo e da digitação (preservadas). */
+  locatorExtra?: Extra;
+  extra?: Extra;
+  typingExtra?: Extra;
   adapter: AdapterChoice;
   value: string;
   defaultValue: string;
@@ -28,8 +70,18 @@ export interface FieldDraft {
 export const DEFAULT_KEY_DELAY_MS = 50;
 
 /** Adaptadores que sabem digitar tecla por tecla (os demais ignoram a opção). */
+export function isKnownAdapterChoice(adapter: AdapterChoice): boolean {
+  return ADAPTER_OPTIONS.some((o) => o.id === adapter);
+}
+
 export function adapterSupportsTyping(adapter: AdapterChoice): boolean {
-  return adapter === 'auto' || adapter === 'native-text' || adapter === 'date';
+  // Id desconhecido roda como 'auto' no motor, então se comporta como ele.
+  return (
+    !isKnownAdapterChoice(adapter) ||
+    adapter === 'auto' ||
+    adapter === 'native-text' ||
+    adapter === 'date'
+  );
 }
 
 export interface RuleDraft {
@@ -44,6 +96,11 @@ export interface RuleDraft {
   settleMs: number;
   /** Preservado sem edição. */
   queryParams?: Record<string, string>;
+  /** Chaves desconhecidas da regra, do gatilho, do contêiner e do comportamento (preservadas). */
+  extra?: Extra;
+  triggerExtra?: Extra;
+  containerExtra?: Extra;
+  behaviorExtra?: Extra;
   mode: Mode;
   overwrite: Overwrite;
   fields: FieldDraft[];
@@ -92,7 +149,7 @@ export const LOCATOR_OPTIONS: readonly Option<LocatorBy>[] = [
   { id: 'name', label: 'Atributo name', description: 'O atributo name do campo, ex.: nbs' },
 ];
 
-export const ADAPTER_OPTIONS: readonly Option<AdapterChoice>[] = [
+export const ADAPTER_OPTIONS: readonly Option<KnownAdapterChoice>[] = [
   { id: 'auto', label: 'Automático', description: 'A extensão descobre o tipo do campo.' },
   { id: 'native-text', label: 'Texto', description: 'Campo de texto comum.' },
   { id: 'native-select', label: 'Select nativo', description: 'Lista de seleção do navegador.' },
@@ -120,7 +177,7 @@ export function modeLabel(mode: Mode): string {
 }
 
 export function adapterLabel(adapter: AdapterChoice): string {
-  return ADAPTER_OPTIONS.find((o) => o.id === adapter)?.label ?? adapter;
+  return ADAPTER_OPTIONS.find((o) => o.id === adapter)?.label ?? `Desconhecido: ${adapter}`;
 }
 
 // ---------------------------------------------------------------- ids
@@ -235,6 +292,12 @@ export function ruleToDraft(rule: Rule): RuleDraft {
         typing: f.typing !== undefined,
         keyDelayMs: f.typing?.keyDelayMs ?? DEFAULT_KEY_DELAY_MS,
       };
+      const fieldExtra = pickExtra(f, FIELD_KEYS);
+      if (fieldExtra) fd.extra = fieldExtra;
+      const locatorExtra = pickExtra(f.locator, LOCATOR_KEYS[f.locator.by]);
+      if (locatorExtra) fd.locatorExtra = locatorExtra;
+      const typingExtra = f.typing ? pickExtra(f.typing, TYPING_KEYS) : undefined;
+      if (typingExtra) fd.typingExtra = typingExtra;
       if (f.locator.by === 'label') {
         if (f.locator.exact !== undefined) fd.locatorExact = f.locator.exact;
         if (f.locator.index !== undefined) fd.locatorIndex = f.locator.index;
@@ -243,6 +306,13 @@ export function ruleToDraft(rule: Rule): RuleDraft {
     }),
   };
   if (rule.trigger.queryParams) draft.queryParams = { ...rule.trigger.queryParams };
+  const extras: [keyof RuleDraft, Extra | undefined][] = [
+    ['extra', pickExtra(rule, RULE_KEYS)],
+    ['triggerExtra', pickExtra(rule.trigger, TRIGGER_KEYS)],
+    ['containerExtra', rule.trigger.container && pickExtra(rule.trigger.container, CONTAINER_KEYS)],
+    ['behaviorExtra', pickExtra(rule.behavior, BEHAVIOR_KEYS)],
+  ];
+  for (const [key, value] of extras) if (value) Object.assign(draft, { [key]: value });
   return draft;
 }
 
@@ -256,16 +326,18 @@ export function isDirty(initial: RuleDraft, current: RuleDraft): boolean {
 
 function locatorInput(f: FieldDraft): unknown {
   const v = f.locatorValue.trim();
+  const extra = f.locatorExtra ?? {};
   if (f.locatorBy === 'label') {
     return {
+      ...extra,
       by: 'label',
       text: v,
       ...(f.locatorExact !== undefined ? { exact: f.locatorExact } : {}),
       ...(f.locatorIndex !== undefined ? { index: f.locatorIndex } : {}),
     };
   }
-  if (f.locatorBy === 'selector') return { by: 'selector', css: v };
-  return { by: 'name', name: v };
+  if (f.locatorBy === 'selector') return { ...extra, by: 'selector', css: v };
+  return { ...extra, by: 'name', name: v };
 }
 
 export interface BuildOptions {
@@ -281,20 +353,32 @@ export function draftToRuleInput(draft: RuleDraft, opts: BuildOptions = {}): Rul
   const selector = draft.containerSelector.trim();
   const text = draft.containerText.trim();
   const trigger: Record<string, unknown> = {
+    ...draft.triggerExtra,
     urlPatterns: draft.urlPatterns.map((p) => p.trim()),
     settleMs: draft.settleMs,
   };
   if (draft.queryParams) trigger.queryParams = { ...draft.queryParams };
   if (selector || text) {
-    trigger.container = { selector, ...(text ? { textContains: text } : {}) };
+    trigger.container = {
+      ...draft.containerExtra,
+      selector,
+      ...(text ? { textContains: text } : {}),
+    };
   }
   return {
+    ...draft.extra,
     id,
     name,
     enabled: draft.enabled,
     trigger,
-    behavior: { mode: draft.mode, overwrite: draft.overwrite, refill: 'oncePerAppearance' },
+    behavior: {
+      ...draft.behaviorExtra,
+      mode: draft.mode,
+      overwrite: draft.overwrite,
+      refill: 'oncePerAppearance',
+    },
     fields: draft.fields.map((f) => ({
+      ...f.extra,
       id: f.id,
       enabled: f.enabled,
       locator: locatorInput(f),
@@ -303,7 +387,7 @@ export function draftToRuleInput(draft: RuleDraft, opts: BuildOptions = {}): Rul
       ...(f.defaultValue !== '' ? { defaultValue: f.defaultValue } : {}),
       // Só entram quando definidos: o JSON de regras antigas não muda.
       ...(f.delayMs !== null && f.delayMs !== 0 ? { delayMs: f.delayMs } : {}),
-      ...(f.typing ? { typing: { keyDelayMs: f.keyDelayMs ?? Number.NaN } } : {}),
+      ...(f.typing ? { typing: { ...f.typingExtra, keyDelayMs: f.keyDelayMs ?? Number.NaN } } : {}),
     })),
     updatedAt: (opts.now ?? new Date()).toISOString(),
   } as RuleInput;

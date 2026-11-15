@@ -14,11 +14,18 @@ const props = defineProps<{
   rules: Rule[];
   loaded: boolean;
   save: (variables: Variable[]) => Promise<void>;
+  /** Configuração de versão mais nova: nada pode ser editado. */
+  readOnly?: boolean;
 }>();
 
 let nextUid = 1;
 function toRows(vars: readonly Variable[]): VariableRow[] {
-  return vars.map((v) => ({ uid: nextUid++, key: v.key, label: v.label, value: v.value }));
+  return vars.map((v) => {
+    const { key, label, value, ...rest } = v;
+    const row: VariableRow = { uid: nextUid++, key, label, value };
+    if (Object.keys(rest).length > 0) row.extra = rest;
+    return row;
+  });
 }
 type Triple = [string, string, string];
 const triples = (list: readonly { key: string; label: string; value: string }[]): Triple[] =>
@@ -128,128 +135,135 @@ function onField(r: VariableRow, key: 'key' | 'label' | 'value', ev: Event): voi
 
 <template>
   <form class="variables" novalidate @submit.prevent="submit">
-    <div class="section-head">
-      <h2>Variáveis</h2>
-    </div>
-
-    <p class="notice warn" data-testid="vars-warning">
-      Variáveis sincronizam pela sua conta Google — não guarde senhas aqui.
-    </p>
-    <p class="hint">
-      Use em qualquer campo como <code v-pre>{{ var.sua_chave }}</code>
-    </p>
-
-    <p v-if="saveError" class="notice error" role="alert" data-testid="vars-error">
-      {{ saveError }}
-    </p>
-
-    <div v-if="pendingRow" class="notice warn" role="alertdialog" data-testid="delete-warning">
-      <p>
-        <strong>A variável “{{ pendingRow.key }}” está em uso.</strong> Se você excluí-la, estes
-        campos ficarão sem valor (o preenchimento deles será ignorado):
-      </p>
-      <ul>
-        <li v-for="u in usageOf(pendingRow)" :key="u.ruleId">
-          {{ u.ruleName }} — {{ u.fields.join(', ') }}
-        </li>
-      </ul>
-      <div class="row">
-        <button
-          type="button"
-          class="btn danger"
-          data-testid="confirm-delete"
-          @click="removeNow(pendingRow.uid)"
-        >
-          Excluir mesmo assim
-        </button>
-        <button type="button" class="btn" data-testid="cancel-delete" @click="pendingDelete = null">
-          Cancelar
-        </button>
+    <fieldset class="ro-fieldset" :disabled="readOnly">
+      <div class="section-head">
+        <h2>Variáveis</h2>
       </div>
-    </div>
 
-    <p v-if="loaded && rows.length === 0" class="muted">
-      Nenhuma variável ainda. Use “Adicionar variável” para criar uma.
-    </p>
+      <p class="notice warn" data-testid="vars-warning">
+        Variáveis sincronizam pela sua conta Google — não guarde senhas aqui.
+      </p>
+      <p class="hint">
+        Use em qualquer campo como <code v-pre>{{ var.sua_chave }}</code>
+      </p>
 
-    <ul class="var-list">
-      <li v-for="r in rows" :key="r.uid" class="var-row field-card" :data-var-key="r.key">
-        <div class="grid">
-          <div class="control">
-            <label :for="`v${r.uid}-key`">Chave</label>
-            <input
-              :id="`v${r.uid}-key`"
-              class="v-key"
-              type="text"
-              autocomplete="off"
-              spellcheck="false"
-              placeholder="codigo_teste"
-              :value="r.key"
-              :aria-invalid="rowError(r) !== null"
-              :aria-describedby="rowError(r) ? `v${r.uid}-err` : undefined"
-              @input="onField(r, 'key', $event)"
-            />
-          </div>
-          <div class="control">
-            <label :for="`v${r.uid}-label`">Nome amigável</label>
-            <input
-              :id="`v${r.uid}-label`"
-              class="v-label"
-              type="text"
-              autocomplete="off"
-              placeholder="Código de teste"
-              :value="r.label"
-              @input="onField(r, 'label', $event)"
-            />
-          </div>
-          <div class="control">
-            <label :for="`v${r.uid}-value`">Valor</label>
-            <input
-              :id="`v${r.uid}-value`"
-              class="v-value"
-              type="text"
-              autocomplete="off"
-              :value="r.value"
-              @input="onField(r, 'value', $event)"
-            />
-          </div>
-        </div>
-        <p v-if="rowError(r)" :id="`v${r.uid}-err`" class="error-text" role="alert">
-          {{ rowError(r) }}
+      <p v-if="saveError" class="notice error" role="alert" data-testid="vars-error">
+        {{ saveError }}
+      </p>
+
+      <div v-if="pendingRow" class="notice warn" role="alertdialog" data-testid="delete-warning">
+        <p>
+          <strong>A variável “{{ pendingRow.key }}” está em uso.</strong> Se você excluí-la, estes
+          campos ficarão sem valor (o preenchimento deles será ignorado):
         </p>
-        <p v-if="usageOf(r).length > 0" class="hint v-usage">
-          Usada em:
-          <span v-for="(u, i) in usageOf(r)" :key="u.ruleId"
-            >{{ i > 0 ? '; ' : '' }}{{ u.ruleName }} ({{ u.fields.join(', ') }})</span
-          >
-        </p>
-        <p v-else class="hint v-usage">Não usada em nenhuma regra.</p>
+        <ul>
+          <li v-for="u in usageOf(pendingRow)" :key="u.ruleId">
+            {{ u.ruleName }} — {{ u.fields.join(', ') }}
+          </li>
+        </ul>
         <div class="row">
           <button
             type="button"
-            class="btn small danger v-remove"
-            :aria-label="`Excluir a variável ${r.key || 'sem chave'}`"
-            @click="askRemove(r)"
+            class="btn danger"
+            data-testid="confirm-delete"
+            @click="removeNow(pendingRow.uid)"
           >
-            Excluir
+            Excluir mesmo assim
+          </button>
+          <button
+            type="button"
+            class="btn"
+            data-testid="cancel-delete"
+            @click="pendingDelete = null"
+          >
+            Cancelar
           </button>
         </div>
-      </li>
-    </ul>
+      </div>
 
-    <div class="actions-bar">
-      <button type="button" class="btn" data-testid="add-variable" @click="add">
-        Adicionar variável
-      </button>
-      <button
-        type="submit"
-        class="btn primary"
-        :disabled="saving || !dirty"
-        data-testid="save-variables"
-      >
-        {{ saving ? 'Salvando…' : 'Salvar variáveis' }}
-      </button>
-      <span v-if="dirty" class="muted">Alterações não salvas</span>
-    </div>
+      <p v-if="loaded && rows.length === 0" class="muted">
+        Nenhuma variável ainda. Use “Adicionar variável” para criar uma.
+      </p>
+
+      <ul class="var-list">
+        <li v-for="r in rows" :key="r.uid" class="var-row field-card" :data-var-key="r.key">
+          <div class="grid">
+            <div class="control">
+              <label :for="`v${r.uid}-key`">Chave</label>
+              <input
+                :id="`v${r.uid}-key`"
+                class="v-key"
+                type="text"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="codigo_teste"
+                :value="r.key"
+                :aria-invalid="rowError(r) !== null"
+                :aria-describedby="rowError(r) ? `v${r.uid}-err` : undefined"
+                @input="onField(r, 'key', $event)"
+              />
+            </div>
+            <div class="control">
+              <label :for="`v${r.uid}-label`">Nome amigável</label>
+              <input
+                :id="`v${r.uid}-label`"
+                class="v-label"
+                type="text"
+                autocomplete="off"
+                placeholder="Código de teste"
+                :value="r.label"
+                @input="onField(r, 'label', $event)"
+              />
+            </div>
+            <div class="control">
+              <label :for="`v${r.uid}-value`">Valor</label>
+              <input
+                :id="`v${r.uid}-value`"
+                class="v-value"
+                type="text"
+                autocomplete="off"
+                :value="r.value"
+                @input="onField(r, 'value', $event)"
+              />
+            </div>
+          </div>
+          <p v-if="rowError(r)" :id="`v${r.uid}-err`" class="error-text" role="alert">
+            {{ rowError(r) }}
+          </p>
+          <p v-if="usageOf(r).length > 0" class="hint v-usage">
+            Usada em:
+            <span v-for="(u, i) in usageOf(r)" :key="u.ruleId"
+              >{{ i > 0 ? '; ' : '' }}{{ u.ruleName }} ({{ u.fields.join(', ') }})</span
+            >
+          </p>
+          <p v-else class="hint v-usage">Não usada em nenhuma regra.</p>
+          <div class="row">
+            <button
+              type="button"
+              class="btn small danger v-remove"
+              :aria-label="`Excluir a variável ${r.key || 'sem chave'}`"
+              @click="askRemove(r)"
+            >
+              Excluir
+            </button>
+          </div>
+        </li>
+      </ul>
+
+      <div class="actions-bar">
+        <button type="button" class="btn" data-testid="add-variable" @click="add">
+          Adicionar variável
+        </button>
+        <button
+          type="submit"
+          class="btn primary"
+          :disabled="saving || !dirty"
+          data-testid="save-variables"
+        >
+          {{ saving ? 'Salvando…' : 'Salvar variáveis' }}
+        </button>
+        <span v-if="dirty" class="muted">Alterações não salvas</span>
+      </div>
+    </fieldset>
   </form>
 </template>

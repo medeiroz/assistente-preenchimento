@@ -6,7 +6,7 @@ import { exportFileName, exportJson, parseImport } from '../composables/format';
 import { parseAddition, planMerge, type Addition, type MergePlan } from '../composables/merge';
 import { hostOfPattern } from '../composables/draft';
 
-const props = defineProps<{ repo: ConfigRepository }>();
+const props = defineProps<{ repo: ConfigRepository; readOnly?: boolean }>();
 const emit = defineEmits<{ imported: []; addRules: [addition: Addition] }>();
 
 const error = ref<string | null>(null);
@@ -146,6 +146,7 @@ function cancelImport(): void {
         type="file"
         accept="application/json,.json"
         data-testid="add-file"
+        :disabled="readOnly"
         @change="onAddFile"
       />
 
@@ -184,7 +185,13 @@ function cancelImport(): void {
           Para sites novos, o Chrome vai pedir permissão de acesso ao clicar em adicionar.
         </p>
         <div class="row">
-          <button type="button" class="btn primary" data-testid="confirm-add" @click="confirmAdd">
+          <button
+            type="button"
+            class="btn primary"
+            data-testid="confirm-add"
+            :disabled="readOnly"
+            @click="confirmAdd"
+          >
             Adicionar à minha configuração
           </button>
           <button type="button" class="btn" @click="cancelAdd">Cancelar</button>
@@ -209,6 +216,7 @@ function cancelImport(): void {
         type="file"
         accept="application/json,.json"
         data-testid="import-file"
+        :disabled="readOnly"
         @change="onFile"
       />
 
@@ -229,7 +237,7 @@ function cancelImport(): void {
           <button
             type="button"
             class="btn primary"
-            :disabled="busy"
+            :disabled="busy || readOnly"
             data-testid="confirm-import"
             @click="confirmImport"
           >

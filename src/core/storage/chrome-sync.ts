@@ -24,6 +24,15 @@ export interface ChromeSyncDeps {
   onChanged: (cb: (changes: StorageChanges, area: string) => void) => () => void;
 }
 
+export class ReadOnlyConfigError extends Error {
+  constructor() {
+    super(
+      'Esta configuração foi salva por uma versão mais nova da extensão. Atualize a extensão para editar.',
+    );
+    this.name = 'ReadOnlyConfigError';
+  }
+}
+
 export interface ChromeSyncRepository extends ConfigRepository {
   /** true se já existe 'cfg:meta' (instalação marcada), mesmo sem regras. */
   isInitialized(): Promise<boolean>;
@@ -68,6 +77,25 @@ function isRelevantKey(k: string): boolean {
   return k.startsWith('cfg:') || k.startsWith(RULE_PREFIX);
 }
 
+/** true se o índice foi gravado por uma versão mais nova do esquema (somente leitura). */
+function isNewerMeta(meta: unknown): boolean {
+  return (
+    isRecord(meta) &&
+    typeof meta.schemaVersion === 'number' &&
+    Number.isInteger(meta.schemaVersion) &&
+    meta.schemaVersion > CURRENT_SCHEMA_VERSION
+  );
+}
+
+/** Índice atualizado preservando chaves desconhecidas que uma versão futura tenha gravado. */
+function nextMeta(existing: unknown, ruleIds: string[]): Record<string, unknown> {
+  return {
+    ...(isRecord(existing) ? existing : {}),
+    schemaVersion: CURRENT_SCHEMA_VERSION,
+    ruleIds,
+  };
+}
+
 function parseRuleIds(meta: unknown): string[] {
   if (!isRecord(meta) || !Array.isArray(meta.ruleIds)) return [];
   return meta.ruleIds.filter((x): x is string => typeof x === 'string');
@@ -83,15 +111,17 @@ export function createChromeSyncRepository(deps: ChromeSyncDeps): ChromeSyncRepo
     return run;
   }
 
-  async function readRuleIds(): Promise<string[]> {
+  /** Lê o índice e recusa a escrita se a configuração armazenada é de versão mais nova. */
+  async function readMetaForWrite(): Promise<unknown> {
     const got = await sync.get(META_KEY);
-    return parseRuleIds(got[META_KEY]);
+    if (isNewerMeta(got[META_KEY])) throw new ReadOnlyConfigError();
+    return got[META_KEY];
   }
 
-  async function load(): Promise<Config> {
+  async function loadState(): Promise<{ config: Config; readOnly: boolean }> {
     const all = await sync.get(null);
     const meta = all[META_KEY];
-    if (!isRecord(meta)) return emptyConfig();
+    if (!isRecord(meta)) return { config: emptyConfig(), readOnly: false };
     const ids = parseRuleIds(meta);
     const raw = {
       schemaVersion: meta.schemaVersion,
@@ -99,13 +129,20 @@ export function createChromeSyncRepository(deps: ChromeSyncDeps): ChromeSyncRepo
       variables: all[VARIABLES_KEY],
       rules: ids.map((id) => all[RULE_PREFIX + id]).filter((r) => r !== undefined),
     };
-    const { config, warnings } = migrateConfig(raw);
+    const { config, warnings, readOnly } = migrateConfig(raw);
     for (const w of warnings) console.warn('[assistente]', w);
-    return config;
+    return { config, readOnly: readOnly === true };
   }
 
   return {
-    load,
+    async load() {
+      return (await loadState()).config;
+    },
+
+    async isReadOnly() {
+      const got = await sync.get(META_KEY);
+      return isNewerMeta(got[META_KEY]);
+    },
 
     async isInitialized() {
       const got = await sync.get(META_KEY);
@@ -114,6 +151,7 @@ export function createChromeSyncRepository(deps: ChromeSyncDeps): ChromeSyncRepo
 
     saveRule(rule) {
       return serial(async () => {
+        await readMetaForWrite();
         const parsed = RuleSchema.safeParse(rule);
         if (!parsed.success) {
           throw new Error(`Regra inválida: ${formatZodIssues(parsed.error).join('; ')}`);
@@ -121,25 +159,24 @@ export function createChromeSyncRepository(deps: ChromeSyncDeps): ChromeSyncRepo
         const valid: Rule = { ...parsed.data, updatedAt: new Date().toISOString() };
         const key = RULE_PREFIX + valid.id;
         assertFits(key, valid, 'Regra');
-        const ids = await readRuleIds();
+        const meta = await readMetaForWrite();
+        const ids = parseRuleIds(meta);
         const nextIds = ids.includes(valid.id) ? ids : [...ids, valid.id];
-        await sync.set({
-          [key]: valid,
-          [META_KEY]: { schemaVersion: CURRENT_SCHEMA_VERSION, ruleIds: nextIds },
-        });
+        await sync.set({ [key]: valid, [META_KEY]: nextMeta(meta, nextIds) });
       });
     },
 
     deleteRule(id) {
       return serial(async () => {
-        const ids = await readRuleIds();
+        const meta = await readMetaForWrite();
+        const ids = parseRuleIds(meta);
         await sync.remove(RULE_PREFIX + id);
         if (ids.includes(id)) {
           await sync.set({
-            [META_KEY]: {
-              schemaVersion: CURRENT_SCHEMA_VERSION,
-              ruleIds: ids.filter((x) => x !== id),
-            },
+            [META_KEY]: nextMeta(
+              meta,
+              ids.filter((x) => x !== id),
+            ),
           });
         }
       });
@@ -147,6 +184,7 @@ export function createChromeSyncRepository(deps: ChromeSyncDeps): ChromeSyncRepo
 
     saveVariables(vars) {
       return serial(async () => {
+        await readMetaForWrite();
         const parsed = ConfigSchema.shape.variables.safeParse(vars);
         if (!parsed.success) {
           throw new Error(`Variáveis inválidas: ${formatZodIssues(parsed.error).join('; ')}`);
@@ -158,6 +196,7 @@ export function createChromeSyncRepository(deps: ChromeSyncDeps): ChromeSyncRepo
 
     saveSettings(settings) {
       return serial(async () => {
+        await readMetaForWrite();
         const parsed = SettingsSchema.safeParse(settings);
         if (!parsed.success) {
           throw new Error(`Preferências inválidas: ${formatZodIssues(parsed.error).join('; ')}`);
@@ -169,6 +208,7 @@ export function createChromeSyncRepository(deps: ChromeSyncDeps): ChromeSyncRepo
 
     replaceAll(config) {
       return serial(async () => {
+        await readMetaForWrite();
         const parsed = ConfigSchema.safeParse(config);
         if (!parsed.success) {
           throw new Error(`Configuração inválida: ${formatZodIssues(parsed.error).join('; ')}`);
@@ -183,12 +223,15 @@ export function createChromeSyncRepository(deps: ChromeSyncDeps): ChromeSyncRepo
         const ruleIds = cfg.rules.map((r) => r.id);
         items[VARIABLES_KEY] = cfg.variables;
         items[SETTINGS_KEY] = cfg.settings;
-        items[META_KEY] = { schemaVersion: cfg.schemaVersion, ruleIds };
+        const existing = await sync.get(null);
+        items[META_KEY] = {
+          ...nextMeta(existing[META_KEY], ruleIds),
+          schemaVersion: cfg.schemaVersion,
+        };
         assertFits(VARIABLES_KEY, cfg.variables, 'Variáveis');
         assertFits(SETTINGS_KEY, cfg.settings, 'Preferências');
         assertFits(META_KEY, items[META_KEY], 'Índice de regras');
 
-        const existing = await sync.get(null);
         const stale = Object.keys(existing).filter(
           (k) => k.startsWith(RULE_PREFIX) && !ruleIds.includes(k.slice(RULE_PREFIX.length)),
         );
@@ -205,7 +248,10 @@ export function createChromeSyncRepository(deps: ChromeSyncDeps): ChromeSyncRepo
         if (timer !== undefined) clearTimeout(timer);
         timer = setTimeout(() => {
           timer = undefined;
-          load().then(cb, (e: unknown) => console.warn('[assistente] falha ao recarregar', e));
+          loadState().then(
+            ({ config, readOnly }) => cb(config, { readOnly }),
+            (e: unknown) => console.warn('[assistente] falha ao recarregar', e),
+          );
         }, DEBOUNCE_MS);
       });
       const unsubscribe: Unsubscribe = () => {

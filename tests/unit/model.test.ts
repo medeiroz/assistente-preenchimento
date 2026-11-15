@@ -72,9 +72,11 @@ describe('parseRule', () => {
     );
   });
 
-  it('rejeita adapter desconhecido', () => {
+  it('aceita adapter desconhecido (versão futura) e rejeita adapter vazio', () => {
     const raw = minimalRule();
     raw.fields = [{ id: 'a', locator: { by: 'name', name: 'n' }, adapter: 'xpto', value: '1' }];
+    expect(parseRule(raw).ok).toBe(true);
+    raw.fields = [{ id: 'a', locator: { by: 'name', name: 'n' }, adapter: '', value: '1' }];
     const errors = errorsOf(raw);
     expect(errors.some((e) => e.startsWith('fields.0.adapter'))).toBe(true);
   });

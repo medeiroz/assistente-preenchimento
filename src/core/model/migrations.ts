@@ -23,11 +23,21 @@ function isEmpty(raw: unknown): boolean {
   return raw === undefined || raw === null || (isRecord(raw) && Object.keys(raw).length === 0);
 }
 
-function fallback(warning: string): { config: Config; warnings: string[] } {
+export interface MigrateResult {
+  config: Config;
+  warnings: string[];
+  /**
+   * true quando a configuração foi salva por uma versão mais nova da extensão: o que foi
+   * possível validar é carregado, mas nada deve ser gravado de volta (evita perder dados).
+   */
+  readOnly?: true;
+}
+
+function fallback(warning: string): MigrateResult {
   return { config: emptyConfig(), warnings: [warning] };
 }
 
-export function migrateConfig(raw: unknown): { config: Config; warnings: string[] } {
+export function migrateConfig(raw: unknown): MigrateResult {
   if (isEmpty(raw)) return { config: emptyConfig(), warnings: [] };
   if (!isRecord(raw) || typeof raw.schemaVersion !== 'number') {
     return fallback('Configuração sem schemaVersion válido; usando configuração vazia.');
@@ -35,8 +45,16 @@ export function migrateConfig(raw: unknown): { config: Config; warnings: string[
 
   let current: unknown = raw;
   let version = raw.schemaVersion;
-  if (!Number.isInteger(version) || version > CURRENT_SCHEMA_VERSION || version < 1) {
+  if (!Number.isInteger(version) || version < 1) {
     return fallback(`Versão de configuração desconhecida (${version}); usando configuração vazia.`);
+  }
+  const readOnly = version > CURRENT_SCHEMA_VERSION;
+  const warnings: string[] = [];
+  if (readOnly) {
+    warnings.push(
+      `Configuração da versão ${version}, mais nova que a suportada (${CURRENT_SCHEMA_VERSION}); carregada somente para leitura.`,
+    );
+    version = CURRENT_SCHEMA_VERSION;
   }
   while (version < CURRENT_SCHEMA_VERSION) {
     const step = migrations[version];
@@ -47,7 +65,6 @@ export function migrateConfig(raw: unknown): { config: Config; warnings: string[
     version++;
   }
 
-  const warnings: string[] = [];
   const cfg = isRecord(current) ? current : {};
 
   const settings = SettingsSchema.safeParse(cfg.settings ?? {});
@@ -94,5 +111,5 @@ export function migrateConfig(raw: unknown): { config: Config; warnings: string[
     variables,
     rules,
   });
-  return { config, warnings };
+  return readOnly ? { config, warnings, readOnly } : { config, warnings };
 }
