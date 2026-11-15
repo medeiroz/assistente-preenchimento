@@ -68,6 +68,8 @@ export interface RuleDraft {
   behaviorExtra?: Extra;
   mode: Mode;
   overwrite: Overwrite;
+  /** Prioridade 0-100 entre regras no mesmo formulário. null = padrão (50), não grava. */
+  priority: number | null;
   fields: FieldDraft[];
 }
 

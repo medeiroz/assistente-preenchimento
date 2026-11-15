@@ -223,6 +223,7 @@ watch(tab, () => (notice.value = null));
           :key="editing.token"
           :initial="editing.draft"
           :existing-ids="existingIds"
+          :other-rules="config.rules"
           :variables="config.variables"
           :external-change="externalChange"
           :save="saveRule"

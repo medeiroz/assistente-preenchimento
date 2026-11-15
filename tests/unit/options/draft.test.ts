@@ -270,3 +270,29 @@ describe('sites', () => {
     expect(fieldCountLabel(3)).toBe('3 campos');
   });
 });
+
+describe('prioridade da regra', () => {
+  it('ausente: não grava a chave e o rascunho fica null', () => {
+    const d = ruleToDraft(makeRule());
+    expect(d.priority).toBeNull();
+    expect('priority' in (draftToRuleInput(d, { now: NOW }) as object)).toBe(false);
+  });
+
+  it('preenchida: vai e volta; vazio volta a omitir', () => {
+    const d = ruleToDraft(makeRule({ priority: 80 }));
+    expect(d.priority).toBe(80);
+    expect(d.extra?.priority).toBeUndefined();
+    const input = draftToRuleInput(d, { now: NOW }) as { priority?: number };
+    expect(input.priority).toBe(80);
+    d.priority = null;
+    expect('priority' in (draftToRuleInput(d, { now: NOW }) as object)).toBe(false);
+  });
+
+  it('preserva chaves extras e valida a faixa', () => {
+    const d = ruleToDraft(makeRule({ priority: 5, ...({ futuro: 1 } as object) }));
+    expect(d.extra).toEqual({ futuro: 1 });
+    expect(validateDraft({ ...d, priority: 101 }).byKey.priority).toBeDefined();
+    expect(validateDraft({ ...d, priority: 1.5 }).byKey.priority).toBeDefined();
+    expect(validateDraft({ ...d, priority: 0 }).ok).toBe(true);
+  });
+});

@@ -5,6 +5,7 @@ import { resolveValue } from '../expressions';
 import { rulesForUrl } from './matcher';
 import { createContextWatcher, createUrlWatcher } from './watcher';
 import type { ContextWatcher, UrlWatcher } from './watcher';
+import { rulePriority } from '../model/schema';
 import { createSession } from './session';
 import type { FillSession } from './session';
 
@@ -47,6 +48,11 @@ interface Active {
   entries: Map<Element, Entry>;
 }
 
+interface Batch {
+  items: { a: Active; entry: Entry }[];
+  timer: ReturnType<typeof setTimeout>;
+}
+
 const NOTABLE = new Set(['filled', 'error', 'not-found', 'undone']);
 
 export function createController(o: ControllerOptions): Controller {
@@ -58,6 +64,61 @@ export function createController(o: ControllerOptions): Controller {
   let last: RunReport | null = null;
   let urlWatcher: UrlWatcher | undefined;
   const active = new Map<string, Active>();
+  /** Fila de preenchimentos por contêiner: regras do mesmo contêiner rodam em sequência. */
+  const chains = new Map<Element, Promise<unknown>>();
+  /** Aparições automáticas do mesmo contêiner agrupadas para ordenar por prioridade. */
+  const batches = new Map<Element, Batch>();
+  /** Raízes de campo preenchidas, por contêiner: raiz -> regra que a reivindicou. */
+  const claims = new Map<Element, Map<Element, { ruleId: string; name: string }>>();
+
+  function enqueue<T>(el: Element, task: () => Promise<T>): Promise<T> {
+    const run = (chains.get(el) ?? Promise.resolve()).then(task);
+    const tail = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    chains.set(el, tail);
+    void tail.then(() => {
+      if (chains.get(el) === tail) chains.delete(el);
+    });
+    return run;
+  }
+
+  function releaseClaims(ruleId: string, el?: Element): void {
+    for (const [container, map] of [...claims]) {
+      if (el && container !== el) continue;
+      for (const [root, c] of [...map]) if (c.ruleId === ruleId) map.delete(root);
+      if (map.size === 0) claims.delete(container);
+    }
+  }
+
+  function flushBatch(el: Element): void {
+    const batch = batches.get(el);
+    batches.delete(el);
+    if (!batch) return;
+    const order = (r: Rule) => rules.findIndex((x) => x.id === r.id);
+    const sorted = [...batch.items].sort(
+      (x, y) =>
+        rulePriority(y.a.rule) - rulePriority(x.a.rule) || order(x.a.rule) - order(y.a.rule),
+    );
+    for (const { a, entry } of sorted) {
+      if (!running || entry.session.ended || a.entries.get(el) !== entry) continue;
+      enqueue(el, () => entry.session.fill('auto'))
+        .then((r) => {
+          if (running && !entry.session.ended) reportResult(a, entry, r);
+        })
+        .catch((e: unknown) => console.warn('[assistente] falha ao preencher', e));
+    }
+  }
+
+  function scheduleAuto(a: Active, el: Element, entry: Entry): void {
+    let batch = batches.get(el);
+    if (!batch) {
+      batch = { items: [], timer: setTimeout(() => flushBatch(el), 0) };
+      batches.set(el, batch);
+    }
+    batch.items.push({ a, entry });
+  }
 
   function reportResult(a: Active, entry: Entry, raw: RunReport, shown: RunReport = raw): void {
     for (const f of raw.fields) {
@@ -95,8 +156,9 @@ export function createController(o: ControllerOptions): Controller {
     const out: RunReport[] = [];
     for (const a of [...active.values()]) {
       if (ruleId !== undefined && a.rule.id !== ruleId) continue;
-      for (const entry of [...a.entries.values()]) {
-        const r = await entry.session.undo();
+      for (const [el, entry] of [...a.entries]) {
+        const r = await enqueue(el, () => entry.session.undo());
+        releaseClaims(a.rule.id, el);
         last = r;
         o.ui.showReport(r);
         out.push(r);
@@ -109,9 +171,8 @@ export function createController(o: ControllerOptions): Controller {
     o.ui.showActionButton(a.rule.id, `Preencher: ${a.rule.name}`, () => {
       if (!running || active.get(a.rule.id) !== a) return;
       o.ui.hideActionButton(a.rule.id);
-      for (const entry of [...a.entries.values()]) {
-        entry.session
-          .fill('auto')
+      for (const [el, entry] of [...a.entries]) {
+        enqueue(el, () => entry.session.fill('auto'))
           .then((r) => {
             if (running && !entry.session.ended) reportResult(a, entry, r);
           })
@@ -139,12 +200,22 @@ export function createController(o: ControllerOptions): Controller {
         }),
       now: () => new Date(),
       url: () => win.location.href,
+      claimedBy: (root) => {
+        const c = claims.get(el)?.get(root);
+        return c && c.ruleId !== rule.id ? c.name : null;
+      },
+      claim: (root) => {
+        let map = claims.get(el);
+        if (!map) claims.set(el, (map = new Map()));
+        map.set(root, { ruleId: rule.id, name: rule.name });
+      },
     });
   }
 
   function onAppear(a: Active, el: Element): void {
     if (!running) return;
     a.entries.get(el)?.session.end();
+    releaseClaims(a.rule.id, el);
     const entry: Entry = { session: makeSession(a.rule, el), fields: new Map() };
     a.entries.set(el, entry);
     entry.session.snapshot();
@@ -153,12 +224,7 @@ export function createController(o: ControllerOptions): Controller {
       return;
     }
     if (a.rule.behavior.mode !== 'auto') return;
-    entry.session
-      .fill('auto')
-      .then((r) => {
-        if (running && !entry.session.ended) reportResult(a, entry, r);
-      })
-      .catch((e: unknown) => console.warn('[assistente] falha ao preencher', e));
+    scheduleAuto(a, el, entry);
   }
 
   function onChange(a: Active, el: Element): void {
@@ -168,8 +234,7 @@ export function createController(o: ControllerOptions): Controller {
       entry.session.snapshot();
       return;
     }
-    entry.session
-      .handleChange()
+    enqueue(el, () => entry.session.handleChange())
       .then((r) => {
         if (!r || !running || entry.session.ended) return;
         const fields = r.fields.map((f) =>
@@ -183,6 +248,7 @@ export function createController(o: ControllerOptions): Controller {
   function onGone(a: Active, el: Element): void {
     a.entries.get(el)?.session.end();
     a.entries.delete(el);
+    releaseClaims(a.rule.id, el);
     if (a.entries.size === 0) o.ui.hideActionButton(a.rule.id);
   }
 
@@ -192,6 +258,7 @@ export function createController(o: ControllerOptions): Controller {
     a.timer = undefined;
     for (const e of a.entries.values()) e.session.end();
     a.entries.clear();
+    releaseClaims(a.rule.id);
     o.ui.hideActionButton(a.rule.id);
   }
 
@@ -247,13 +314,17 @@ export function createController(o: ControllerOptions): Controller {
       urlWatcher = undefined;
       for (const a of active.values()) stopActive(a);
       active.clear();
+      for (const b of batches.values()) clearTimeout(b.timer);
+      batches.clear();
+      chains.clear();
+      claims.clear();
     },
     async runNow(ruleId) {
       const out: RunReport[] = [];
       for (const a of [...active.values()]) {
         if (ruleId !== undefined && a.rule.id !== ruleId) continue;
-        for (const entry of [...a.entries.values()]) {
-          const r = await entry.session.fill('manual');
+        for (const [el, entry] of [...a.entries]) {
+          const r = await enqueue(el, () => entry.session.fill('manual'));
           reportResult(a, entry, r);
           out.push(r);
         }
