@@ -4,6 +4,8 @@ import {
   containerMatches,
   matchesTrigger,
   matchesUrlPattern,
+  overlappingRules,
+  patternsMayOverlap,
   rulesForUrl,
 } from '../../../src/core/engine';
 
@@ -126,5 +128,61 @@ describe('containerMatches', () => {
       true,
     );
     expect(containerMatches(el, { selector: '.modal', textContains: 'Cancelar' })).toBe(false);
+  });
+});
+
+describe('patternsMayOverlap', () => {
+  it('mesmo host e caminhos', () => {
+    expect(patternsMayOverlap('https://a.com/x/*', 'https://a.com/x/*')).toBe(true);
+    expect(patternsMayOverlap('https://a.com/*', 'https://a.com/x')).toBe(true);
+  });
+  it('hosts diferentes', () => {
+    expect(patternsMayOverlap('https://a.com/*', 'https://b.com/*')).toBe(false);
+  });
+  it('curingas de host', () => {
+    expect(patternsMayOverlap('https://*.a.com/*', 'https://www.a.com/*')).toBe(true);
+    expect(patternsMayOverlap('https://*.a.com/*', 'https://a.com/*')).toBe(true);
+    expect(patternsMayOverlap('https://*.a.com/*', 'https://b.com/*')).toBe(false);
+    expect(patternsMayOverlap('https://*.a.com/*', 'https://*.b.a.com/*')).toBe(true);
+    expect(patternsMayOverlap('*://*/*', 'https://qualquer.com/x')).toBe(true);
+  });
+  it('esquemas', () => {
+    expect(patternsMayOverlap('http://a.com/*', 'https://a.com/*')).toBe(false);
+    expect(patternsMayOverlap('*://a.com/*', 'https://a.com/*')).toBe(true);
+  });
+  it('caminhos', () => {
+    expect(patternsMayOverlap('https://a.com/a/*', 'https://a.com/a/b')).toBe(true);
+    expect(patternsMayOverlap('https://a.com/a/*', 'https://a.com/b/*')).toBe(false);
+    expect(patternsMayOverlap('https://a.com/*/novo', 'https://a.com/a/*')).toBe(true);
+    expect(patternsMayOverlap('https://a.com/a', 'https://a.com/b')).toBe(false);
+  });
+  it('padrão inválido não se sobrepõe', () => {
+    expect(patternsMayOverlap('lixo', 'https://a.com/*')).toBe(false);
+  });
+});
+
+describe('overlappingRules', () => {
+  const mk = (id: string, enabled: boolean, p: string): Rule => {
+    const r = parseRule({
+      id,
+      name: `Regra ${id}`,
+      enabled,
+      trigger: { urlPatterns: [p], settleMs: 300 },
+      behavior: { mode: 'auto', overwrite: 'always' },
+      fields: [],
+      updatedAt: '2026-11-13T00:00:00.000Z',
+    });
+    if (!r.ok) throw new Error(r.errors.join('; '));
+    return r.rule;
+  };
+  it('ignora a própria, desligadas e disjuntas', () => {
+    const self = mk('a', true, 'https://a.com/x/*');
+    const out = overlappingRules(self, [
+      self,
+      mk('b', true, 'https://a.com/*'),
+      mk('c', false, 'https://a.com/*'),
+      mk('d', true, 'https://b.com/*'),
+    ]);
+    expect(out.map((r) => r.id)).toEqual(['b']);
   });
 });

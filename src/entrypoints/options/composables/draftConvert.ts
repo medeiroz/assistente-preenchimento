@@ -15,7 +15,16 @@ function pickExtra(obj: object, known: readonly string[]): Extra | undefined {
   return Object.keys(out).length > 0 ? out : undefined;
 }
 
-const RULE_KEYS = ['id', 'name', 'enabled', 'trigger', 'behavior', 'fields', 'updatedAt'];
+const RULE_KEYS = [
+  'id',
+  'name',
+  'enabled',
+  'priority',
+  'trigger',
+  'behavior',
+  'fields',
+  'updatedAt',
+];
 const TRIGGER_KEYS = ['urlPatterns', 'queryParams', 'container', 'settleMs'];
 const CONTAINER_KEYS = ['selector', 'textContains'];
 const BEHAVIOR_KEYS = ['mode', 'overwrite', 'refill'];
@@ -63,6 +72,7 @@ export function newRuleDraft(): RuleDraft {
     settleMs: 300,
     mode: 'auto',
     overwrite: 'onlyIfDefault',
+    priority: null,
     fields: [],
   };
 }
@@ -79,6 +89,7 @@ export function ruleToDraft(rule: Rule): RuleDraft {
     settleMs: rule.trigger.settleMs,
     mode: rule.behavior.mode,
     overwrite: rule.behavior.overwrite,
+    priority: rule.priority ?? null,
     fields: rule.fields.map((f) => {
       const fd: FieldDraft = {
         id: f.id,
@@ -169,6 +180,8 @@ export function draftToRuleInput(draft: RuleDraft, opts: BuildOptions = {}): Rul
     id,
     name,
     enabled: draft.enabled,
+    // Só entra quando preenchido: o JSON de regras sem prioridade não muda.
+    ...(draft.priority !== null ? { priority: draft.priority } : {}),
     trigger,
     behavior: {
       ...draft.behaviorExtra,

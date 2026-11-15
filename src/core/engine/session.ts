@@ -13,6 +13,10 @@ export interface SessionDeps {
   url(): string;
   /** Espera injetável (testes). Padrão: setTimeout. A sessão a interrompe ao terminar. */
   sleep?: (ms: number) => Promise<void>;
+  /** Nome da OUTRA regra que já preencheu esta raiz de campo neste contêiner (null = livre). */
+  claimedBy?(root: Element): string | null;
+  /** Registra que esta sessão preencheu a raiz do campo. */
+  claim?(root: Element): void;
 }
 
 /**
@@ -178,7 +182,18 @@ export function createSession(rule: Rule, container: Element, deps: SessionDeps)
     return report(f, st, outcome, extra);
   }
 
+  /** Raiz já preenchida por outra regra neste contêiner: o campo é pulado com o motivo. */
+  function skipIfClaimed(f: FieldRule, st: FieldState): FieldReport | null {
+    const owner = st.root ? deps.claimedBy?.(st.root) : null;
+    if (!owner) return null;
+    return mark(f, st, 'skipped-already-handled', {
+      message: `preenchido pela regra ${owner}`,
+    });
+  }
+
   async function attempt(f: FieldRule, st: FieldState): Promise<FieldReport> {
+    const claimed = skipIfClaimed(f, st);
+    if (claimed) return claimed;
     if (rule.behavior.overwrite === 'onlyIfDefault' && !st.wasDefault) {
       return mark(f, st, 'skipped-not-default');
     }
@@ -201,6 +216,7 @@ export function createSession(rule: Rule, container: Element, deps: SessionDeps)
           message: 'verify-failed: o valor não foi aplicado ao campo',
         });
       }
+      deps.claim?.(root);
       return mark(f, st, 'filled', { newValue: value });
     } catch (e) {
       return mark(f, st, 'error', { message: errMessage(e) });
@@ -235,6 +251,8 @@ export function createSession(rule: Rule, container: Element, deps: SessionDeps)
     }
     if (st.snapError !== undefined) return mark(f, st, 'error', { message: st.snapError });
 
+    const claimed = skipIfClaimed(f, st);
+    if (claimed) return claimed;
     const adapter = st.adapter as FieldAdapter;
     const root = st.root as Element;
     const resolved = deps.resolveValue(f.value);

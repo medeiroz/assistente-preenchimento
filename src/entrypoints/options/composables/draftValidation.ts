@@ -8,7 +8,7 @@ export interface DraftValidation {
   rule?: Rule;
   /** Mensagens legíveis, na ordem do formulário. */
   messages: string[];
-  /** Erros por chave: `name`, `urlPatterns.N`, `container`, `settleMs`, `fields.<id>.locator|value|delay|keyDelay`. */
+  /** Erros por chave: `name`, `urlPatterns.N`, `container`, `settleMs`, `priority`, `fields.<id>.locator|value|delay|keyDelay`. */
   byKey: Record<string, string[]>;
 }
 
@@ -34,6 +34,7 @@ function placeIssue(draft: RuleDraft, issue: string): Placed {
   const text = sep >= 0 ? issue.slice(sep + 2) : issue;
   const parts = path.split('.');
   if (parts[0] === 'name') return { key: 'name', where: 'Nome da regra', text };
+  if (parts[0] === 'priority') return { key: 'priority', where: 'Prioridade', text };
   if (parts[0] === 'trigger' && parts[1] === 'urlPatterns') {
     const i = Number(parts[2]);
     if (parts[2] !== undefined && Number.isInteger(i)) {

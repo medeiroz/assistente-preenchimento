@@ -13,11 +13,14 @@ import {
 import type { CaptureFocus } from '../composables/picker';
 import { defaultExampleUrl, parseExampleUrl } from '../composables/preview';
 import FieldTable from './FieldTable.vue';
+import { overlappingRules } from '../../../core/engine/matcher';
 import { classifyOrigins, hostOfOrigin } from '../../../shared/permissions';
 
 const props = defineProps<{
   initial: RuleDraft;
   existingIds: string[];
+  /** Regras salvas (para avisar de padrões de URL que se sobrepõem). */
+  otherRules?: Rule[];
   /** Variáveis salvas (usadas na pré-visualização e nas sugestões). */
   variables: Variable[];
   /** A regra em edição mudou (ou sumiu) no armazenamento enquanto o editor estava aberto. */
@@ -71,6 +74,26 @@ function err(key: string): string | null {
 
 // Avisos de permissão (não bloqueiam o salvamento).
 const originClasses = computed(() => classifyOrigins(draft.value.urlPatterns));
+
+const overlaps = computed(() =>
+  overlappingRules(
+    {
+      id: draft.value.id,
+      trigger: {
+        urlPatterns: draft.value.urlPatterns.map((p) => p.trim()).filter((p) => p !== ''),
+        settleMs: draft.value.settleMs,
+      },
+    },
+    props.otherRules ?? [],
+  ),
+);
+
+const priorityModel = computed<number | string>({
+  get: () => draft.value.priority ?? '',
+  set: (v) => {
+    draft.value.priority = v === '' || v === null || Number.isNaN(Number(v)) ? null : Number(v);
+  },
+});
 
 function patternError(i: number): string | null {
   return err(`urlPatterns.${i}`);
@@ -251,6 +274,10 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
         Ao salvar, o navegador vai pedir permissão para acessar
         {{ originClasses.needed.map(hostOfOrigin).join(', ') }}.
       </p>
+      <p v-if="overlaps.length > 0" class="hint warn-text" data-testid="warn-overlap">
+        Outra regra também pode atuar nestas páginas: {{ overlaps.map((r) => r.name).join(', ') }}.
+        Se forem para o mesmo formulário, a de maior prioridade preenche primeiro.
+      </p>
       <button type="button" class="btn" @click="addPattern">Adicionar padrão de URL</button>
 
       <div class="control">
@@ -323,6 +350,28 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
           </span>
         </label>
       </div>
+      <details class="advanced">
+        <summary>Avançado: prioridade</summary>
+        <div class="control">
+          <label for="priority">Prioridade (0 a 100)</label>
+          <input
+            id="priority"
+            v-model="priorityModel"
+            type="number"
+            min="0"
+            max="100"
+            step="1"
+            placeholder="50"
+            :aria-invalid="err('priority') !== null"
+          />
+          <p class="hint">
+            Quando várias regras atuam no mesmo formulário, a de maior prioridade preenche primeiro
+            e as outras pulam os campos que ela já preencheu. Vazio = padrão (50). Em empate, vale a
+            ordem das regras.
+          </p>
+          <p v-if="err('priority')" class="error-text">{{ err('priority') }}</p>
+        </div>
+      </details>
     </fieldset>
 
     <FieldTable

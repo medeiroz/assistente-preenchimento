@@ -72,3 +72,64 @@ export function containerMatches(
   if (!container.textContains) return true;
   return normalizeSpaces(el.textContent ?? '').includes(normalizeSpaces(container.textContains));
 }
+
+/** Há alguma string que case com os dois globs (`*` = qualquer sequência)? */
+function globsIntersect(a: string, b: string): boolean {
+  const memo = new Map<number, boolean>();
+  const go = (i: number, j: number): boolean => {
+    if (i === a.length && j === b.length) return true;
+    const key = i * (b.length + 1) + j;
+    const cached = memo.get(key);
+    if (cached !== undefined) return cached;
+    let r = false;
+    if (a[i] === '*') r = go(i + 1, j) || (j < b.length && go(i, j + 1));
+    else if (b[j] === '*') r = go(i, j + 1) || (i < a.length && go(i + 1, j));
+    else r = i < a.length && j < b.length && a[i] === b[j] && go(i + 1, j + 1);
+    memo.set(key, r);
+    return r;
+  };
+  return go(0, 0);
+}
+
+function hostsMayOverlap(a: string, b: string): boolean {
+  if (a === '*' || b === '*') return true;
+  const aw = a.startsWith('*.');
+  const bw = b.startsWith('*.');
+  if (!aw && !bw) return a === b;
+  if (aw && bw) {
+    const x = a.slice(2);
+    const y = b.slice(2);
+    return x === y || x.endsWith(`.${y}`) || y.endsWith(`.${x}`);
+  }
+  return aw ? matchesHost(a, b) : matchesHost(b, a);
+}
+
+function splitPattern(p: string): { scheme: string; host: string; path: string } | null {
+  const m = /^(https?|\*):\/\/([^/]+)(\/.*)$/.exec(p);
+  if (!m) return null;
+  return { scheme: m[1] ?? '', host: (m[2] ?? '').toLowerCase(), path: m[3] ?? '' };
+}
+
+/**
+ * Heurística: dois match patterns podem casar a mesma URL? Compara esquema, host (curingas
+ * `*` e `*.dominio`) e path (um glob pode casar o outro). Padrões inválidos nunca se sobrepõem.
+ */
+export function patternsMayOverlap(a: string, b: string): boolean {
+  const pa = splitPattern(a);
+  const pb = splitPattern(b);
+  if (!pa || !pb) return false;
+  if (pa.scheme !== '*' && pb.scheme !== '*' && pa.scheme !== pb.scheme) return false;
+  return hostsMayOverlap(pa.host, pb.host) && globsIntersect(pa.path, pb.path);
+}
+
+/** Regras habilitadas (exceto a própria) cujos urlPatterns podem se sobrepor aos de `self`. */
+export function overlappingRules(self: { id: string; trigger: Trigger }, others: Rule[]): Rule[] {
+  return others.filter(
+    (r) =>
+      r.enabled &&
+      r.id !== self.id &&
+      self.trigger.urlPatterns.some((p) =>
+        r.trigger.urlPatterns.some((q) => patternsMayOverlap(p, q)),
+      ),
+  );
+}
