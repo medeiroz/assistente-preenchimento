@@ -49,6 +49,12 @@ a partir de regras que você mesmo cria, sem programar.
 
 Link: _a preencher após a publicação_.
 
+### Firefox
+
+Requer Firefox 140 ou superior. Link da AMO: _a preencher após a publicação_. Para testar sem a
+loja: `npm run build:firefox`, abra `about:debugging` › **Este Firefox** › **Carregar extensão
+temporária** e escolha `.output/firefox-mv3/manifest.json`.
+
 ### Modo desenvolvedor
 
 1. `npm install`
@@ -131,13 +137,14 @@ o valor fica só neste navegador e fora da exportação (a menos que você peça
 
 ## Releases
 
-A cada push na `main`, o GitHub Actions roda todos os checks (tipos, lint, testes, Prettier, build
-e E2E) e, se tudo passar, gera automaticamente uma nova versão: calcula o número, atualiza
-`package.json`, gera o zip, cria a tag `vX.Y.Z` e publica a Release. Pull requests só rodam os checks.
+A cada push na `main`, o GitHub Actions roda todos os checks (tipos, lint, testes, Prettier, build,
+E2E e build/lint do Firefox) e, se tudo passar, gera automaticamente uma nova versão: calcula o
+número, atualiza `package.json`, gera os pacotes, cria a tag `vX.Y.Z` e publica a Release. Pull
+requests só rodam os checks.
 
-Baixe o `.zip` (e o `.sha256`) na página de
-[Releases](https://github.com/medeiroz/assistente-preenchimento/releases). É o mesmo arquivo que
-se envia à Chrome Web Store (veja [store/PUBLICAR.md](store/PUBLICAR.md)).
+Na página de [Releases](https://github.com/medeiroz/assistente-preenchimento/releases) ficam, cada
+um com seu `.sha256`: o `-chrome.zip` (Chrome Web Store e Edge Add-ons), o `-firefox.zip` (AMO) e o
+`-sources.zip` (código-fonte que a AMO pede). Veja [store/PUBLICAR.md](store/PUBLICAR.md).
 
 Regra de versão: se a `version` do `package.json` ainda não tem tag, ela é usada como está; se já
 tem, a release usa o próximo patch da maior tag existente. Para uma versão minor ou major, edite a
@@ -158,6 +165,9 @@ npm run build            # extensão em .output/chrome-mv3
 npm run zip              # pacote para a loja em .output/*-chrome.zip
 npm run icons            # regenera os ícones e o promo tile (assets/ → public/icon, store/)
 npm run screenshots      # regenera as capturas de tela da loja (store/screenshots)
+npm run build:firefox    # extensão para Firefox em .output/firefox-mv3
+npm run lint:firefox     # web-ext lint do build Firefox
+npm run zip:firefox      # pacote Firefox + zip do código-fonte para a AMO
 ```
 
 O build de testes (`--mode e2e`) inclui localhost/127.0.0.1 e um harness local; ele nunca é
