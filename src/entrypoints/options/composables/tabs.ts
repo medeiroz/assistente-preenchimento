@@ -1,3 +1,12 @@
+// Para incluir uma aba nova (ex.: Variáveis), acrescente aqui e um painel no template.
+export const TABS = [
+  { id: 'rules', label: 'Regras' },
+  { id: 'variables', label: 'Variáveis' },
+  { id: 'history', label: 'Histórico' },
+  { id: 'import-export', label: 'Importar/Exportar' },
+] as const;
+export type TabId = (typeof TABS)[number]['id'];
+
 export type TabChange = 'switch' | 'close-and-switch' | 'confirm';
 
 /**
