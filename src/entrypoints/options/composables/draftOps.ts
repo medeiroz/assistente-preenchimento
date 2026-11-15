@@ -1,6 +1,7 @@
 import type { Rule } from '../../../core/model';
 import { generateRuleId } from './draftIds';
 import type { BuildOptions } from './draftTypes';
+import { t, uiLocale } from '../../../core/i18n';
 
 // ---------------------------------------------------------------- operações
 
@@ -34,9 +35,9 @@ export function moveField<T>(items: readonly T[], index: number, direction: -1 |
 }
 
 function copyName(name: string, existingNames: Set<string>): string {
-  let candidate = `${name} (cópia)`;
+  let candidate = t('copySuffix', name);
   let n = 2;
-  while (existingNames.has(candidate)) candidate = `${name} (cópia ${n++})`;
+  while (existingNames.has(candidate)) candidate = t('copySuffixN', name, n++);
   return candidate;
 }
 
@@ -59,8 +60,8 @@ export function duplicateRule(
 
 // ---------------------------------------------------------------- agrupamento por site
 
-export const ANY_SITE = 'qualquer site';
-export const NO_SITE = 'sem endereço definido';
+export const anySite = (): string => t('siteAny');
+export const noSite = (): string => t('siteNone');
 
 /** Host do padrão de URL (ex.: `https://app.site.com/*` → `app.site.com`); `*` → `*`. */
 export function hostOfPattern(pattern: string | undefined): string | null {
@@ -72,8 +73,8 @@ export function hostOfPattern(pattern: string | undefined): string | null {
 
 export function siteLabel(pattern: string | undefined): string {
   const host = hostOfPattern(pattern);
-  if (host === null) return NO_SITE;
-  return host === '*' ? ANY_SITE : host;
+  if (host === null) return noSite();
+  return host === '*' ? anySite() : host;
 }
 
 export interface RuleGroup {
@@ -89,15 +90,15 @@ export function groupRulesBySite(rules: readonly Rule[]): RuleGroup[] {
     list.push(r);
     map.set(site, list);
   }
-  const rank = (s: string): number => (s === ANY_SITE ? 1 : s === NO_SITE ? 2 : 0);
+  const rank = (s: string): number => (s === anySite() ? 1 : s === noSite() ? 2 : 0);
   return [...map.entries()]
     .map(([site, list]) => ({
       site,
-      rules: [...list].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')),
+      rules: [...list].sort((a, b) => a.name.localeCompare(b.name, uiLocale())),
     }))
-    .sort((a, b) => rank(a.site) - rank(b.site) || a.site.localeCompare(b.site, 'pt-BR'));
+    .sort((a, b) => rank(a.site) - rank(b.site) || a.site.localeCompare(b.site, uiLocale()));
 }
 
 export function fieldCountLabel(n: number): string {
-  return n === 1 ? '1 campo' : `${n} campos`;
+  return n === 1 ? t('fieldCountOne') : t('fieldCountMany', n);
 }

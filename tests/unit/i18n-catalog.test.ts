@@ -98,6 +98,17 @@ describe('catálogos de tradução', () => {
     expect(Object.keys(en).sort()).toEqual(Object.keys(pt).sort());
   });
 
+  it('os avisos "configuração vazia" da migração contêm o marcador usado para detectá-los', () => {
+    // format.ts e merge.ts reconhecem esses avisos por `migEmptyMarker`; a frase precisa
+    // estar nas três mensagens, em cada idioma.
+    for (const catalog of [pt, en]) {
+      const marker = (catalog.migEmptyMarker as Catalog[string]).message;
+      for (const key of ['migNoSchemaVersion', 'migUnknownVersion', 'migNoMigration']) {
+        expect((catalog[key] as Catalog[string]).message, key).toContain(marker);
+      }
+    }
+  });
+
   it('as chaves só usam letras, números e _', () => {
     for (const key of Object.keys(pt)) expect(key).toMatch(/^[A-Za-z0-9_]+$/);
   });

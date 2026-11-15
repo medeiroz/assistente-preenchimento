@@ -842,5 +842,433 @@
   },
   "popSaveFailed": {
     "message": "Could not save the preference."
+  },
+  "modeAutoDesc": {
+    "message": "Fills in by itself as soon as the form appears on the page."
+  },
+  "modeButtonDesc": {
+    "message": "Shows a button on the page and only fills in when you click it."
+  },
+  "modeOffDesc": {
+    "message": "The rule is kept but fills in nothing."
+  },
+  "overwriteIfEmpty": {
+    "message": "Only if the field is empty/default"
+  },
+  "overwriteIfEmptyDesc": {
+    "message": "Leaves alone what you or the system already filled in."
+  },
+  "overwriteAlways": {
+    "message": "Always"
+  },
+  "overwriteAlwaysDesc": {
+    "message": "Replaces the field's current value with the rule's."
+  },
+  "locLabel": {
+    "message": "Label"
+  },
+  "locLabelDesc": {
+    "message": "The text shown next to the field."
+  },
+  "locSelector": {
+    "message": "CSS selector"
+  },
+  "locSelectorDesc": {
+    "message": "For those who know CSS, e.g. #nbs"
+  },
+  "locName": {
+    "message": "Name attribute"
+  },
+  "locNameDesc": {
+    "message": "The field's name attribute, e.g. nbs"
+  },
+  "adAutoDesc": {
+    "message": "The extension detects the field type."
+  },
+  "adTextDesc": {
+    "message": "Regular text field."
+  },
+  "adSelectLabel": {
+    "message": "Native select"
+  },
+  "adSelectDesc": {
+    "message": "The browser's selection list."
+  },
+  "adChoiceLabel": {
+    "message": "Choice (radio/checkbox/buttons)"
+  },
+  "adChoiceDesc": {
+    "message": "Options to tick or choice buttons."
+  },
+  "adVueLabel": {
+    "message": "Searchable select (vue-multiselect)"
+  },
+  "adVueDesc": {
+    "message": "Searchable list, common in Vue-based systems."
+  },
+  "adDateDesc": {
+    "message": "Date field."
+  },
+  "adEditableLabel": {
+    "message": "Editable text (contenteditable)"
+  },
+  "adEditableDesc": {
+    "message": "The page's own text editors, with no form field."
+  },
+  "adReactDesc": {
+    "message": "Searchable list, common in React-based systems."
+  },
+  "adSelect2Desc": {
+    "message": "Searchable list based on jQuery."
+  },
+  "locLabelPlaceholder": {
+    "message": "E.g.: Tax code"
+  },
+  "locSelectorPlaceholder": {
+    "message": "E.g.: #nbs"
+  },
+  "locNamePlaceholder": {
+    "message": "E.g.: nbs"
+  },
+  "adUnknown": {
+    "message": "Unknown: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "valWhereName": {
+    "message": "Rule name"
+  },
+  "valWherePriority": {
+    "message": "Priority"
+  },
+  "valWhereUrlPattern": {
+    "message": "URL pattern $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "valWhereUrlPatterns": {
+    "message": "URL patterns"
+  },
+  "valWhereContainer": {
+    "message": "Container"
+  },
+  "valWhereSettle": {
+    "message": "Wait (ms)"
+  },
+  "valWhereField": {
+    "message": "Field $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "valWhereFields": {
+    "message": "Fields"
+  },
+  "valFieldValue": {
+    "message": "Field $arg1$, value: $arg2$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      },
+      "arg2": {
+        "content": "$2"
+      }
+    }
+  },
+  "sizeOf": {
+    "message": "$arg1$ of $arg2$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      },
+      "arg2": {
+        "content": "$2"
+      }
+    }
+  },
+  "tabRules": {
+    "message": "Rules"
+  },
+  "tabVariables": {
+    "message": "Variables"
+  },
+  "tabHistory": {
+    "message": "History"
+  },
+  "tabImportExport": {
+    "message": "Import/Export"
+  },
+  "impInvalidJson": {
+    "message": "The file is not valid JSON."
+  },
+  "impNotConfig": {
+    "message": "The file does not look like a configuration exported by this extension."
+  },
+  "impNewerVersion": {
+    "message": "This file was exported by a newer version of the extension. Update the extension to import it."
+  },
+  "impNoValidRules": {
+    "message": "None of the rules in the file are valid. $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "impNoRuleNoConfig": {
+    "message": "The file does not seem to contain a rule or a configuration."
+  },
+  "impNothingToAdd": {
+    "message": "The file has no rules to add."
+  },
+  "impNotRuleNorConfig": {
+    "message": "The file does not look like a rule or a configuration for this extension."
+  },
+  "migEmptyMarker": {
+    "message": "using an empty configuration"
+  },
+  "histFilled": {
+    "message": "Filled"
+  },
+  "histSkippedNotDefault": {
+    "message": "Skipped: the field already had a value"
+  },
+  "histSkippedHandled": {
+    "message": "Skipped: already handled"
+  },
+  "histSkippedDisabled": {
+    "message": "Skipped: field turned off"
+  },
+  "histSkippedUnresolved": {
+    "message": "Skipped: value not resolved"
+  },
+  "histNotFound": {
+    "message": "Field not found"
+  },
+  "sumFilledOne": {
+    "message": "1 filled"
+  },
+  "sumFilledMany": {
+    "message": "$arg1$ filled",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "sumUndoneOne": {
+    "message": "1 undone"
+  },
+  "sumUndoneMany": {
+    "message": "$arg1$ undone",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "sumSkippedOne": {
+    "message": "1 skipped"
+  },
+  "sumSkippedMany": {
+    "message": "$arg1$ skipped",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "sumNotFoundOne": {
+    "message": "1 not found"
+  },
+  "sumNotFoundMany": {
+    "message": "$arg1$ not found",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "sumErrorOne": {
+    "message": "1 error"
+  },
+  "sumErrorMany": {
+    "message": "$arg1$ errors",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "sumNoField": {
+    "message": "no fields"
+  },
+  "copySuffix": {
+    "message": "$arg1$ (copy)",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "copySuffixN": {
+    "message": "$arg1$ (copy $arg2$)",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      },
+      "arg2": {
+        "content": "$2"
+      }
+    }
+  },
+  "siteAny": {
+    "message": "any site"
+  },
+  "siteNone": {
+    "message": "no address set"
+  },
+  "fieldCountOne": {
+    "message": "1 field"
+  },
+  "fieldCountMany": {
+    "message": "$arg1$ fields",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "varKeyRequired": {
+    "message": "Enter the variable key."
+  },
+  "varKeyInvalid": {
+    "message": "Invalid key: use only lowercase letters without accents, numbers and _, starting with a letter (e.g. test_code)."
+  },
+  "varKeyDuplicate": {
+    "message": "Another variable already has the key “$arg1$”. Keys must be unique.",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "hintVariableNamed": {
+    "message": "Variable: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "hintVariable": {
+    "message": "Variable"
+  },
+  "hintUrlParam": {
+    "message": "URL parameter"
+  },
+  "hintToday": {
+    "message": "Today's date"
+  },
+  "newRule": {
+    "message": "New rule"
+  },
+  "hintCurrentValue": {
+    "message": "current value on the page: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "emptyValue": {
+    "message": "(empty)"
+  },
+  "previewField": {
+    "message": "‹value of field “$arg1$” on the page›",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "previewText": {
+    "message": "‹text of “$arg1$” on the page›",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "actToggleFailed": {
+    "message": "Could not change the rule"
+  },
+  "noticeRuleDuplicated": {
+    "message": "Rule duplicated"
+  },
+  "actDuplicateFailed": {
+    "message": "Could not duplicate the rule"
+  },
+  "confirmDeleteRule": {
+    "message": "Delete the rule “$arg1$”? This cannot be undone.",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "noticeRuleDeleted": {
+    "message": "Rule deleted"
+  },
+  "actDeleteFailed": {
+    "message": "Could not delete the rule"
+  },
+  "noticeRuleAdded": {
+    "message": "Rule added"
+  },
+  "noticeRulesAdded": {
+    "message": "$arg1$ rules added",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "actAddFailed": {
+    "message": "Could not add the rules"
+  },
+  "noticeRuleSaved": {
+    "message": "Rule saved"
+  },
+  "noticeVariablesSaved": {
+    "message": "Variables saved"
+  },
+  "confirmUseCapture": {
+    "message": "Discard the open edit and use the captured field?"
+  },
+  "confirmUseRecording": {
+    "message": "Discard the open edit and use the recording?"
+  },
+  "confirmUnsavedRule": {
+    "message": "You have unsaved changes in this rule. Discard and leave?"
+  },
+  "optionsHeading": {
+    "message": "Autofill Assistant — Settings"
+  },
+  "loadFailed": {
+    "message": "Could not load the configuration: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
   }
 }

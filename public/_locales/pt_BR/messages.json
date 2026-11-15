@@ -842,5 +842,433 @@
   },
   "popSaveFailed": {
     "message": "Não foi possível salvar a preferência."
+  },
+  "modeAutoDesc": {
+    "message": "Preenche sozinho assim que o formulário aparece na página."
+  },
+  "modeButtonDesc": {
+    "message": "Mostra um botão na página e só preenche quando você clicar nele."
+  },
+  "modeOffDesc": {
+    "message": "A regra fica guardada, mas não preenche nada."
+  },
+  "overwriteIfEmpty": {
+    "message": "Só se o campo estiver vazio/padrão"
+  },
+  "overwriteIfEmptyDesc": {
+    "message": "Não mexe no que você ou o sistema já preencheram."
+  },
+  "overwriteAlways": {
+    "message": "Sempre"
+  },
+  "overwriteAlwaysDesc": {
+    "message": "Troca o valor atual do campo pelo da regra."
+  },
+  "locLabel": {
+    "message": "Rótulo"
+  },
+  "locLabelDesc": {
+    "message": "O texto que aparece ao lado do campo."
+  },
+  "locSelector": {
+    "message": "Seletor CSS"
+  },
+  "locSelectorDesc": {
+    "message": "Para quem conhece CSS, ex.: #nbs"
+  },
+  "locName": {
+    "message": "Atributo name"
+  },
+  "locNameDesc": {
+    "message": "O atributo name do campo, ex.: nbs"
+  },
+  "adAutoDesc": {
+    "message": "A extensão descobre o tipo do campo."
+  },
+  "adTextDesc": {
+    "message": "Campo de texto comum."
+  },
+  "adSelectLabel": {
+    "message": "Select nativo"
+  },
+  "adSelectDesc": {
+    "message": "Lista de seleção do navegador."
+  },
+  "adChoiceLabel": {
+    "message": "Escolha (radio/checkbox/botões)"
+  },
+  "adChoiceDesc": {
+    "message": "Opções para marcar ou botões de escolha."
+  },
+  "adVueLabel": {
+    "message": "Select com busca (vue-multiselect)"
+  },
+  "adVueDesc": {
+    "message": "Lista com busca, comum em sistemas feitos em Vue."
+  },
+  "adDateDesc": {
+    "message": "Campo de data."
+  },
+  "adEditableLabel": {
+    "message": "Texto editável (contenteditable)"
+  },
+  "adEditableDesc": {
+    "message": "Editores de texto da própria página, sem campo de formulário."
+  },
+  "adReactDesc": {
+    "message": "Lista com busca, comum em sistemas feitos em React."
+  },
+  "adSelect2Desc": {
+    "message": "Lista com busca baseada em jQuery."
+  },
+  "locLabelPlaceholder": {
+    "message": "Ex.: Código NBS"
+  },
+  "locSelectorPlaceholder": {
+    "message": "Ex.: #nbs"
+  },
+  "locNamePlaceholder": {
+    "message": "Ex.: nbs"
+  },
+  "adUnknown": {
+    "message": "Desconhecido: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "valWhereName": {
+    "message": "Nome da regra"
+  },
+  "valWherePriority": {
+    "message": "Prioridade"
+  },
+  "valWhereUrlPattern": {
+    "message": "Padrão de URL $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "valWhereUrlPatterns": {
+    "message": "Padrões de URL"
+  },
+  "valWhereContainer": {
+    "message": "Contêiner"
+  },
+  "valWhereSettle": {
+    "message": "Espera (ms)"
+  },
+  "valWhereField": {
+    "message": "Campo $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "valWhereFields": {
+    "message": "Campos"
+  },
+  "valFieldValue": {
+    "message": "Campo $arg1$, valor: $arg2$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      },
+      "arg2": {
+        "content": "$2"
+      }
+    }
+  },
+  "sizeOf": {
+    "message": "$arg1$ de $arg2$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      },
+      "arg2": {
+        "content": "$2"
+      }
+    }
+  },
+  "tabRules": {
+    "message": "Regras"
+  },
+  "tabVariables": {
+    "message": "Variáveis"
+  },
+  "tabHistory": {
+    "message": "Histórico"
+  },
+  "tabImportExport": {
+    "message": "Importar/Exportar"
+  },
+  "impInvalidJson": {
+    "message": "O arquivo não é um JSON válido."
+  },
+  "impNotConfig": {
+    "message": "O arquivo não parece ser uma configuração exportada por este assistente."
+  },
+  "impNewerVersion": {
+    "message": "Este arquivo foi exportado por uma versão mais nova da extensão. Atualize a extensão para importá-lo."
+  },
+  "impNoValidRules": {
+    "message": "Nenhuma regra do arquivo é válida. $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "impNoRuleNoConfig": {
+    "message": "O arquivo não parece conter uma regra nem uma configuração."
+  },
+  "impNothingToAdd": {
+    "message": "O arquivo não tem nenhuma regra para adicionar."
+  },
+  "impNotRuleNorConfig": {
+    "message": "O arquivo não parece ser uma regra nem uma configuração deste assistente."
+  },
+  "migEmptyMarker": {
+    "message": "usando configuração vazia"
+  },
+  "histFilled": {
+    "message": "Preenchido"
+  },
+  "histSkippedNotDefault": {
+    "message": "Pulado: o campo já tinha valor"
+  },
+  "histSkippedHandled": {
+    "message": "Pulado: já tratado antes"
+  },
+  "histSkippedDisabled": {
+    "message": "Pulado: campo desligado"
+  },
+  "histSkippedUnresolved": {
+    "message": "Pulado: valor não resolvido"
+  },
+  "histNotFound": {
+    "message": "Campo não encontrado"
+  },
+  "sumFilledOne": {
+    "message": "1 preenchido"
+  },
+  "sumFilledMany": {
+    "message": "$arg1$ preenchidos",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "sumUndoneOne": {
+    "message": "1 desfeito"
+  },
+  "sumUndoneMany": {
+    "message": "$arg1$ desfeitos",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "sumSkippedOne": {
+    "message": "1 pulado"
+  },
+  "sumSkippedMany": {
+    "message": "$arg1$ pulados",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "sumNotFoundOne": {
+    "message": "1 não encontrado"
+  },
+  "sumNotFoundMany": {
+    "message": "$arg1$ não encontrados",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "sumErrorOne": {
+    "message": "1 erro"
+  },
+  "sumErrorMany": {
+    "message": "$arg1$ erros",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "sumNoField": {
+    "message": "nenhum campo"
+  },
+  "copySuffix": {
+    "message": "$arg1$ (cópia)",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "copySuffixN": {
+    "message": "$arg1$ (cópia $arg2$)",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      },
+      "arg2": {
+        "content": "$2"
+      }
+    }
+  },
+  "siteAny": {
+    "message": "qualquer site"
+  },
+  "siteNone": {
+    "message": "sem endereço definido"
+  },
+  "fieldCountOne": {
+    "message": "1 campo"
+  },
+  "fieldCountMany": {
+    "message": "$arg1$ campos",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "varKeyRequired": {
+    "message": "Informe a chave da variável."
+  },
+  "varKeyInvalid": {
+    "message": "Chave inválida: use só letras minúsculas sem acento, números e _, começando por letra (ex.: codigo_teste)."
+  },
+  "varKeyDuplicate": {
+    "message": "Já existe outra variável com a chave “$arg1$”. As chaves devem ser únicas.",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "hintVariableNamed": {
+    "message": "Variável: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "hintVariable": {
+    "message": "Variável"
+  },
+  "hintUrlParam": {
+    "message": "Parâmetro da URL"
+  },
+  "hintToday": {
+    "message": "Data de hoje"
+  },
+  "newRule": {
+    "message": "Nova regra"
+  },
+  "hintCurrentValue": {
+    "message": "valor atual na página: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "emptyValue": {
+    "message": "(vazio)"
+  },
+  "previewField": {
+    "message": "‹valor do campo “$arg1$” na página›",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "previewText": {
+    "message": "‹texto de “$arg1$” na página›",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "actToggleFailed": {
+    "message": "Não foi possível alterar a regra"
+  },
+  "noticeRuleDuplicated": {
+    "message": "Regra duplicada"
+  },
+  "actDuplicateFailed": {
+    "message": "Não foi possível duplicar a regra"
+  },
+  "confirmDeleteRule": {
+    "message": "Excluir a regra “$arg1$”? Esta ação não pode ser desfeita.",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "noticeRuleDeleted": {
+    "message": "Regra excluída"
+  },
+  "actDeleteFailed": {
+    "message": "Não foi possível excluir a regra"
+  },
+  "noticeRuleAdded": {
+    "message": "Regra adicionada"
+  },
+  "noticeRulesAdded": {
+    "message": "$arg1$ regras adicionadas",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "actAddFailed": {
+    "message": "Não foi possível adicionar as regras"
+  },
+  "noticeRuleSaved": {
+    "message": "Regra salva"
+  },
+  "noticeVariablesSaved": {
+    "message": "Variáveis salvas"
+  },
+  "confirmUseCapture": {
+    "message": "Descartar a edição aberta e usar o campo capturado?"
+  },
+  "confirmUseRecording": {
+    "message": "Descartar a edição aberta e usar a gravação?"
+  },
+  "confirmUnsavedRule": {
+    "message": "Você tem alterações não salvas nesta regra. Descartar e sair?"
+  },
+  "optionsHeading": {
+    "message": "Assistente de Preenchimento — Configurações"
+  },
+  "loadFailed": {
+    "message": "Não foi possível carregar a configuração: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
   }
 }

@@ -6,6 +6,7 @@ import {
   type Variable,
 } from '../../../core/model';
 import { generateRuleId } from './draft';
+import { t } from '../../../core/i18n';
 
 /** O que um arquivo "Adicionar regras" traz: regras e, se for uma config completa, variáveis. */
 export interface Addition {
@@ -29,14 +30,14 @@ export function parseAddition(text: string): AdditionParse {
   try {
     raw = JSON.parse(text);
   } catch {
-    return { ok: false, error: 'O arquivo não é um JSON válido.' };
+    return { ok: false, error: t('impInvalidJson') };
   }
   if (!isRecord(raw)) {
-    return { ok: false, error: 'O arquivo não parece conter uma regra nem uma configuração.' };
+    return { ok: false, error: t('impNoRuleNoConfig') };
   }
   if (isRecord(raw.trigger)) {
     const r = parseRule(raw);
-    if (!r.ok) return { ok: false, error: `Regra inválida: ${r.errors.join('; ')}` };
+    if (!r.ok) return { ok: false, error: t('errInvalidRule', r.errors.join('; ')) };
     return { ok: true, addition: { rules: [r.rule], variables: [], warnings: [] } };
   }
   if (typeof raw.schemaVersion === 'number') {
@@ -44,22 +45,21 @@ export function parseAddition(text: string): AdditionParse {
     if (readOnly) {
       return {
         ok: false,
-        error:
-          'Este arquivo foi exportado por uma versão mais nova da extensão. Atualize a extensão para importá-lo.',
+        error: t('impNewerVersion'),
       };
     }
     const rawRules = Array.isArray(raw.rules) ? raw.rules.length : 0;
-    if (warnings.some((w) => w.includes('usando configuração vazia'))) {
+    if (warnings.some((w) => w.includes(t('migEmptyMarker')))) {
       return { ok: false, error: warnings.join(' ') };
     }
     if (rawRules > 0 && config.rules.length === 0) {
       return {
         ok: false,
-        error: `Nenhuma regra do arquivo é válida. ${warnings.join(' ')}`.trim(),
+        error: t('impNoValidRules', warnings.join(' ')).trim(),
       };
     }
     if (config.rules.length === 0) {
-      return { ok: false, error: 'O arquivo não tem nenhuma regra para adicionar.' };
+      return { ok: false, error: t('impNothingToAdd') };
     }
     return {
       ok: true,
@@ -68,7 +68,7 @@ export function parseAddition(text: string): AdditionParse {
   }
   return {
     ok: false,
-    error: 'O arquivo não parece ser uma regra nem uma configuração deste assistente.',
+    error: t('impNotRuleNorConfig'),
   };
 }
 

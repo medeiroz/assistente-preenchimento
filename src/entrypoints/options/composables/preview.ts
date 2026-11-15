@@ -1,5 +1,6 @@
 import { hasExpressions, resolveValue, type ExpressionContext } from '../../../core/expressions';
 import type { Variable } from '../../../core/model';
+import { t } from '../../../core/i18n';
 
 export const FALLBACK_EXAMPLE_URL = 'https://exemplo.com/';
 
@@ -32,8 +33,8 @@ export function buildPreviewContext(opts: PreviewOptions): ExpressionContext {
     variables: Object.fromEntries(opts.variables.map((v) => [v.key, v.value])),
     url: parseExampleUrl(opts.exampleUrl) ?? new URL(FALLBACK_EXAMPLE_URL),
     now: opts.now ?? new Date(),
-    field: (label) => `‹valor do campo “${label}” na página›`,
-    text: (selector) => `‹texto de “${selector}” na página›`,
+    field: (label) => t('previewField', label),
+    text: (selector) => t('previewText', selector),
   };
 }
 

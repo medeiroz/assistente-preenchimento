@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseRule, type Rule } from '../../../src/core/model';
 import {
-  ANY_SITE,
+  anySite,
   cloneDraft,
   draftToRuleInput,
   duplicateRule,
@@ -242,7 +242,7 @@ describe('sites', () => {
   });
 
   it('"*" vira "qualquer site"', () => {
-    expect(siteLabel('*://*/*')).toBe(ANY_SITE);
+    expect(siteLabel('*://*/*')).toBe(anySite());
     expect(siteLabel('https://a.com/*')).toBe('a.com');
   });
 
@@ -260,7 +260,7 @@ describe('sites', () => {
       trigger: { ...a.trigger, urlPatterns: ['https://a.com/*'] },
     });
     const groups = groupRulesBySite([a, any, other, b]);
-    expect(groups.map((g) => g.site)).toEqual(['a.com', 'app.site.com', ANY_SITE]);
+    expect(groups.map((g) => g.site)).toEqual(['a.com', 'app.site.com', anySite()]);
     expect(groups[1]?.rules.map((r) => r.name)).toEqual(['Alfa', 'Zeta']);
   });
 

@@ -4,6 +4,7 @@ import type { ConfigRepository } from '../../../core/storage';
 import { duplicateRule } from './draft';
 import { planMerge, type Addition } from './merge';
 import type { UsePermissions } from './permissions';
+import { t } from '../../../core/i18n';
 
 interface Deps {
   repo: ConfigRepository;
@@ -29,26 +30,26 @@ export function useRuleActions({ repo, config, reload, permissions, showNotice, 
     return guard(async () => {
       await repo.saveRule({ ...rule, enabled });
       await reload();
-    }, 'Não foi possível alterar a regra');
+    }, t('actToggleFailed'));
   }
 
   function copyRule(rule: Rule): Promise<void> {
     return guard(async () => {
       await repo.saveRule(duplicateRule(rule, config.value.rules));
       await reload();
-      showNotice('ok', 'Regra duplicada');
-    }, 'Não foi possível duplicar a regra');
+      showNotice('ok', t('noticeRuleDuplicated'));
+    }, t('actDuplicateFailed'));
   }
 
   function removeRule(rule: Rule): Promise<void> {
-    if (!window.confirm(`Excluir a regra “${rule.name}”? Esta ação não pode ser desfeita.`)) {
+    if (!window.confirm(t('confirmDeleteRule', rule.name))) {
       return Promise.resolve();
     }
     return guard(async () => {
       await repo.deleteRule(rule.id);
       await reload();
-      showNotice('ok', 'Regra excluída');
-    }, 'Não foi possível excluir a regra');
+      showNotice('ok', t('noticeRuleDeleted'));
+    }, t('actDeleteFailed'));
   }
 
   /**
@@ -69,9 +70,9 @@ export function useRuleActions({ repo, config, reload, permissions, showNotice, 
       onAdded();
       showNotice(
         'ok',
-        plan.rules.length === 1 ? 'Regra adicionada' : `${plan.rules.length} regras adicionadas`,
+        plan.rules.length === 1 ? t('noticeRuleAdded') : t('noticeRulesAdded', plan.rules.length),
       );
-    }, 'Não foi possível adicionar as regras');
+    }, t('actAddFailed'));
     await asking;
   }
 

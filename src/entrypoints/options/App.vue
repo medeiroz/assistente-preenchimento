@@ -34,6 +34,7 @@ import {
   groupToNewRule,
   useRecordingDraft,
 } from './composables/recording';
+import { t } from '../../core/i18n';
 
 const tab = ref<TabId>('rules');
 const { repo, config, loaded, loadError, readOnly, reload } = useConfig();
@@ -57,14 +58,14 @@ async function saveRule(rule: Rule): Promise<void> {
   await repo.saveRule(rule);
   await reload();
   closeEditor();
-  showNotice('ok', 'Regra salva');
+  showNotice('ok', t('noticeRuleSaved'));
   await asking;
 }
 
 async function saveVariables(variables: Variable[]): Promise<void> {
   await repo.saveVariables(variables);
   await reload();
-  showNotice('ok', 'Variáveis salvas');
+  showNotice('ok', t('noticeVariablesSaved'));
 }
 
 // ------------------------------------------------------------ ações da lista
@@ -100,7 +101,7 @@ function captureToRule(rule: Rule, capture: Capture): void {
 /** Chega um rascunho do "Capturar campo" (já apagado do storage: consumo único). */
 async function onPicked(picked: PickerDraft): Promise<void> {
   await untilLoaded(loaded);
-  if (editing.value && !window.confirm('Descartar a edição aberta e usar o campo capturado?')) {
+  if (editing.value && !window.confirm(t('confirmUseCapture'))) {
     return;
   }
   tab.value = 'rules';
@@ -125,7 +126,7 @@ function recordingAddToRule(index: number, rule: Rule): void {
 /** Chega uma gravação (já apagada do storage: consumo único). */
 async function onRecorded(rec: RecordingDraft): Promise<void> {
   await untilLoaded(loaded);
-  if (editing.value && !window.confirm('Descartar a edição aberta e usar a gravação?')) return;
+  if (editing.value && !window.confirm(t('confirmUseRecording'))) return;
   tab.value = 'rules';
   editing.value = null;
   capturePrompt.value = null;
@@ -154,10 +155,7 @@ function selectTab(next: TabId): void {
     editorOpen: editing.value !== null,
     dirty: editorRef.value?.dirty ?? false,
   });
-  if (
-    decision === 'confirm' &&
-    !window.confirm('Você tem alterações não salvas nesta regra. Descartar e sair?')
-  ) {
+  if (decision === 'confirm' && !window.confirm(t('confirmUnsavedRule'))) {
     return;
   }
   if (decision !== 'switch') closeEditor();
@@ -170,7 +168,7 @@ watch(tab, () => (notice.value = null));
 <template>
   <div class="page">
     <header class="page-header">
-      <h1>Assistente de Preenchimento — Configurações</h1>
+      <h1>{{ $t('optionsHeading') }}</h1>
     </header>
 
     <p
@@ -179,8 +177,7 @@ watch(tab, () => (notice.value = null));
       role="alert"
       data-testid="read-only-warning"
     >
-      Esta configuração foi salva por uma versão mais nova da extensão. Atualize a extensão para
-      editar.
+      {{ $t('errReadOnlyConfig') }}
     </p>
 
     <OptionsTabs :active="tab" @select="selectTab" />
@@ -189,7 +186,7 @@ watch(tab, () => (notice.value = null));
       {{ notice.text }}
     </p>
     <p v-if="loadError" class="notice error" role="alert">
-      Não foi possível carregar a configuração: {{ loadError }}
+      {{ $t('loadFailed', loadError) }}
     </p>
 
     <PermissionNotice
