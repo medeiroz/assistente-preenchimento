@@ -214,8 +214,8 @@ onMounted(load);
     <section v-else-if="view === 'unavailable'" class="empty" data-testid="unavailable">
       <p>Nenhuma regra para este site</p>
       <p class="muted">
-        Para criar uma regra, capture um campo desta página. A extensão só acessa a página depois do
-        seu clique.
+        Para criar uma regra, grave o preenchimento do formulário ou capture um campo desta página.
+        A extensão só acessa a página depois do seu clique.
       </p>
       <section v-if="recording.active" class="recording" data-testid="record-status">
         <p class="summary">Gravando preenchimento · {{ recording.count }} campo(s)</p>
@@ -249,23 +249,23 @@ onMounted(load);
       </div>
       <div v-else class="actions">
         <button
-          type="button"
-          class="btn primary"
-          data-testid="capture-here"
-          :disabled="busy"
-          @click="captureOnDemand"
-        >
-          Capturar campo nesta página
-        </button>
-        <button
           v-if="!recording.active"
           type="button"
-          class="btn"
+          class="btn primary"
           data-testid="record-start"
           :disabled="busy"
           @click="recordStart"
         >
           Gravar preenchimento
+        </button>
+        <button
+          type="button"
+          class="btn"
+          data-testid="capture-here"
+          :disabled="busy"
+          @click="captureOnDemand"
+        >
+          Capturar campo nesta página
         </button>
         <button type="button" class="btn" @click="openSettings">Abrir configurações</button>
       </div>
