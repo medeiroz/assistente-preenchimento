@@ -1,6 +1,6 @@
 # Política de Privacidade — Assistente de Preenchimento
 
-Última atualização: 14 de novembro de 2026.
+Última atualização: 15 de novembro de 2026.
 
 **English summary.** Assistente de Preenchimento does not collect, transmit, sell or share any
 personal data. Your rules, variables and preferences stay in your browser (`chrome.storage.local`)
@@ -30,10 +30,11 @@ escolher, a partir de regras que você mesmo cria. Tudo acontece dentro do seu n
 | Regras, variáveis e preferências (ex.: sites pausados)                                                                         | `chrome.storage.sync`  | O Chrome pode sincronizar esses dados entre seus dispositivos pela **sua conta Google**, conforme a política do Google. Nós não temos acesso. |
 | Histórico dos últimos preenchimentos (nome da regra, endereço da página, campos, valor anterior e valor preenchido, resultado) | `chrome.storage.local` | Fica só neste computador, nunca sincroniza, e pode ser apagado na aba Histórico.                                                              |
 | Rascunho temporário de um campo capturado                                                                                      | `chrome.storage.local` | Removido assim que a página de Configurações o usa.                                                                                           |
+| Valores das variáveis marcadas "Só neste navegador"                                                                            | `chrome.storage.local` | Ficam só neste navegador, nunca sincronizam e só entram na exportação se você marcar a opção.                                                 |
 
-Os valores que você digita nas regras e nas variáveis ficam armazenados como você os escreveu.
-**Não guarde senhas** nem dados muito sensíveis em regras ou variáveis, já que elas sincronizam pela
-sua conta Google.
+Os valores que você digita nas regras e nas variáveis ficam armazenados como você os escreveu, sem
+criptografia. Regras e variáveis "Sincronizar" sincronizam pela sua conta Google; para dados
+sensíveis, use variáveis "Só neste navegador". **Não guarde senhas** em regras.
 
 ### Permissões e para que servem
 
@@ -41,7 +42,7 @@ sua conta Google.
 - **scripting**: registrar e executar, nas páginas permitidas, o script que preenche os campos.
 - **activeTab**: ao clicar no ícone da extensão em uma página, permitir "Capturar campo nesta
   página" nela, sem acesso permanente.
-- **Acesso a sites (`https://*/*`, opcional)**: não vem ativado. O Chrome pergunta, site por site,
+- **Acesso a sites (`https://*/*` e `http://*/*`, opcional)**: não vem ativado. O Chrome pergunta, site por site,
   quando você salva uma regra ou clica em **Permitir**. Sem sua permissão, a extensão não lê nem altera
   o site. Você pode revogar em `chrome://extensions` › Detalhes.
 

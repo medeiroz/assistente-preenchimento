@@ -24,12 +24,14 @@ campos descritos nas regras e os preenche (`chrome.scripting.registerContentScri
 Quando o usuário clica no ícone da extensão em uma página sem regra, permite executar "Capturar
 campo nesta página" nessa aba, sem pedir acesso permanente ao site.
 
-**Permissões de host opcionais (`optional_host_permissions`: `https://*/*`)**
+**Permissões de host opcionais (`optional_host_permissions`: `https://*/*`, `http://*/*`)**
 A extensão não tem acesso fixo a nenhum site. Quando o usuário salva uma regra para um site (ou
 clica em "Permitir"), a extensão pede ao Chrome, pelo diálogo nativo, permissão somente para aquele
-site. Como o usuário pode criar regras para qualquer site https, o padrão `https://*/*` precisa
-constar como opcional; nada é concedido sem o consentimento dele, site por site. Padrões amplos
-demais (host `*`) são recusados pela própria extensão.
+site. Como o usuário pode criar regras para qualquer site, os padrões `https://*/*` e `http://*/*`
+precisam constar como opcionais; nada é concedido sem o consentimento dele, site por site. O http é
+necessário porque sistemas internos de empresas e clínicas frequentemente não usam https; o editor
+avisa que esses sites trafegam sem criptografia. Padrões amplos demais (host `*`) são recusados pela
+própria extensão.
 
 **Código remoto**
 Não. A extensão não carrega nem executa código hospedado fora do pacote: sem `eval`, sem scripts
