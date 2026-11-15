@@ -6,12 +6,13 @@ import path from 'node:path';
 const extensionPath = path.resolve(import.meta.dirname, '../../.output/chrome-mv3-e2e');
 
 /**
- * Cria o `test` com a extensão carregada num Chromium de perfil temporário. `lang` fixa o idioma
- * da interface do navegador (`--lang`), que escolhe o catálogo do chrome.i18n. O padrão é pt-BR
- * para os testes não dependerem do idioma da máquina (o CI roda em en-US).
+ * Cria o `test` com a extensão carregada num Chromium de perfil temporário. `lang` vira a opção
+ * `locale` do Playwright (que também passa `--lang` ao Chromium): define o idioma da interface
+ * (`chrome.i18n.getUILanguage`) e, onde o Chromium o respeita, o catálogo do chrome.i18n. O
+ * padrão é pt-BR para os testes não dependerem do idioma da máquina (o CI roda em en-US).
  *
- * Limite conhecido: no macOS o Chromium só usa `--lang` no renderizador (getUILanguage); o
- * catálogo de mensagens segue o idioma do sistema. Em Linux/Windows o flag vale para os dois.
+ * Limite conhecido: no macOS o catálogo de mensagens segue o idioma do SISTEMA, não o `--lang`
+ * (getUILanguage muda, getMessage não). Em Linux/Windows os dois seguem o flag.
  */
 export function createExtensionTest(lang = 'pt-BR') {
   return base.extend<{ context: BrowserContext; extensionId: string }>({
@@ -19,11 +20,8 @@ export function createExtensionTest(lang = 'pt-BR') {
       const userDataDir = await mkdtemp(path.join(tmpdir(), 'pw-ext-'));
       const context = await chromium.launchPersistentContext(userDataDir, {
         channel: 'chromium',
-        args: [
-          `--disable-extensions-except=${extensionPath}`,
-          `--load-extension=${extensionPath}`,
-          `--lang=${lang}`,
-        ],
+        locale: lang,
+        args: [`--disable-extensions-except=${extensionPath}`, `--load-extension=${extensionPath}`],
       });
       await use(context);
       await context.close();

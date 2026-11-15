@@ -43,8 +43,8 @@ testEn(
     });
     expect(info.lang.toLowerCase()).toMatch(/^en/);
     expect(info.name).toBe('Autofill Assistant');
-    // O manifest guarda o marcador; o Chrome o resolve na interface de extensões.
-    expect(info.manifestName).toBe('__MSG_extName__');
+    // O manifest guarda `__MSG_extName__`; o Chrome já o devolve resolvido no idioma atual.
+    expect(info.manifestName).toBe('Autofill Assistant');
   },
 );
 
