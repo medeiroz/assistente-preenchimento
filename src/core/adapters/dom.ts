@@ -84,7 +84,7 @@ export function valueMatches(actual: string | null, expected: string, typed: boo
   return typed && stripNonAlnum(actual) === stripNonAlnum(expected);
 }
 
-function keyInfo(char: string): { code: string; keyCode: number } {
+export function keyInfo(char: string): { code: string; keyCode: number } {
   if (/^[a-zA-Z]$/.test(char))
     return { code: `Key${char.toUpperCase()}`, keyCode: char.toUpperCase().charCodeAt(0) };
   if (/^[0-9]$/.test(char)) return { code: `Digit${char}`, keyCode: char.charCodeAt(0) };

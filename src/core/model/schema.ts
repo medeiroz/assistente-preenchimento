@@ -8,6 +8,9 @@ export const AdapterIdSchema = z.enum([
   'native-choice',
   'vue-multiselect',
   'date',
+  'contenteditable',
+  'react-select',
+  'select2',
 ]);
 
 // Todos os objetos aceitam chaves desconhecidas (z.looseObject) e as devolvem intactas:
