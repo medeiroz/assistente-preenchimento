@@ -5,10 +5,21 @@ import { dispatch, setNativeValue } from './dom';
 export function isDateControl(el: Element): el is HTMLInputElement {
   if (el.tagName !== 'INPUT') return false;
   const type = (el.getAttribute('type') ?? '').toLowerCase();
+  const placeholder = (el.getAttribute('placeholder') ?? '').toLowerCase();
+  const hasDatepickerClass = Array.from(el.classList).some((c) =>
+    c.toLowerCase().includes('datepicker'),
+  );
+  const provider = (el.getAttribute('data-provide') ?? '').toLowerCase();
+  const toggle = (el.getAttribute('data-toggle') ?? '').toLowerCase();
   return (
     type === 'date' ||
     el.classList.contains('eui-input-datepicker') ||
-    (el.getAttribute('placeholder') ?? '').toLowerCase().includes('dd/mm/aaaa') ||
+    hasDatepickerClass || // inclui jQuery UI (hasDatepicker)
+    provider === 'datepicker' ||
+    toggle === 'datepicker' ||
+    el.hasAttribute('data-datepicker') ||
+    placeholder.includes('dd/mm/aaaa') ||
+    placeholder.includes('dd/mm/yyyy') ||
     el.hasAttribute('data-date-format')
   );
 }
@@ -50,6 +61,15 @@ function normalized(text: string): string {
   return parsed ? toBr(parsed) : text;
 }
 
+/**
+ * Datepickers costumam marcar o input como readonly para forçar a escolha pelo
+ * calendário; por isso, ao contrário do texto comum, readonly é permitido em
+ * datas (o valor é definido programaticamente). Só desabilitado é recusado.
+ */
+function assertEnabled(el: HTMLInputElement): void {
+  if (el.disabled) throw new AdapterError('Controle desabilitado', 'write-failed');
+}
+
 export const dateAdapter: FieldAdapter = {
   id: 'date',
   detect: (root) => findInput(root) !== null,
@@ -72,9 +92,7 @@ export const dateAdapter: FieldAdapter = {
         'write-failed',
       );
     }
-    if (el.readOnly || el.disabled) {
-      throw new AdapterError('Controle somente leitura ou desabilitado', 'write-failed');
-    }
+    assertEnabled(el);
     const native = (el.getAttribute('type') ?? '').toLowerCase() === 'date';
     el.focus();
     setNativeValue(el, native ? toIso(parsed) : toBr(parsed));
@@ -85,9 +103,7 @@ export const dateAdapter: FieldAdapter = {
   async clear(root) {
     const el = findInput(root);
     if (!el) throw new AdapterError('Campo de data não encontrado', 'control-not-found');
-    if (el.readOnly || el.disabled) {
-      throw new AdapterError('Controle somente leitura ou desabilitado', 'write-failed');
-    }
+    assertEnabled(el);
     el.focus();
     setNativeValue(el, '');
     dispatch(el, 'input');

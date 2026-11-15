@@ -244,6 +244,40 @@ describe('dateAdapter', () => {
     expect(dateAdapter.verify(f, '31/12/2026')).toBe(true);
   });
 
+  it('detect: marcadores comuns de datepicker (inclusive readonly)', () => {
+    const markers = [
+      '<input class="hasDatepicker" readonly>',
+      '<input class="form-control my-DatePicker-x" readonly>',
+      '<input data-provide="datepicker" readonly>',
+      '<input data-toggle="datepicker" readonly>',
+      '<input data-datepicker readonly>',
+      '<input placeholder="dd/mm/yyyy" readonly>',
+    ];
+    for (const html of markers) expect(dateAdapter.detect(field(html))).toBe(true);
+    expect(dateAdapter.detect(field('<input class="vue-multiselect" readonly>'))).toBe(false);
+  });
+
+  it('readonly: write preenche e dispara input/change; clear funciona', async () => {
+    const f = field('<input class="hasDatepicker" readonly>');
+    const input = f.querySelector('input') as HTMLInputElement;
+    const events: string[] = [];
+    for (const t of ['input', 'change']) input.addEventListener(t, () => events.push(t));
+    await dateAdapter.write(f, '2026-12-31');
+    expect(input.value).toBe('31/12/2026');
+    expect(events).toEqual(['input', 'change']);
+    await dateAdapter.clear!(f);
+    expect(input.value).toBe('');
+  });
+
+  it('desabilitado continua recusado em write e clear', async () => {
+    const f = field('<input class="hasDatepicker" disabled>');
+    await expect(dateAdapter.write(f, '31/12/2026')).rejects.toMatchObject({
+      name: 'AdapterError',
+      code: 'write-failed',
+    });
+    await expect(dateAdapter.clear!(f)).rejects.toMatchObject({ code: 'write-failed' });
+  });
+
   it('read devolve o texto cru quando não parseia', () => {
     expect(dateAdapter.read(field('<input class="eui-input-datepicker" value="ontem">'))).toBe(
       'ontem',
