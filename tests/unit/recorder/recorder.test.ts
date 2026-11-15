@@ -324,4 +324,87 @@ describe('createRecorder', () => {
     expect(send).toHaveBeenCalledTimes(1);
     r.stop();
   });
+
+  describe('valores definidos por widgets (datepicker, máscaras, overlays)', () => {
+    function setProgrammatic(id: string, value: string): HTMLInputElement {
+      const input = document.getElementById(id) as HTMLInputElement;
+      input.value = value;
+      return input;
+    }
+
+    it('campo tocado alterado por script é gravado após clique confiável fora de campo', async () => {
+      const r = make();
+      r.start({ active: true, count: 0 });
+      const input = document.getElementById('i1') as HTMLInputElement;
+      fire('focusin', input);
+      setProgrammatic('i1', '15/03/2026');
+      fire('click', document.getElementById('solto') as Element);
+      await vi.advanceTimersByTimeAsync(250);
+      expect(sent).toHaveLength(1);
+      expect(sent[0]?.value).toBe('15/03/2026');
+      r.stop();
+    });
+
+    it('segunda passada pega widgets lentos e envia só o que mudou', async () => {
+      const r = make();
+      r.start({ active: true, count: 0 });
+      fire('click', document.getElementById('i1') as Element);
+      await vi.advanceTimersByTimeAsync(250);
+      fire('keyup', document.getElementById('solto') as Element);
+      await vi.advanceTimersByTimeAsync(400);
+      setProgrammatic('i1', '10/01/2026');
+      await vi.advanceTimersByTimeAsync(250);
+      // O clique no campo já gravou o valor vazio inicial (comportamento existente).
+      expect(sent.map((f) => f.value)).toEqual(['', '10/01/2026']);
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(sent).toHaveLength(2);
+      r.stop();
+    });
+
+    it('campo não tocado alterado por script não é gravado', async () => {
+      const r = make();
+      r.start({ active: true, count: 0 });
+      setProgrammatic('i1', 'preenchido pela página');
+      fire('click', document.getElementById('solto') as Element);
+      fire('keyup', document.getElementById('solto') as Element);
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(send).not.toHaveBeenCalled();
+      r.stop();
+    });
+
+    it('eventos não confiáveis não disparam a releitura', async () => {
+      const r = make();
+      r.start({ active: true, count: 0 });
+      fire('focusin', document.getElementById('i1') as Element);
+      await vi.advanceTimersByTimeAsync(1000);
+      trusted = false;
+      setProgrammatic('i1', '01/02/2026');
+      fire('click', document.getElementById('solto') as Element);
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(send).not.toHaveBeenCalled();
+      r.stop();
+    });
+
+    it('flush relê os campos tocados de forma síncrona', () => {
+      const r = make();
+      r.start({ active: true, count: 0 });
+      fire('focusin', document.getElementById('i1') as Element);
+      setProgrammatic('i1', '20/05/2026');
+      r.flush();
+      expect(sent).toHaveLength(1);
+      expect(sent[0]?.value).toBe('20/05/2026');
+      r.stop();
+    });
+
+    it('campo sensível tocado nunca é enviado pela releitura', async () => {
+      const r = make();
+      r.start({ active: true, count: 0 });
+      fire('focusin', document.getElementById('i2') as Element);
+      setProgrammatic('i2', 'segredo');
+      r.flush();
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(send).not.toHaveBeenCalled();
+      r.stop();
+    });
+  });
 });

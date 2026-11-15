@@ -5,9 +5,40 @@
     <select id="plano" name="plano"><option value="">Selecione</option><option value="basico">Básico</option><option value="premium">Premium</option></select></div>
   <div class="f"><label><input id="contato" name="contato" type="checkbox"> Aceita contato</label></div>
   <div class="f"><label for="obs">Observações</label><textarea id="obs" name="obs"></textarea></div>
+  <div class="f"><label for="inicio">Data de início</label>
+    <input id="inicio" name="inicio" type="text" readonly placeholder="dd/mm/aaaa" autocomplete="off"></div>
   <button type="button" id="proximo">Próximo</button>
 </main>
 <script>
+  // Datepicker minúsculo: o calendário vai para o body (fora do campo) e o dia escolhido
+  // define o valor por script, com um change sintético, como as bibliotecas reais.
+  (function () {
+    var input = document.getElementById('inicio');
+    var cal = null;
+    function fechar() { if (cal) { cal.remove(); cal = null; } }
+    function abrir() {
+      if (cal) return;
+      cal = document.createElement('div');
+      cal.id = 'calendario';
+      cal.setAttribute('role', 'dialog');
+      for (var d = 1; d <= 28; d++) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'dia';
+        b.textContent = String(d);
+        b.addEventListener('click', function (ev) {
+          var dia = ev.currentTarget.textContent;
+          input.value = (dia.length < 2 ? '0' + dia : dia) + '/03/2026';
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+          fechar();
+        });
+        cal.appendChild(b);
+      }
+      document.body.appendChild(cal);
+    }
+    input.addEventListener('focus', abrir);
+    input.addEventListener('click', abrir);
+  })();
   // Troca de passo sem recarregar a página, como em uma SPA.
   document.getElementById('proximo').addEventListener('click', function () {
     history.pushState({ passo: 3 }, '', 'step3.html');

@@ -73,6 +73,10 @@ test('grava um wizard com navegação completa e troca de passo (SPA)', async ({
   await expect(page.locator('#plano')).toHaveValue('premium');
   await page.locator('#contato').check();
   await page.locator('#obs').pressSequentially('Prefere contato à tarde');
+  // Datepicker: o calendário fica fora do campo e o valor é definido por script (change sintético).
+  await page.locator('#inicio').click();
+  await page.locator('#calendario .dia', { hasText: /^15$/ }).click();
+  await expect(page.locator('#inicio')).toHaveValue('15/03/2026');
   await page.getByRole('button', { name: 'Próximo' }).click();
 
   // Passo 3 (SPA): o DOM é trocado sem recarregar.
@@ -103,6 +107,8 @@ test('grava um wizard com navegação completa e troca de passo (SPA)', async ({
     'Aceita contato',
     'Observações',
     'Prefere contato à tarde',
+    'Data de início',
+    '15/03/2026',
     'Telefone de contato',
     '11 99999-0000',
     'Bairro',

@@ -7,11 +7,15 @@ import { createRecorderBar, RECORDER_HOST_ATTR, type RecorderBar } from './bar';
 
 export { RECORDER_HOST_ATTR } from './bar';
 
-const EVENTS = ['input', 'change', 'click', 'focusout'] as const;
+const EVENTS = ['input', 'change', 'click', 'focusin', 'focusout', 'keydown', 'keyup'] as const;
+/** Eventos que disparam a releitura dos campos tocados (widgets que mudam valor por overlay). */
+const RESCAN_EVENTS = ['click', 'keyup', 'focusin', 'focusout'];
 /** Saídas da página: o que ainda estiver pendente precisa ir embora agora. */
 const LEAVE_EVENTS = ['submit', 'pagehide', 'beforeunload'] as const;
 const INPUT_DEBOUNCE_MS = 300;
 const CLICK_DEBOUNCE_MS = 150;
+const RESCAN_MS = [200, 600];
+const MAX_TOUCHED = 50;
 
 const OWN_HOST_ATTRS = [RECORDER_HOST_ATTR, PICKER_HOST_ATTR, TOAST_HOST_ATTR, ACTION_HOST_ATTR];
 const SENSITIVE_AUTOCOMPLETE = ['current-password', 'new-password', 'one-time-code'];
@@ -69,6 +73,9 @@ export function createRecorder(deps: RecorderDeps): Recorder {
   const paused = deps.isPaused ?? (() => false);
   const timers = new Map<Element, { timer: ReturnType<typeof setTimeout>; target: Element }>();
   const lastSent = new Map<string, string>();
+  /** Campos com os quais o usuário interagiu; só eles são relidos após cliques em overlays. */
+  const touched = new Set<Element>();
+  let rescanTimers: ReturnType<typeof setTimeout>[] = [];
 
   function fromOwnUi(ev: Event): boolean {
     if (bar?.owns(ev)) return true;
@@ -82,7 +89,7 @@ export function createRecorder(deps: RecorderDeps): Recorder {
     bar?.setCount(n);
   }
 
-  function report(root: Element, target: Element): void {
+  function report(root: Element, target: Element, skipUnseenEmpty = false): void {
     timers.delete(root);
     if (!bar) return;
     const el = root.isConnected ? root : target;
@@ -93,6 +100,8 @@ export function createRecorder(deps: RecorderDeps): Recorder {
     const value = capture.currentValue ?? '';
     const key = fieldKey(capture);
     if (lastSent.get(key) === value) return;
+    // Releitura de campo tocado que nunca teve valor: nada a gravar.
+    if (skipUnseenEmpty && value === '' && !lastSent.has(key)) return;
     lastSent.set(key, value);
     const field: RecordedField = { capture, value, url: win.location.href, recordedAt: now() };
     deps.send(field).then(
@@ -115,11 +124,41 @@ export function createRecorder(deps: RecorderDeps): Recorder {
     timers.set(root, { timer: setTimeout(() => report(root, target), delay), target });
   }
 
+  function touch(root: Element): void {
+    touched.delete(root);
+    touched.add(root);
+    for (const el of Array.from(touched)) if (!el.isConnected) touched.delete(el);
+    while (touched.size > MAX_TOUCHED) {
+      const oldest = touched.values().next().value;
+      if (oldest === undefined) break;
+      touched.delete(oldest);
+    }
+  }
+
+  /** Relê os campos tocados e envia só os que mudaram (valor definido por script de um widget). */
+  function rescan(): void {
+    for (const root of Array.from(touched)) {
+      if (!root.isConnected) {
+        touched.delete(root);
+        continue;
+      }
+      const pending = timers.get(root);
+      if (pending) clearTimeout(pending.timer);
+      report(root, pending?.target ?? root, true);
+    }
+  }
+
+  function scheduleRescan(): void {
+    for (const t of rescanTimers) clearTimeout(t);
+    rescanTimers = RESCAN_MS.map((ms) => setTimeout(() => bar && !paused() && rescan(), ms));
+  }
+
   function flush(): void {
     for (const [root, p] of Array.from(timers)) {
       clearTimeout(p.timer);
       report(root, p.target);
     }
+    rescan();
   }
 
   function onEvent(ev: Event): void {
@@ -127,10 +166,19 @@ export function createRecorder(deps: RecorderDeps): Recorder {
     const target = ev.composedPath()[0];
     if (!isElement(target)) return;
     const hit = resolveField(target);
+    const own = fromOwnUi(ev);
+    if (hit && !own) touch(hit.root);
     // Clique fora de campo (Próximo, Salvar, Parar...): a página pode navegar já, então
     // reporta antes de qualquer outra coisa o que ainda está no debounce.
-    if (ev.type === 'click' && !hit) return flush();
-    if (fromOwnUi(ev) || !hit) return;
+    if (ev.type === 'click' && !hit) {
+      flush();
+      if (!own) scheduleRescan();
+      return;
+    }
+    if (own) return;
+    if (RESCAN_EVENTS.includes(ev.type)) scheduleRescan();
+    if (!hit) return;
+    if (ev.type === 'keydown' || ev.type === 'keyup' || ev.type === 'focusin') return;
     if (ev.type === 'change' || ev.type === 'focusout') {
       // Valor final já está no campo: reporta na hora (cancela o debounce pendente).
       const pending = timers.get(hit.root);
@@ -151,6 +199,9 @@ export function createRecorder(deps: RecorderDeps): Recorder {
     for (const type of LEAVE_EVENTS) win.removeEventListener(type, onLeave, true);
     for (const p of timers.values()) clearTimeout(p.timer);
     timers.clear();
+    for (const t of rescanTimers) clearTimeout(t);
+    rescanTimers = [];
+    touched.clear();
     lastSent.clear();
     bar.destroy();
     bar = null;
