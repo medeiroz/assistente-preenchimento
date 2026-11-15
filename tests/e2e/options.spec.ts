@@ -438,3 +438,43 @@ test('n) atraso e digitação simulada no editor: badges, validação e gravaç�
   expect(interno?.typing).toEqual({ keyDelayMs: 80 });
   expect(rule.fields.find((f) => f.id === 'nbs')).not.toHaveProperty('delayMs');
 });
+
+test('o) medidor de tamanho: alerta a partir de 75% e erro acima de 100% antes de salvar', async ({
+  context,
+  extensionId,
+}) => {
+  const page = await openOptions(context, extensionId);
+  await editE2eRule(page);
+  const editor = page.locator('form.editor');
+  const meter = editor.getByTestId('size-meter');
+  await expect(meter).toHaveAttribute('data-level', 'ok');
+  await expect(editor.getByRole('meter', { name: 'Tamanho para sincronizar' })).toBeVisible();
+
+  const value = fieldCard(page, 'nbs').locator('.f-value');
+  await value.fill('x'.repeat(6500));
+  await expect(meter).toHaveAttribute('data-level', 'warn');
+  await expect(editor.getByTestId('size-meter-error')).toHaveCount(0);
+
+  await value.fill('x'.repeat(9000));
+  await expect(meter).toHaveAttribute('data-level', 'error');
+  await expect(editor.getByTestId('size-meter-error')).toHaveText(
+    'Acima do limite: reduza o número de campos',
+  );
+  // nada foi gravado: o aviso veio antes de salvar
+  const stored = await storedRule(page, E2E_ID);
+  expect(stored?.fields.find((f) => f.id === 'nbs')?.value).not.toBe('x'.repeat(9000));
+
+  await value.fill('123');
+  await expect(meter).toHaveAttribute('data-level', 'ok');
+});
+
+test('p) Importar/Exportar mostra o uso total da sincronização', async ({
+  context,
+  extensionId,
+}) => {
+  const page = await openOptions(context, extensionId);
+  await page.getByRole('tab', { name: 'Importar/Exportar' }).click();
+  await expect(page.getByTestId('sync-usage')).toHaveText(
+    /Uso total da sincronização: \d+,\d KB de 100 KB/,
+  );
+});

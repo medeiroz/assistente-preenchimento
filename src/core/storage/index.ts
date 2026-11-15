@@ -7,6 +7,12 @@ export {
   StorageQuotaError,
   ReadOnlyConfigError,
   MAX_ITEM_BYTES,
+  SYNC_QUOTA_BYTES,
+  measureItem,
+  measureRule,
+  measureVariables,
+  measureConfig,
+  ruleItemKey,
   LOCAL_VARS_KEY,
 } from './chrome-sync';
 export type {

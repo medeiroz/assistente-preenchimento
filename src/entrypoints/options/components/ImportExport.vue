@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
 import type { Config, Rule } from '../../../core/model';
-import type { ConfigRepository } from '../../../core/storage';
+import { SYNC_QUOTA_BYTES, measureConfig, type ConfigRepository } from '../../../core/storage';
+import { formatKb, formatLimit, sizeLevel } from '../composables/sizeMeter';
 import { exportFileName, exportJson, parseImport } from '../composables/format';
 import { parseAddition, planMerge, type Addition, type MergePlan } from '../composables/merge';
 import { hostOfPattern } from '../composables/draft';
@@ -18,6 +19,22 @@ const addError = ref<string | null>(null);
 const addPreview = ref<{ addition: Addition; plan: MergePlan; fileName: string } | null>(null);
 const addInput = ref<HTMLInputElement | null>(null);
 const fileInput = ref<HTMLInputElement | null>(null);
+
+// Uso total do storage.sync, somando os itens que a configuração ocupa; acompanha mudanças.
+const usageBytes = ref<number | null>(null);
+async function refreshUsage(): Promise<void> {
+  try {
+    usageBytes.value = measureConfig(await props.repo.load());
+  } catch {
+    usageBytes.value = null;
+  }
+}
+let offChange: (() => void) | undefined;
+onMounted(() => {
+  void refreshUsage();
+  offChange = props.repo.onChange(() => void refreshUsage());
+});
+onBeforeUnmount(() => offChange?.());
 
 async function doExport(): Promise<void> {
   error.value = null;
@@ -122,6 +139,15 @@ function cancelImport(): void {
     <div class="section-head">
       <h2 id="ie-title">Importar/Exportar</h2>
     </div>
+
+    <p
+      v-if="usageBytes !== null"
+      class="hint"
+      :class="{ 'warn-text': sizeLevel(usageBytes, SYNC_QUOTA_BYTES) !== 'ok' }"
+      data-testid="sync-usage"
+    >
+      Uso total da sincronização: {{ formatKb(usageBytes) }} de {{ formatLimit(SYNC_QUOTA_BYTES) }}
+    </p>
 
     <div class="panel">
       <h3>Exportar</h3>

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import type { Rule, Variable } from '../../../core/model';
-import { StorageQuotaError } from '../../../core/storage';
+import { MAX_ITEM_BYTES, StorageQuotaError, measureVariables } from '../../../core/storage';
+import SizeMeter from './SizeMeter.vue';
 import {
   rowsToVariables,
   validateVariableRows,
@@ -54,6 +55,7 @@ const saving = ref(false);
 const saveError = ref<string | null>(null);
 
 const errors = computed(() => validateVariableRows(rows.value));
+const varsBytes = computed(() => measureVariables(rowsToVariables(rows.value)));
 
 /** Erro mostrado na linha: sempre que a chave foi digitada; chave vazia só após tentar salvar. */
 function rowError(r: VariableRow): string | null {
@@ -277,6 +279,12 @@ function onField(r: VariableRow, key: 'key' | 'label' | 'value', ev: Event): voi
           </div>
         </li>
       </ul>
+
+      <SizeMeter
+        :bytes="varsBytes"
+        :limit="MAX_ITEM_BYTES"
+        over-message="reduza as variáveis sincronizadas ou marque algumas como Só neste navegador"
+      />
 
       <div class="actions-bar">
         <button type="button" class="btn" data-testid="add-variable" @click="add">
