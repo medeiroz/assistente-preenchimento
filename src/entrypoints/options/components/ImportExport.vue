@@ -135,7 +135,7 @@ function cancelImport(): void {
       <h3>Adicionar regras de um arquivo</h3>
       <p class="hint">
         Escolha um arquivo com <strong>uma regra</strong> (como o exemplo em
-        <code>presets/ce-nfse.json</code>) ou uma configuração exportada. As regras são
+        <code>presets/exemplo-cadastro.json</code>) ou uma configuração exportada. As regras são
         <strong>adicionadas</strong> às que você já tem; nada é apagado nem substituído.
       </p>
       <label for="add-file" class="block-label">Arquivo de regra ou configuração (.json)</label>

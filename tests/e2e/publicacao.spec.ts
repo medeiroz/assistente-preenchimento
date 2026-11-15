@@ -1,3 +1,5 @@
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import path from 'node:path';
 import { test, expect } from './fixtures';
 import type { Page } from '@playwright/test';
 import { start, stop } from './harness-server';
@@ -146,8 +148,26 @@ test('options vazia: estado inicial com os 3 caminhos e importação do exemplo'
   await page.getByTestId('cancel-edit').click();
 
   await page.getByTestId('empty-import-example').click();
-  await expect(page.locator('[data-rule-id="ce-nfse-basico"]')).toBeVisible();
+  await expect(page.locator('[data-rule-id="exemplo-cadastro"]')).toBeVisible();
   await expect(page.getByTestId('empty-state')).toHaveCount(0);
+});
+
+test('o pacote de produção não cita a Clínica Experts', () => {
+  const dir = path.resolve(import.meta.dirname, '../../.output/chrome-mv3');
+  test.skip(!existsSync(dir), 'rode `npm run build` antes (pacote de produção ausente)');
+  const hits: string[] = [];
+  const walk = (d: string): void => {
+    for (const e of readdirSync(d, { withFileTypes: true })) {
+      const p = path.join(d, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (/\.(js|html|json|css)$/.test(e.name)) {
+        const t = readFileSync(p, 'utf8');
+        if (/Cl(í|\\u00ed)nica Experts/i.test(t) || /clinicaexperts/i.test(t)) hits.push(p);
+      }
+    }
+  };
+  walk(dir);
+  expect(hits).toEqual([]);
 });
 
 test('injetar o content script duas vezes não duplica o motor', async ({
