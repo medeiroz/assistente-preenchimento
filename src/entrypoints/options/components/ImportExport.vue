@@ -13,6 +13,7 @@ const error = ref<string | null>(null);
 const message = ref<string | null>(null);
 const preview = ref<{ config: Config; warnings: string[]; fileName: string } | null>(null);
 const busy = ref(false);
+const includeLocal = ref(false);
 const addError = ref<string | null>(null);
 const addPreview = ref<{ addition: Addition; plan: MergePlan; fileName: string } | null>(null);
 const addInput = ref<HTMLInputElement | null>(null);
@@ -23,7 +24,9 @@ async function doExport(): Promise<void> {
   message.value = null;
   try {
     const config = await props.repo.load();
-    const blob = new Blob([exportJson(config)], { type: 'application/json' });
+    const blob = new Blob([exportJson(config, { includeLocalValues: includeLocal.value })], {
+      type: 'application/json',
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -124,7 +127,16 @@ function cancelImport(): void {
       <h3>Exportar</h3>
       <p class="hint">
         Baixa um arquivo com todas as suas regras, variáveis e preferências, útil como cópia de
-        segurança ou para levar a outro computador.
+        segurança ou para levar a outro computador. Os valores das variáveis “Só neste navegador”
+        ficam de fora, a menos que você marque a opção abaixo.
+      </p>
+      <label class="check">
+        <input v-model="includeLocal" type="checkbox" data-testid="export-include-local" />
+        Incluir valores das variáveis locais
+      </label>
+      <p v-if="includeLocal" class="notice warn" data-testid="export-local-warning">
+        O arquivo vai conter os valores das variáveis “Só neste navegador” em texto aberto. Guarde-o
+        com cuidado e não o compartilhe.
       </p>
       <button type="button" class="btn primary" data-testid="export" @click="doExport">
         Exportar configuração

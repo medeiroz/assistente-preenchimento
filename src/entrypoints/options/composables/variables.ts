@@ -19,6 +19,8 @@ export interface VariableRow {
   key: string;
   label: string;
   value: string;
+  /** 'local': o valor fica só neste navegador (não sincroniza). */
+  scope: 'sync' | 'local';
   /** Chaves desconhecidas (de versões futuras), preservadas ao salvar. */
   extra?: Record<string, unknown>;
 }
@@ -48,6 +50,7 @@ export function rowsToVariables(rows: readonly VariableRow[]): Variable[] {
     key: r.key.trim(),
     label: r.label.trim(),
     value: r.value,
+    ...(r.scope === 'local' ? { scope: 'local' as const } : {}),
   }));
 }
 

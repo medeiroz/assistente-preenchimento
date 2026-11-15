@@ -607,6 +607,16 @@ summary {
   margin: 2px 0 6px;
 }
 
+.var-row .grid {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 720px) {
+  .var-row .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .preview {
   margin: 4px 0 0;
   font-size: 0.9rem;

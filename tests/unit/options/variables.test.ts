@@ -26,6 +26,7 @@ function rule(id: string, name: string, fields: Record<string, string>): Rule {
 }
 
 const row = (uid: number, key: string, value = ''): VariableRow => ({
+  scope: 'sync',
   uid,
   key,
   label: '',
@@ -58,8 +59,22 @@ describe('validateVariableRows', () => {
 
 describe('rowsToVariables', () => {
   it('apara chave e nome, preserva o valor', () => {
-    expect(rowsToVariables([{ uid: 1, key: ' a ', label: ' Nome ', value: ' v ' }])).toEqual([
-      { key: 'a', label: 'Nome', value: ' v ' },
+    expect(
+      rowsToVariables([{ uid: 1, key: ' a ', label: ' Nome ', value: ' v ', scope: 'sync' }]),
+    ).toEqual([{ key: 'a', label: 'Nome', value: ' v ' }]);
+  });
+});
+
+describe('rowsToVariables (escopo)', () => {
+  it('local grava scope local; sync não grava a chave scope', () => {
+    expect(
+      rowsToVariables([
+        { uid: 1, key: 'a', label: '', value: 'x', scope: 'local' },
+        { uid: 2, key: 'b', label: '', value: 'y', scope: 'sync' },
+      ]),
+    ).toEqual([
+      { key: 'a', label: '', value: 'x', scope: 'local' },
+      { key: 'b', label: '', value: 'y' },
     ]);
   });
 });

@@ -1,6 +1,6 @@
 import { migrateConfig, type Config } from '../../../core/model';
 import type { FieldOutcome, RunReport } from '../../../core/model';
-import { summarize } from '../../../core/model';
+import { summarize, variableScope } from '../../../core/model';
 
 const pad = (n: number): string => String(n).padStart(2, '0');
 
@@ -13,8 +13,21 @@ export function exportFileName(d: Date): string {
   return `assistente-config-${localDateStamp(d)}.json`;
 }
 
-export function exportJson(config: Config): string {
-  return `${JSON.stringify(config, null, 2)}\n`;
+export interface ExportOptions {
+  /** Inclui os valores das variáveis "só neste navegador". Padrão: não (saem com value ''). */
+  includeLocalValues?: boolean;
+}
+
+export function exportJson(config: Config, opts: ExportOptions = {}): string {
+  const out: Config = opts.includeLocalValues
+    ? config
+    : {
+        ...config,
+        variables: config.variables.map((v) =>
+          variableScope(v) === 'local' ? { ...v, value: '' } : v,
+        ),
+      };
+  return `${JSON.stringify(out, null, 2)}\n`;
 }
 
 export type ImportParse =

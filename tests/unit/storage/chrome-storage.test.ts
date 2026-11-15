@@ -77,7 +77,12 @@ function bigRule(id: string): Rule {
 
 function setup() {
   const fake = makeFake();
-  const repo = createChromeSyncRepository({ sync: fake.storage, onChanged: fake.onChanged });
+  const local = makeFake('local');
+  const repo = createChromeSyncRepository({
+    sync: fake.storage,
+    local: local.storage,
+    onChanged: fake.onChanged,
+  });
   return { fake, repo };
 }
 
@@ -209,6 +214,7 @@ describe('createChromeSyncRepository', () => {
       const local = makeFake('local');
       const repo2 = createChromeSyncRepository({
         sync: local.storage,
+        local: makeFake('local').storage,
         onChanged: local.onChanged,
       });
       const cb2 = vi.fn();

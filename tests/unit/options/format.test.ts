@@ -33,6 +33,33 @@ describe('exportação', () => {
   });
 });
 
+describe('exportação de variáveis locais', () => {
+  const cfg = () => {
+    const c = emptyConfig();
+    c.variables = [
+      { key: 'a', label: 'A', value: 'segredo', scope: 'local' },
+      { key: 'b', label: 'B', value: 'pub' },
+    ];
+    return c;
+  };
+
+  it('por padrão os valores locais ficam de fora (key/label/scope mantidos)', () => {
+    const text = exportJson(cfg());
+    expect(text).not.toContain('segredo');
+    const parsed = parseImport(text);
+    expect(parsed.ok && parsed.config.variables).toEqual([
+      { key: 'a', label: 'A', value: '', scope: 'local' },
+      { key: 'b', label: 'B', value: 'pub' },
+    ]);
+  });
+
+  it('com includeLocalValues os valores vão no arquivo', () => {
+    const text = exportJson(cfg(), { includeLocalValues: true });
+    const parsed = parseImport(text);
+    expect(parsed.ok && parsed.config.variables[0]?.value).toBe('segredo');
+  });
+});
+
 describe('parseImport', () => {
   it('JSON quebrado é erro', () => {
     const r = parseImport('{ nao é json');
