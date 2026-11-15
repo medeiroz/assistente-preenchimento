@@ -22,7 +22,13 @@ campos descritos nas regras e os preenche (`chrome.scripting.registerContentScri
 
 **activeTab**
 Quando o usuário clica no ícone da extensão em uma página sem regra, permite executar "Capturar
-campo nesta página" nessa aba, sem pedir acesso permanente ao site.
+campo nesta página" nessa aba, sem pedir acesso permanente ao site. O mesmo vale para o item
+"Capturar este campo" do menu de contexto.
+
+**contextMenus**
+Adiciona itens ao menu de contexto (botão direito) como atalhos das funções da extensão: capturar o
+campo clicado, executar uma regra de preenchimento e pausar ou retomar o site. A permissão é usada
+apenas para criar e atualizar esses itens; não lê o conteúdo das páginas.
 
 **Permissões de host opcionais (`optional_host_permissions`: `https://*/*`, `http://*/*`)**
 A extensão não tem acesso fixo a nenhum site. Quando o usuário salva uma regra para um site (ou

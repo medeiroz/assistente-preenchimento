@@ -19,6 +19,8 @@ a partir de regras que você mesmo cria, sem programar.
 - **Valores dinâmicos** com expressões `{{ ... }}`: variáveis suas, parâmetros da URL, datas, outros
   campos.
 - **Capturar campo**: clique em um campo da página e a regra é montada para você.
+- **Menu de contexto** (botão direito): "Capturar este campo", "Preencher com ›" (regras ativas na
+  página, inclusive em iframes) e "Pausar/Retomar neste site".
 - **Desfazer** o último preenchimento, relatório do que foi preenchido, pulado ou não encontrado.
 - **Variáveis** reutilizáveis, sincronizadas ou **só neste navegador** (indicado para dados
   sensíveis), e **histórico** de execuções.

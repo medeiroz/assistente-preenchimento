@@ -42,6 +42,8 @@ sensíveis, use variáveis "Só neste navegador". **Não guarde senhas** em regr
 - **scripting**: registrar e executar, nas páginas permitidas, o script que preenche os campos.
 - **activeTab**: ao clicar no ícone da extensão em uma página, permitir "Capturar campo nesta
   página" nela, sem acesso permanente.
+- **contextMenus**: mostrar os atalhos da extensão no menu do botão direito (capturar campo,
+  preencher com uma regra, pausar o site). Não lê o conteúdo das páginas.
 - **Acesso a sites (`https://*/*` e `http://*/*`, opcional)**: não vem ativado. O Chrome pergunta, site por site,
   quando você salva uma regra ou clica em **Permitir**. Sem sua permissão, a extensão não lê nem altera
   o site. Você pode revogar em `chrome://extensions` › Detalhes.
