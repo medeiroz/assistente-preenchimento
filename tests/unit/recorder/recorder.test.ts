@@ -18,6 +18,10 @@ function fire(type: string, target: Element): void {
   target.dispatchEvent(new Event(type, { bubbles: true, composed: true }));
 }
 
+function fireKey(type: string, target: Element, key: string): void {
+  target.dispatchEvent(new KeyboardEvent(type, { key, bubbles: true, composed: true }));
+}
+
 describe('createRecorder', () => {
   let sent: RecordedField[];
   let send: ReturnType<typeof vi.fn<(f: RecordedField) => Promise<RecorderStatus>>>;
@@ -350,7 +354,7 @@ describe('createRecorder', () => {
       r.start({ active: true, count: 0 });
       fire('click', document.getElementById('i1') as Element);
       await vi.advanceTimersByTimeAsync(250);
-      fire('keyup', document.getElementById('solto') as Element);
+      fireKey('keyup', document.getElementById('solto') as Element, 'Enter');
       await vi.advanceTimersByTimeAsync(400);
       setProgrammatic('i1', '10/01/2026');
       await vi.advanceTimersByTimeAsync(250);
@@ -358,6 +362,22 @@ describe('createRecorder', () => {
       expect(sent.map((f) => f.value)).toEqual(['', '10/01/2026']);
       await vi.advanceTimersByTimeAsync(1000);
       expect(sent).toHaveLength(2);
+      r.stop();
+    });
+
+    it('keyup de caractere comum não agenda releitura; Enter/Tab/setas agendam', async () => {
+      const r = make();
+      r.start({ active: true, count: 0 });
+      fire('click', document.getElementById('i1') as Element);
+      await vi.advanceTimersByTimeAsync(800); // esgota as passadas do próprio clique
+      sent.length = 0;
+      setProgrammatic('i1', '77');
+      fireKey('keyup', document.getElementById('solto') as Element, 'a');
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(sent).toHaveLength(0);
+      fireKey('keyup', document.getElementById('solto') as Element, 'ArrowDown');
+      await vi.advanceTimersByTimeAsync(250);
+      expect(sent.map((f) => f.value)).toEqual(['77']);
       r.stop();
     });
 

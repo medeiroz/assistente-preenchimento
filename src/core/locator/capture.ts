@@ -1,7 +1,7 @@
 import { createDefaultRegistry } from '../adapters';
 import type { AdapterRegistry } from '../adapters';
 import type { AdapterId, Locator } from '../model';
-import { locate } from './locate';
+import { candidateText, locate, locateAll } from './locate';
 
 /** Contêiner sugerido (formato do `trigger.container` do modelo). */
 export interface CaptureContainer {
@@ -70,18 +70,6 @@ function normalizeSpaces(s: string | null | undefined): string {
 /** Rótulo sem espaços extras e sem `*`/`:` no fim. */
 function cleanLabel(s: string): string {
   return normalizeSpaces(s).replace(/[\s*:]+$/, '');
-}
-
-/** Mesmo texto que o locator usa para casar o candidato: ícones sem texto não contam. */
-function candidateText(el: Element): string {
-  if (el.tagName !== 'LABEL' && el.tagName !== 'LEGEND' && el.hasAttribute('aria-label')) {
-    return el.getAttribute('aria-label') ?? '';
-  }
-  const clone = el.cloneNode(true) as Element;
-  for (const icon of Array.from(clone.querySelectorAll('svg, i'))) {
-    if ((icon.textContent ?? '').trim() === '') icon.remove();
-  }
-  return clone.textContent ?? '';
 }
 
 // ------------------------------------------------------------------ contêiner
@@ -153,13 +141,11 @@ function candidatesIn(a: Element): Element[] {
 }
 
 /** Todas as raízes que o locator devolveria para esse texto de rótulo (índices 0, 1, ...). */
-function rootsForLabel(text: string, scope: ParentNode): Element[] {
-  const roots: Element[] = [];
-  for (let index = 0; index < MAX_SAME_LABEL; index++) {
-    const root = locate({ by: 'label', text, index }, scope);
-    if (!root) break;
-    roots.push(root);
-  }
+function rootsForLabel(text: string, scope: ParentNode, memo?: Map<string, Element[]>): Element[] {
+  const cached = memo?.get(text);
+  if (cached) return cached;
+  const roots = locateAll({ by: 'label', text }, scope, MAX_SAME_LABEL);
+  memo?.set(text, roots);
   return roots;
 }
 
@@ -167,6 +153,7 @@ function findByLabel(
   el: Element,
   scope: ParentNode,
   skipOptionLabels: boolean,
+  memo: Map<string, Element[]>,
 ): { root: Element; label: string } | null {
   const doc = el.ownerDocument;
   let level = 0;
@@ -181,7 +168,7 @@ function findByLabel(
       if (skipOptionLabels && labelTargetIsRadio(cand)) continue;
       const label = cleanLabel(candidateText(cand));
       if (!label) continue;
-      const hits = rootsForLabel(label, scope).filter((r) => r.contains(el));
+      const hits = rootsForLabel(label, scope, memo).filter((r) => r.contains(el));
       // a menor raiz que contém o elemento
       const root = hits.sort((x, y) => (x.contains(y) ? 1 : -1))[0];
       if (root) return { root, label };
@@ -205,7 +192,10 @@ function findByControl(el: Element): { root: Element; label: string | null } | n
 export function resolveField(el: Element): FieldHit | null {
   const container = findContainer(el);
   const scope: ParentNode = container?.element ?? el.ownerDocument;
-  const found = findByLabel(el, scope, true) ?? findByLabel(el, scope, false) ?? findByControl(el);
+  // O DOM não muda durante a chamada: raízes por texto de rótulo são calculadas uma vez só.
+  const memo = new Map<string, Element[]>();
+  const found =
+    findByLabel(el, scope, true, memo) ?? findByLabel(el, scope, false, memo) ?? findByControl(el);
   if (!found) return null;
   const adapter = adapters().resolve(found.root, 'auto');
   return {

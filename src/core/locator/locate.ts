@@ -26,10 +26,12 @@ function ownerDoc(scope: ParentNode): Document {
 }
 
 /** Texto do candidato; ícones (svg e `<i>` sem texto) não contribuem. */
-function candidateText(el: Element): string {
+export function candidateText(el: Element): string {
   if (el.tagName !== 'LABEL' && el.tagName !== 'LEGEND' && el.hasAttribute('aria-label')) {
     return el.getAttribute('aria-label') ?? '';
   }
+  // Caminho rápido: sem ícones dentro, não há o que remover (evita clonar o nó).
+  if (!el.querySelector('svg, i')) return el.textContent ?? '';
   const clone = el.cloneNode(true) as Element;
   for (const icon of Array.from(clone.querySelectorAll('svg, i'))) {
     if ((icon.textContent ?? '').trim() === '') icon.remove();
@@ -109,7 +111,9 @@ function rootsFor(candidate: Element, scope: ParentNode): Element[] {
 }
 
 function collectCandidates(scope: ParentNode): Element[] {
-  const set = new Set<Element>(scope.querySelectorAll(CANDIDATE_SELECTOR));
+  const found = scope.querySelectorAll(CANDIDATE_SELECTOR);
+  const set = new Set<Element>(found);
+  const sizeBefore = set.size;
   const doc = ownerDoc(scope);
   for (const control of Array.from(scope.querySelectorAll('[aria-labelledby]'))) {
     for (const id of (control.getAttribute('aria-labelledby') ?? '').split(/\s+/)) {
@@ -118,15 +122,23 @@ function collectCandidates(scope: ParentNode): Element[] {
       if (el && inScope(el, scope)) set.add(el);
     }
   }
-  return Array.from(set).sort((a, b) =>
+  const all = Array.from(set);
+  // querySelectorAll já devolve em ordem de documento; só reordena se entraram referências extras.
+  if (set.size === sizeBefore) return all;
+  return all.sort((a, b) =>
     a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1,
   );
 }
 
-function locateByLabel(
+/**
+ * Raízes de todos os campos cujo rótulo casa com o localizador, em ordem de documento, numa
+ * única passada (o texto de cada candidato é calculado uma vez). Para no `max`-ésimo resultado.
+ */
+function labelRoots(
   locator: Extract<Locator, { by: 'label' }>,
   scope: ParentNode,
-): Element | null {
+  max: number,
+): Element[] {
   const wanted = normalizeLabel(locator.text);
   const exact = locator.exact !== false;
   const roots: Element[] = [];
@@ -137,8 +149,27 @@ function locateByLabel(
     for (const root of rootsFor(candidate, scope)) {
       if (!roots.includes(root)) roots.push(root);
     }
+    if (roots.length >= max) break;
   }
-  return roots[locator.index ?? 0] ?? null;
+  return roots;
+}
+
+function locateByLabel(
+  locator: Extract<Locator, { by: 'label' }>,
+  scope: ParentNode,
+): Element | null {
+  const index = locator.index ?? 0;
+  return labelRoots(locator, scope, index + 1)[index] ?? null;
+}
+
+/**
+ * Todas as raízes que `locate` devolveria para o localizador, nos índices 0, 1, ... (até `max`),
+ * sem reescanear a página a cada índice. Localizadores que não são de rótulo devolvem 0 ou 1.
+ */
+export function locateAll(locator: Locator, scope: ParentNode, max = 20): Element[] {
+  if (locator.by === 'label') return labelRoots(locator, scope, max).slice(0, max);
+  const one = locate(locator, scope);
+  return one ? [one] : [];
 }
 
 function escapeAttr(value: string): string {
