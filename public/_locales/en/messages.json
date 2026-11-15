@@ -1,0 +1,542 @@
+{
+  "vLabelTextEmpty": {
+    "message": "the label text cannot be empty"
+  },
+  "vCssEmpty": {
+    "message": "the CSS selector cannot be empty"
+  },
+  "vCssDeepInvalid": {
+    "message": "invalid \">>>\" selector: each part before and after \">>>\" needs a CSS selector"
+  },
+  "vNameAttrEmpty": {
+    "message": "the name attribute cannot be empty"
+  },
+  "vUrlPatternInvalid": {
+    "message": "invalid URL pattern (use the format https://host/path/*)"
+  },
+  "vUrlPatternRequired": {
+    "message": "enter at least one URL pattern"
+  },
+  "vContainerEmpty": {
+    "message": "the container selector cannot be empty"
+  },
+  "vFramesEnum": {
+    "message": "frames must be 'top' or 'all'"
+  },
+  "vFieldIdEmpty": {
+    "message": "the field id cannot be empty"
+  },
+  "vAdapterEmpty": {
+    "message": "the adapter cannot be empty"
+  },
+  "vDelayNumber": {
+    "message": "the delay must be a number"
+  },
+  "vDelayInt": {
+    "message": "the delay must be a whole number of milliseconds"
+  },
+  "vDelayNegative": {
+    "message": "the delay cannot be negative"
+  },
+  "vDelayMax": {
+    "message": "the maximum delay is 60000 ms (60 s)"
+  },
+  "vKeyDelayNumber": {
+    "message": "the key interval must be a number"
+  },
+  "vKeyDelayInt": {
+    "message": "the key interval must be a whole number of milliseconds"
+  },
+  "vKeyDelayNegative": {
+    "message": "the key interval cannot be negative"
+  },
+  "vKeyDelayMax": {
+    "message": "the maximum key interval is 2000 ms"
+  },
+  "vRuleIdEmpty": {
+    "message": "the rule id cannot be empty"
+  },
+  "vRuleNameEmpty": {
+    "message": "the rule name cannot be empty"
+  },
+  "vPriorityNumber": {
+    "message": "the priority must be a number"
+  },
+  "vPriorityInt": {
+    "message": "the priority must be a whole number"
+  },
+  "vPriorityMin": {
+    "message": "the minimum priority is 0"
+  },
+  "vPriorityMax": {
+    "message": "the maximum priority is 100"
+  },
+  "vDateInvalid": {
+    "message": "invalid date (use the ISO 8601 format)"
+  },
+  "vVarKeyInvalid": {
+    "message": "invalid key (use lowercase letters, numbers and _, starting with a letter)"
+  },
+  "vScopeEnum": {
+    "message": "scope must be 'sync' or 'local'"
+  },
+  "vDupFieldIds": {
+    "message": "duplicate field ids: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "vDupVarKeys": {
+    "message": "duplicate variable keys: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "vDupRuleIds": {
+    "message": "duplicate rule ids: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "descLabel": {
+    "message": "label \"$arg1$\"",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "descSelector": {
+    "message": "selector $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "exEndOfExpression": {
+    "message": "end of expression"
+  },
+  "exExpected": {
+    "message": "Expected $arg1$, found $arg2$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      },
+      "arg2": {
+        "content": "$2"
+      }
+    }
+  },
+  "exArgKind": {
+    "message": "Argument must be quoted text or a number, found $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "exEmpty": {
+    "message": "Empty expression"
+  },
+  "exInvalidSource": {
+    "message": "Invalid source: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "exNameAfterDot": {
+    "message": "a name after \".\""
+  },
+  "exFnNeedsText": {
+    "message": "$arg1$() requires exactly one text argument",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "exUseVar": {
+    "message": "Use var.<key>"
+  },
+  "exUseUrlQuery": {
+    "message": "Use url.query.<name>"
+  },
+  "exUnknownUrlSource": {
+    "message": "Unknown source: \"$arg1$\" (use url.query.<name>, url.path, url.host or url.href)",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "exNowNoProps": {
+    "message": "\"now\" has no properties"
+  },
+  "exUnknownSource": {
+    "message": "Unknown source: \"$arg1$\" (use var, url, now, field, text or quoted text)",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "exFilterName": {
+    "message": "a filter name after \"|\""
+  },
+  "exArgInt": {
+    "message": "Argument $arg1$ of \"$arg2$\" must be a whole number",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      },
+      "arg2": {
+        "content": "$2"
+      }
+    }
+  },
+  "exArgNumber": {
+    "message": "Argument $arg1$ of \"$arg2$\" must be a number",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      },
+      "arg2": {
+        "content": "$2"
+      }
+    }
+  },
+  "exExpectedPipe": {
+    "message": "Expected \"|\" or end of expression, found $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "exUnterminatedString": {
+    "message": "Text is missing its closing quote"
+  },
+  "exUnexpectedChar": {
+    "message": "Unexpected character \"$arg1$\"",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "exUnclosedBlock": {
+    "message": "Block \"{{\" is missing its closing \"}}\""
+  },
+  "exInvalidTimeZone": {
+    "message": "Invalid time zone: \"$arg1$\"",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "exInvalidNow": {
+    "message": "Invalid current date"
+  },
+  "exInvalidDate": {
+    "message": "\"$arg1$\" is not a valid date (use YYYY-MM-DD or DD/MM/YYYY)",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "exInvalidRegex": {
+    "message": "Invalid regular expression: \"$arg1$\"",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "exDecimals": {
+    "message": "The number of decimal places must be between 0 and 20"
+  },
+  "exUnknownFilter": {
+    "message": "Unknown filter: \"$arg1$\"",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "exInExpression": {
+    "message": "$arg1$ in \"{{ $arg2$ }}\"",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      },
+      "arg2": {
+        "content": "$2"
+      }
+    }
+  },
+  "exMissingValue": {
+    "message": "Missing value: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "exWithPosition": {
+    "message": "$arg1$ (position $arg2$)",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      },
+      "arg2": {
+        "content": "$2"
+      }
+    }
+  },
+  "errReadOnlyConfig": {
+    "message": "This configuration was saved by a newer version of the extension. Update the extension to edit it."
+  },
+  "errQuota": {
+    "message": "$arg1$ is too large to sync ($arg2$ KB of 8 KB). Reduce the number of fields.",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      },
+      "arg2": {
+        "content": "$2"
+      }
+    }
+  },
+  "errInvalidRule": {
+    "message": "Invalid rule: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "errInvalidVariables": {
+    "message": "Invalid variables: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "errInvalidSettings": {
+    "message": "Invalid preferences: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "errInvalidConfig": {
+    "message": "Invalid configuration: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "quotaWhatVariables": {
+    "message": "Variables"
+  },
+  "quotaWhatSettings": {
+    "message": "Preferences"
+  },
+  "quotaWhatIndex": {
+    "message": "Rule index"
+  },
+  "migNoSchemaVersion": {
+    "message": "Configuration has no valid schemaVersion; using an empty configuration."
+  },
+  "migUnknownVersion": {
+    "message": "Unknown configuration version ($arg1$); using an empty configuration.",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "migNewerVersion": {
+    "message": "Configuration version $arg1$ is newer than the supported one ($arg2$); loaded as read-only.",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      },
+      "arg2": {
+        "content": "$2"
+      }
+    }
+  },
+  "migNoMigration": {
+    "message": "No migration available from version $arg1$; using an empty configuration.",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "migInvalidSettings": {
+    "message": "Invalid preferences, using defaults: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "migVarDiscarded": {
+    "message": "Variable #$arg1$ discarded: $arg2$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      },
+      "arg2": {
+        "content": "$2"
+      }
+    }
+  },
+  "migVarDuplicate": {
+    "message": "Duplicate variable \"$arg1$\" discarded.",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "migRuleDiscarded": {
+    "message": "Rule $arg1$ discarded: $arg2$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      },
+      "arg2": {
+        "content": "$2"
+      }
+    }
+  },
+  "migRuleDuplicate": {
+    "message": "Duplicate rule $arg1$ discarded.",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "engNoAdapter": {
+    "message": "no compatible adapter"
+  },
+  "engFilledByRule": {
+    "message": "filled by rule $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "engSessionEnded": {
+    "message": "session ended"
+  },
+  "engVerifyFailed": {
+    "message": "verify-failed: the value was not applied to the field"
+  },
+  "engAlreadyHasValue": {
+    "message": "already has this value"
+  },
+  "engCannotUndo": {
+    "message": "cannot undo"
+  },
+  "adMultiselectNotFound": {
+    "message": "multiselect not found"
+  },
+  "adOptionNotFound": {
+    "message": "Option \"$arg1$\" not found",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "adCannotClearSelection": {
+    "message": "could not clear the selection"
+  },
+  "adSelectNotFound": {
+    "message": "native select not found"
+  },
+  "adCannotClear": {
+    "message": "cannot clear"
+  },
+  "adDateNotFound": {
+    "message": "Date field not found"
+  },
+  "adInvalidDate": {
+    "message": "Invalid date: \"$arg1$\" (use DD/MM/YYYY or YYYY-MM-DD)",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "adTextNotFound": {
+    "message": "Text control not found"
+  },
+  "adReactSelectNotFound": {
+    "message": "react-select not found"
+  },
+  "adValueNotChanged": {
+    "message": "the displayed value did not change"
+  },
+  "adNoClearButton": {
+    "message": "the field has no clear button"
+  },
+  "adSelect2NotFound": {
+    "message": "select2 not found"
+  },
+  "adLabelNotChanged": {
+    "message": "the displayed label did not change"
+  },
+  "adEditableNotFound": {
+    "message": "Editable element not found"
+  },
+  "adCannotClearText": {
+    "message": "could not clear the text"
+  },
+  "adChoiceNotFound": {
+    "message": "Choice control not found"
+  },
+  "adButtonDisabled": {
+    "message": "Button is disabled"
+  },
+  "adInvalidBoolean": {
+    "message": "Invalid boolean value: \"$arg1$\"",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "adCheckboxNotFound": {
+    "message": "Checkbox not found"
+  },
+  "extName": {
+    "message": "Autofill Assistant"
+  },
+  "extDescription": {
+    "message": "Automatically fills in form fields on the sites you choose, using rules you create yourself."
+  },
+  "optionsTitle": {
+    "message": "Settings"
+  }
+}

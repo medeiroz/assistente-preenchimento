@@ -13,9 +13,10 @@ export default defineConfig({
   srcDir: 'src',
   modules: ['@wxt-dev/module-vue'],
   manifest: ({ mode }) => ({
-    name: 'Assistente de Preenchimento',
-    description:
-      'Preenche campos de formulários automaticamente nos sites que você escolher, com regras que você mesmo cria.',
+    // Nome e descrição vêm de public/_locales/<idioma>/messages.json (chrome.i18n).
+    name: '__MSG_extName__',
+    description: '__MSG_extDescription__',
+    default_locale: 'pt_BR',
     homepage_url: 'https://github.com/medeiroz/assistente-preenchimento',
     // "tabs" só no build e2e: permite ao teste achar o tabId do harness por URL.
     permissions: [

@@ -1,6 +1,7 @@
 import { AdapterError, type FieldAdapter, type WriteOptions } from './types';
 import { defaultSleep, inShadow, keyInfo, normalizeSpaces, valueMatches } from './dom';
 import { deepQuery } from '../locator/deep-query';
+import { t } from '../i18n';
 
 const EDITABLE_VALUES = new Set(['', 'true', 'plaintext-only']);
 
@@ -100,7 +101,7 @@ export const contentEditableAdapter: FieldAdapter = {
   },
   async write(root, value, options?: WriteOptions) {
     const el = findEditable(root);
-    if (!el) throw new AdapterError('Elemento editável não encontrado', 'control-not-found');
+    if (!el) throw new AdapterError(t('adEditableNotFound'), 'control-not-found');
     el.focus();
     selectAll(el);
     if (options?.typing) {
@@ -118,13 +119,13 @@ export const contentEditableAdapter: FieldAdapter = {
   },
   async clear(root) {
     const el = findEditable(root);
-    if (!el) throw new AdapterError('Elemento editável não encontrado', 'control-not-found');
+    if (!el) throw new AdapterError(t('adEditableNotFound'), 'control-not-found');
     el.focus();
     selectAll(el);
     applyEdit(el, { inputType: 'deleteContentBackward', data: null }, '');
     el.blur();
     if (normalizeSpaces(el.textContent) !== '') {
-      throw new AdapterError('não foi possível limpar o texto', 'write-failed');
+      throw new AdapterError(t('adCannotClearText'), 'write-failed');
     }
   },
   verify(root, value, options) {

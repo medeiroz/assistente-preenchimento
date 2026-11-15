@@ -3,6 +3,7 @@ import { FILTER_NAMES as FILTER_NAMES_INTERNAL } from './filters';
 import { parseTemplate, templateHasBlocks } from './parser';
 import { ExpressionError } from './types';
 import type { ExpressionContext, ResolveResult, ValidateResult } from './types';
+import { t } from '../i18n';
 
 export type { ExpressionContext, ResolveResult, ValidateResult };
 
@@ -26,7 +27,7 @@ export function validateTemplate(template: string): ValidateResult {
     return { ok: true };
   } catch (e) {
     if (e instanceof ExpressionError) {
-      return { ok: false, error: `${e.message} (posição ${e.position})`, position: e.position };
+      return { ok: false, error: t('exWithPosition', e.message, e.position), position: e.position };
     }
     throw e;
   }

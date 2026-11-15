@@ -8,6 +8,7 @@ import {
   formatZodIssues,
   type Config,
 } from './schema';
+import { t } from '../i18n';
 
 /**
  * Migração da versão N para N+1, indexada por N. Vazio por enquanto
@@ -40,26 +41,24 @@ function fallback(warning: string): MigrateResult {
 export function migrateConfig(raw: unknown): MigrateResult {
   if (isEmpty(raw)) return { config: emptyConfig(), warnings: [] };
   if (!isRecord(raw) || typeof raw.schemaVersion !== 'number') {
-    return fallback('Configuração sem schemaVersion válido; usando configuração vazia.');
+    return fallback(t('migNoSchemaVersion'));
   }
 
   let current: unknown = raw;
   let version = raw.schemaVersion;
   if (!Number.isInteger(version) || version < 1) {
-    return fallback(`Versão de configuração desconhecida (${version}); usando configuração vazia.`);
+    return fallback(t('migUnknownVersion', version));
   }
   const readOnly = version > CURRENT_SCHEMA_VERSION;
   const warnings: string[] = [];
   if (readOnly) {
-    warnings.push(
-      `Configuração da versão ${version}, mais nova que a suportada (${CURRENT_SCHEMA_VERSION}); carregada somente para leitura.`,
-    );
+    warnings.push(t('migNewerVersion', version, CURRENT_SCHEMA_VERSION));
     version = CURRENT_SCHEMA_VERSION;
   }
   while (version < CURRENT_SCHEMA_VERSION) {
     const step = migrations[version];
     if (!step) {
-      return fallback(`Sem migração disponível da versão ${version}; usando configuração vazia.`);
+      return fallback(t('migNoMigration', version));
     }
     current = step(current);
     version++;
@@ -69,9 +68,7 @@ export function migrateConfig(raw: unknown): MigrateResult {
 
   const settings = SettingsSchema.safeParse(cfg.settings ?? {});
   if (!settings.success) {
-    warnings.push(
-      ...formatZodIssues(settings.error).map((e) => `Preferências inválidas, usando padrão: ${e}`),
-    );
+    warnings.push(...formatZodIssues(settings.error).map((e) => t('migInvalidSettings', e)));
   }
 
   const variables: Config['variables'] = [];
@@ -80,9 +77,9 @@ export function migrateConfig(raw: unknown): MigrateResult {
   rawVars.forEach((rv, i) => {
     const r = VariableSchema.safeParse(rv);
     if (!r.success) {
-      warnings.push(`Variável #${i + 1} descartada: ${formatZodIssues(r.error).join('; ')}`);
+      warnings.push(t('migVarDiscarded', i + 1, formatZodIssues(r.error).join('; ')));
     } else if (seenKeys.has(r.data.key)) {
-      warnings.push(`Variável "${r.data.key}" duplicada descartada.`);
+      warnings.push(t('migVarDuplicate', r.data.key));
     } else {
       seenKeys.add(r.data.key);
       variables.push(r.data);
@@ -96,9 +93,9 @@ export function migrateConfig(raw: unknown): MigrateResult {
     const r = RuleSchema.safeParse(rr);
     const label = isRecord(rr) && typeof rr.id === 'string' ? `"${rr.id}"` : `#${i + 1}`;
     if (!r.success) {
-      warnings.push(`Regra ${label} descartada: ${formatZodIssues(r.error).join('; ')}`);
+      warnings.push(t('migRuleDiscarded', label, formatZodIssues(r.error).join('; ')));
     } else if (seenIds.has(r.data.id)) {
-      warnings.push(`Regra ${label} duplicada descartada.`);
+      warnings.push(t('migRuleDuplicate', label));
     } else {
       seenIds.add(r.data.id);
       rules.push(r.data);

@@ -1,6 +1,7 @@
 import { AdapterError, type FieldAdapter } from './types';
 import { normalizeSpaces, waitFor } from './dom';
 import { deepQuery } from '../locator/deep-query';
+import { t } from '../i18n';
 
 type Kind = 'toggle' | 'radio' | 'checkbox';
 
@@ -116,11 +117,11 @@ export const nativeChoiceAdapter: FieldAdapter = {
   },
   async write(root, value) {
     const kind = kindOf(root);
-    if (!kind) throw new AdapterError('Controle de escolha não encontrado', 'control-not-found');
+    if (!kind) throw new AdapterError(t('adChoiceNotFound'), 'control-not-found');
     if (kind === 'toggle') {
       const button = findButton(root, value);
-      if (!button) throw new AdapterError(`Opção "${value}" não encontrada`, 'option-not-found');
-      if (button.disabled) throw new AdapterError('Botão desabilitado', 'write-failed');
+      if (!button) throw new AdapterError(t('adOptionNotFound', value), 'option-not-found');
+      if (button.disabled) throw new AdapterError(t('adButtonDisabled'), 'write-failed');
       if (!isActive(button)) {
         button.click();
         await waitFor(() => isActive(button), 500);
@@ -129,7 +130,7 @@ export const nativeChoiceAdapter: FieldAdapter = {
     }
     if (kind === 'radio') {
       const radio = findRadio(root, value);
-      if (!radio) throw new AdapterError(`Opção "${value}" não encontrada`, 'option-not-found');
+      if (!radio) throw new AdapterError(t('adOptionNotFound', value), 'option-not-found');
       if (radio.disabled) throw new AdapterError('Radio desabilitado', 'write-failed');
       if (!radio.checked) radio.click();
       return;
@@ -137,7 +138,7 @@ export const nativeChoiceAdapter: FieldAdapter = {
     const box = inputs(root, 'checkbox')[0];
     const wanted = parseBool(value);
     if (!box || wanted === null) {
-      throw new AdapterError(`Valor booleano inválido: "${value}"`, 'write-failed');
+      throw new AdapterError(t('adInvalidBoolean', value), 'write-failed');
     }
     if (box.disabled) throw new AdapterError('Checkbox desabilitado', 'write-failed');
     if (box.checked !== (wanted === 'Sim')) box.click();
@@ -145,10 +146,10 @@ export const nativeChoiceAdapter: FieldAdapter = {
   /** Só checkbox: desmarca. Radios e toggles não têm estado "vazio" seguro, então falham. */
   async clear(root) {
     if (kindOf(root) !== 'checkbox') {
-      throw new AdapterError('não é possível limpar', 'write-failed');
+      throw new AdapterError(t('adCannotClear'), 'write-failed');
     }
     const box = inputs(root, 'checkbox')[0];
-    if (!box) throw new AdapterError('Checkbox não encontrado', 'control-not-found');
+    if (!box) throw new AdapterError(t('adCheckboxNotFound'), 'control-not-found');
     if (box.disabled) throw new AdapterError('Checkbox desabilitado', 'write-failed');
     if (box.checked) box.click();
   },

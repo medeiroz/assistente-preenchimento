@@ -8,6 +8,7 @@ import {
   startOfMonth,
 } from './dates';
 import { ExpressionError, type LocalDateTime, type Value } from './types';
+import { t } from '../i18n';
 
 type ArgType = 'string' | 'int' | 'decimal';
 type ArgValue = string | number;
@@ -74,10 +75,7 @@ function asDate(v: Present): LocalDateTime {
   if (v.kind === 'date') return v.date;
   const parsed = parseDateText(valueToText(v));
   if (!parsed) {
-    throw new ExpressionError(
-      `"${valueToText(v)}" não é uma data válida (use AAAA-MM-DD ou DD/MM/AAAA)`,
-      0,
-    );
+    throw new ExpressionError(t('exInvalidDate', valueToText(v)), 0);
   }
   return parsed;
 }
@@ -109,7 +107,7 @@ function compileRegex(pattern: string): RegExp {
   try {
     return new RegExp(pattern);
   } catch {
-    throw new ExpressionError(`Expressão regular inválida: "${pattern}"`, 0);
+    throw new ExpressionError(t('exInvalidRegex', pattern), 0);
   }
 }
 
@@ -155,7 +153,7 @@ function formatPlain(n: number): string {
 
 function checkPlaces(places: number): number {
   if (!Number.isInteger(places) || places < 0 || places > 20) {
-    throw new ExpressionError('O número de casas decimais deve estar entre 0 e 20', 0);
+    throw new ExpressionError(t('exDecimals'), 0);
   }
   return places;
 }
@@ -237,7 +235,7 @@ export function getFilterDef(name: string): { args: readonly ArgType[]; minArgs:
 
 export function applyFilter(name: string, input: Value, args: ArgValue[]): Value {
   const def = Object.hasOwn(FILTERS, name) ? FILTERS[name] : undefined;
-  if (!def) throw new ExpressionError(`Filtro desconhecido: "${name}"`, 0);
+  if (!def) throw new ExpressionError(t('exUnknownFilter', name), 0);
   if (name === 'default') return input ?? text(String(args[0]));
   if (name === 'ifEmpty') {
     return input === null || valueToText(input).trim() === '' ? text(String(args[0])) : input;

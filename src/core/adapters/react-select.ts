@@ -1,6 +1,7 @@
 import { AdapterError, type FieldAdapter } from './types';
 import { dispatch, normalizeSpaces, setNativeValue, waitFor } from './dom';
 import { deepQuery } from '../locator/deep-query';
+import { t } from '../i18n';
 
 const WAIT_MS = 1000;
 
@@ -94,7 +95,7 @@ export const reactSelectAdapter: FieldAdapter = {
   },
   async write(root, value) {
     const parts = findParts(root);
-    if (!parts) throw new AdapterError('react-select não encontrado', 'control-not-found');
+    if (!parts) throw new AdapterError(t('adReactSelectNotFound'), 'control-not-found');
     const { input } = parts;
     const wanted = normalizeSpaces(value);
 
@@ -106,7 +107,7 @@ export const reactSelectAdapter: FieldAdapter = {
     const option = await waitFor(() => findOption(input, wanted), WAIT_MS);
     if (!option) {
       resetFilter(input);
-      throw new AdapterError(`Opção "${value}" não encontrada`, 'option-not-found');
+      throw new AdapterError(t('adOptionNotFound', value), 'option-not-found');
     }
     dispatch(option, 'mousedown');
     dispatch(option, 'mouseup');
@@ -114,20 +115,20 @@ export const reactSelectAdapter: FieldAdapter = {
     await waitFor(() => this.read(root) === wanted, WAIT_MS);
     resetFilter(input);
     if (this.read(root) !== wanted) {
-      throw new AdapterError('o valor exibido não mudou', 'write-failed');
+      throw new AdapterError(t('adValueNotChanged'), 'write-failed');
     }
   },
   async clear(root) {
     const parts = findParts(root);
-    if (!parts) throw new AdapterError('react-select não encontrado', 'control-not-found');
+    if (!parts) throw new AdapterError(t('adReactSelectNotFound'), 'control-not-found');
     if (this.read(root) === null) return;
     const button = findClearIndicator(parts.control);
-    if (!button) throw new AdapterError('o campo não tem botão de limpar', 'write-failed');
+    if (!button) throw new AdapterError(t('adNoClearButton'), 'write-failed');
     dispatch(button, 'mousedown');
     await waitFor(() => this.read(root) === null, WAIT_MS);
     resetFilter(parts.input);
     if (this.read(root) !== null) {
-      throw new AdapterError('não foi possível limpar a seleção', 'write-failed');
+      throw new AdapterError(t('adCannotClearSelection'), 'write-failed');
     }
   },
   verify(root, value) {

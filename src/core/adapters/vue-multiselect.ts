@@ -1,5 +1,6 @@
 import { AdapterError, type FieldAdapter } from './types';
 import { dispatch, normalizeSpaces, setNativeValue, waitFor } from './dom';
+import { t } from '../i18n';
 
 const WAIT_MS = 1000;
 const SETTLE_MS = 300;
@@ -79,7 +80,7 @@ export const vueMultiselectAdapter: FieldAdapter = {
   },
   async write(root, value) {
     const ms = findSelect(root);
-    if (!ms) throw new AdapterError('multiselect não encontrado', 'control-not-found');
+    if (!ms) throw new AdapterError(t('adMultiselectNotFound'), 'control-not-found');
     const wanted = normalizeSpaces(value);
 
     openDropdown(ms);
@@ -94,7 +95,7 @@ export const vueMultiselectAdapter: FieldAdapter = {
     }
     if (!option) {
       await closeDropdown(ms);
-      throw new AdapterError(`Opção "${value}" não encontrada`, 'option-not-found');
+      throw new AdapterError(t('adOptionNotFound', value), 'option-not-found');
     }
 
     dispatch(option, 'mousedown');
@@ -104,7 +105,7 @@ export const vueMultiselectAdapter: FieldAdapter = {
   },
   async clear(root) {
     const ms = findSelect(root);
-    if (!ms) throw new AdapterError('multiselect não encontrado', 'control-not-found');
+    if (!ms) throw new AdapterError(t('adMultiselectNotFound'), 'control-not-found');
     if (this.read(root) === null) return;
 
     const button = findClearButton(ms);
@@ -128,7 +129,7 @@ export const vueMultiselectAdapter: FieldAdapter = {
       await closeDropdown(ms);
     }
     if (this.read(root) !== null) {
-      throw new AdapterError('não foi possível limpar a seleção', 'write-failed');
+      throw new AdapterError(t('adCannotClearSelection'), 'write-failed');
     }
   },
   verify(root, value) {

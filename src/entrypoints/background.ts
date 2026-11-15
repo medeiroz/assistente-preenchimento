@@ -2,6 +2,7 @@ import { parseRule, type Rule } from '../core/model';
 import { createFramesBackground, createFrameRegistry } from '../core/frames';
 import { createRecorderBackground } from '../core/recorder';
 import { chromeSyncRepository, seedIfEmpty } from '../core/storage';
+import { initI18n } from '../shared/i18n';
 import { isMessage } from '../shared/messages';
 import { contentScriptFile } from '../shared/content-script';
 import {
@@ -87,6 +88,7 @@ function menuApi() {
 }
 
 export default defineBackground(() => {
+  initI18n();
   console.info('[assistente] service worker iniciado');
   const run = (): void => {
     seedOnce()

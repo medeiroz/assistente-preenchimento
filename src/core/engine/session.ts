@@ -3,6 +3,7 @@ import type { AdapterRegistry, FieldAdapter } from '../adapters/types';
 import type { LocateFn } from '../locator/types';
 import { describeLocator } from '../locator/types';
 import type { ResolveResult } from '../expressions';
+import { t } from '../i18n';
 
 export interface SessionDeps {
   locate: LocateFn;
@@ -129,7 +130,7 @@ export function createSession(rule: Rule, container: Element, deps: SessionDeps)
       st.seen = true;
       const adapter = deps.adapters.resolve(root, f.adapter);
       if (!adapter) {
-        st.snapError = 'nenhum adaptador compatível';
+        st.snapError = t('engNoAdapter');
         return;
       }
       st.adapter = adapter;
@@ -187,7 +188,7 @@ export function createSession(rule: Rule, container: Element, deps: SessionDeps)
     const owner = st.root ? deps.claimedBy?.(st.root) : null;
     if (!owner) return null;
     return mark(f, st, 'skipped-already-handled', {
-      message: `preenchido pela regra ${owner}`,
+      message: t('engFilledByRule', owner),
     });
   }
 
@@ -210,10 +211,10 @@ export function createSession(rule: Rule, container: Element, deps: SessionDeps)
     try {
       const opts = f.typing ? { typing: f.typing, sleep, aborted: () => ended } : undefined;
       await adapter.write(root, value, opts);
-      if (ended) return report(f, st, 'error', { message: 'sessão encerrada' });
+      if (ended) return report(f, st, 'error', { message: t('engSessionEnded') });
       if (!adapter.verify(root, value, opts)) {
         return mark(f, st, 'error', {
-          message: 'verify-failed: o valor não foi aplicado ao campo',
+          message: t('engVerifyFailed'),
         });
       }
       deps.claim?.(root);
@@ -263,10 +264,10 @@ export function createSession(rule: Rule, container: Element, deps: SessionDeps)
     if (current === resolved.value) {
       // Já preenchido por esta sessão: preserva 'filled' (e o valor anterior) para o Desfazer.
       if (st.outcome === 'filled') {
-        return report(f, st, 'skipped-already-handled', { message: 'já está com este valor' });
+        return report(f, st, 'skipped-already-handled', { message: t('engAlreadyHasValue') });
       }
       st.previousValue = current;
-      return mark(f, st, 'skipped-already-handled', { message: 'já está com este valor' });
+      return mark(f, st, 'skipped-already-handled', { message: t('engAlreadyHasValue') });
     }
     st.previousValue = current;
     st.wasDefault = adapter.isDefault(root, f.defaultValue);
@@ -324,7 +325,7 @@ export function createSession(rule: Rule, container: Element, deps: SessionDeps)
             ...base,
             outcome: 'error',
             previousValue: st.newValue ?? null,
-            message: 'não é possível desfazer',
+            message: t('engCannotUndo'),
           });
           continue;
         }

@@ -1,4 +1,5 @@
 import { ExpressionError, type LocalDateTime } from './types';
+import { t } from '../i18n';
 
 export const DEFAULT_TIME_ZONE = 'America/Sao_Paulo';
 export const DEFAULT_DATE_FORMAT = 'DD/MM/YYYY';
@@ -21,10 +22,10 @@ export function toLocalDateTime(instant: Date, timeZone: string): LocalDateTime 
       hourCycle: 'h23',
     });
   } catch {
-    throw new ExpressionError(`Fuso horário inválido: "${timeZone}"`, 0);
+    throw new ExpressionError(t('exInvalidTimeZone', timeZone), 0);
   }
   if (Number.isNaN(instant.getTime())) {
-    throw new ExpressionError('Data atual inválida', 0);
+    throw new ExpressionError(t('exInvalidNow'), 0);
   }
   const parts = fmt.formatToParts(instant);
   const get = (type: string): number => {

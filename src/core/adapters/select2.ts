@@ -1,6 +1,7 @@
 import { AdapterError, type FieldAdapter } from './types';
 import { dispatch, normalizeSpaces, waitFor } from './dom';
 import { deepQuery } from '../locator/deep-query';
+import { t } from '../i18n';
 
 const WAIT_MS = 1000;
 
@@ -59,10 +60,10 @@ export const select2Adapter: FieldAdapter = {
   },
   async write(root, value) {
     const select = findSelect(root);
-    if (!select) throw new AdapterError('select2 não encontrado', 'control-not-found');
+    if (!select) throw new AdapterError(t('adSelect2NotFound'), 'control-not-found');
     if (select.disabled) throw new AdapterError('Select desabilitado', 'write-failed');
     const option = findOption(select, normalizeSpaces(value));
-    if (!option) throw new AdapterError(`Opção "${value}" não encontrada`, 'option-not-found');
+    if (!option) throw new AdapterError(t('adOptionNotFound', value), 'option-not-found');
 
     select.value = option.value;
     // O Select2 escuta `change` via jQuery, que também recebe o evento nativo.
@@ -70,12 +71,12 @@ export const select2Adapter: FieldAdapter = {
     const expected = normalizeSpaces(option.textContent);
     await waitFor(() => renderedText(select) === expected, WAIT_MS);
     if (renderedText(select) !== expected) {
-      throw new AdapterError('o rótulo exibido não mudou', 'write-failed');
+      throw new AdapterError(t('adLabelNotChanged'), 'write-failed');
     }
   },
   async clear(root) {
     const select = findSelect(root);
-    if (!select) throw new AdapterError('select2 não encontrado', 'control-not-found');
+    if (!select) throw new AdapterError(t('adSelect2NotFound'), 'control-not-found');
     if (select.disabled) throw new AdapterError('Select desabilitado', 'write-failed');
     if (renderedText(select) === null) return;
     const empty = Array.from(select.options).find((o) => o.value === '');
@@ -84,7 +85,7 @@ export const select2Adapter: FieldAdapter = {
     dispatch(select, 'change', { cancelable: false });
     await waitFor(() => renderedText(select) === null, WAIT_MS);
     if (renderedText(select) !== null) {
-      throw new AdapterError('não foi possível limpar a seleção', 'write-failed');
+      throw new AdapterError(t('adCannotClearSelection'), 'write-failed');
     }
   },
   verify(root, value) {

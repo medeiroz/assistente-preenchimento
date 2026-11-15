@@ -12,6 +12,7 @@ import {
   variableScope,
 } from '../model';
 import type { ConfigRepository, Unsubscribe } from './types';
+import { t } from '../i18n';
 
 export interface StorageAreaLike {
   get(keys?: string | string[] | null): Promise<Record<string, unknown>>;
@@ -30,9 +31,7 @@ export interface ChromeSyncDeps {
 
 export class ReadOnlyConfigError extends Error {
   constructor() {
-    super(
-      'Esta configuração foi salva por uma versão mais nova da extensão. Atualize a extensão para editar.',
-    );
+    super(t('errReadOnlyConfig'));
     this.name = 'ReadOnlyConfigError';
   }
 }
@@ -102,9 +101,7 @@ function assertFits(key: string, value: unknown, what: string): void {
   const bytes = measureItem(key, value);
   if (bytes > MAX_ITEM_BYTES) {
     const kb = (bytes / 1024).toFixed(1);
-    throw new StorageQuotaError(
-      `${what} muito grande para sincronizar (${kb} KB de 8 KB). Reduza o número de campos.`,
-    );
+    throw new StorageQuotaError(t('errQuota', what, kb));
   }
 }
 
@@ -251,7 +248,7 @@ export function createChromeSyncRepository(deps: ChromeSyncDeps): ChromeSyncRepo
         await readMetaForWrite();
         const parsed = RuleSchema.safeParse(rule);
         if (!parsed.success) {
-          throw new Error(`Regra inválida: ${formatZodIssues(parsed.error).join('; ')}`);
+          throw new Error(t('errInvalidRule', formatZodIssues(parsed.error).join('; ')));
         }
         const valid: Rule = { ...parsed.data, updatedAt: new Date().toISOString() };
         const key = ruleItemKey(valid.id);
@@ -284,11 +281,11 @@ export function createChromeSyncRepository(deps: ChromeSyncDeps): ChromeSyncRepo
         await readMetaForWrite();
         const parsed = ConfigSchema.shape.variables.safeParse(vars);
         if (!parsed.success) {
-          throw new Error(`Variáveis inválidas: ${formatZodIssues(parsed.error).join('; ')}`);
+          throw new Error(t('errInvalidVariables', formatZodIssues(parsed.error).join('; ')));
         }
         const existingLocal = await readLocalValues();
         const { syncVars, localValues } = splitVariables(parsed.data, existingLocal, false);
-        assertFits(VARIABLES_KEY, syncVars, 'Variáveis');
+        assertFits(VARIABLES_KEY, syncVars, t('quotaWhatVariables'));
         await writeVariables(localValues, existingLocal, () =>
           sync.set({ [VARIABLES_KEY]: syncVars }),
         );
@@ -300,9 +297,9 @@ export function createChromeSyncRepository(deps: ChromeSyncDeps): ChromeSyncRepo
         await readMetaForWrite();
         const parsed = SettingsSchema.safeParse(settings);
         if (!parsed.success) {
-          throw new Error(`Preferências inválidas: ${formatZodIssues(parsed.error).join('; ')}`);
+          throw new Error(t('errInvalidSettings', formatZodIssues(parsed.error).join('; ')));
         }
-        assertFits(SETTINGS_KEY, parsed.data, 'Preferências');
+        assertFits(SETTINGS_KEY, parsed.data, t('quotaWhatSettings'));
         await sync.set({ [SETTINGS_KEY]: parsed.data });
       });
     },
@@ -312,7 +309,7 @@ export function createChromeSyncRepository(deps: ChromeSyncDeps): ChromeSyncRepo
         await readMetaForWrite();
         const parsed = ConfigSchema.safeParse(config);
         if (!parsed.success) {
-          throw new Error(`Configuração inválida: ${formatZodIssues(parsed.error).join('; ')}`);
+          throw new Error(t('errInvalidConfig', formatZodIssues(parsed.error).join('; ')));
         }
         const cfg = parsed.data;
         const items: Record<string, unknown> = {};
@@ -332,9 +329,9 @@ export function createChromeSyncRepository(deps: ChromeSyncDeps): ChromeSyncRepo
           ...nextMeta(existing[META_KEY], ruleIds),
           schemaVersion: cfg.schemaVersion,
         };
-        assertFits(VARIABLES_KEY, syncVars, 'Variáveis');
-        assertFits(SETTINGS_KEY, cfg.settings, 'Preferências');
-        assertFits(META_KEY, items[META_KEY], 'Índice de regras');
+        assertFits(VARIABLES_KEY, syncVars, t('quotaWhatVariables'));
+        assertFits(SETTINGS_KEY, cfg.settings, t('quotaWhatSettings'));
+        assertFits(META_KEY, items[META_KEY], t('quotaWhatIndex'));
 
         const stale = Object.keys(existing).filter(
           (k) => k.startsWith(RULE_PREFIX) && !ruleIds.includes(k.slice(RULE_PREFIX.length)),
