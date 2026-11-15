@@ -25,7 +25,7 @@ const RULE_KEYS = [
   'fields',
   'updatedAt',
 ];
-const TRIGGER_KEYS = ['urlPatterns', 'queryParams', 'container', 'settleMs'];
+const TRIGGER_KEYS = ['urlPatterns', 'queryParams', 'container', 'settleMs', 'frames'];
 const CONTAINER_KEYS = ['selector', 'textContains'];
 const BEHAVIOR_KEYS = ['mode', 'overwrite', 'refill'];
 const FIELD_KEYS = [
@@ -122,6 +122,7 @@ export function ruleToDraft(rule: Rule): RuleDraft {
     }),
   };
   if (rule.trigger.queryParams) draft.queryParams = { ...rule.trigger.queryParams };
+  if (rule.trigger.frames === 'all') draft.allFrames = true;
   const extras: [keyof RuleDraft, Extra | undefined][] = [
     ['extra', pickExtra(rule, RULE_KEYS)],
     ['triggerExtra', pickExtra(rule.trigger, TRIGGER_KEYS)],
@@ -168,6 +169,8 @@ export function draftToRuleInput(draft: RuleDraft, opts: BuildOptions = {}): Rul
     settleMs: draft.settleMs,
   };
   if (draft.queryParams) trigger.queryParams = { ...draft.queryParams };
+  // Só entra quando 'all': o JSON de regras sem iframes não muda.
+  if (draft.allFrames) trigger.frames = 'all';
   if (selector || text) {
     trigger.container = {
       ...draft.containerExtra,

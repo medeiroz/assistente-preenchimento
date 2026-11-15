@@ -281,6 +281,20 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
       <button type="button" class="btn" @click="addPattern">Adicionar padrão de URL</button>
 
       <div class="control">
+        <label class="inline" for="all-frames">
+          <input id="all-frames" v-model="draft.allFrames" type="checkbox" />
+          <span>Atuar também em iframes</span>
+        </label>
+        <p v-if="draft.allFrames" class="hint" data-testid="info-frames">
+          Esta regra atua em iframes: cada iframe cuja própria URL case com o padrão acima é
+          preenchido. Iframes de outro site precisam de permissão para o endereço deles.
+        </p>
+        <p v-else class="hint">
+          Sem isto, a regra só preenche a página principal, não os formulários dentro de iframes.
+        </p>
+      </div>
+
+      <div class="control">
         <label for="container-selector">Contêiner: seletor CSS (opcional)</label>
         <input
           id="container-selector"

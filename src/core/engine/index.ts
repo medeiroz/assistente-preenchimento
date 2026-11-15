@@ -2,6 +2,8 @@ export {
   matchesUrlPattern,
   matchesTrigger,
   rulesForUrl,
+  rulesForFrame,
+  frameUrlOf,
   containerMatches,
   patternsMayOverlap,
   overlappingRules,

@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import type { RunReport } from '../../../core/model';
-import type { TabStatus } from '../../../shared/messages';
+import type { PopupStatus } from '../lib/frames';
 import RecordingStarting from './RecordingStarting.vue';
 import RecordingStatus from './RecordingStatus.vue';
 import ReportList from './ReportList.vue';
 import RuleList from './RuleList.vue';
 
 defineProps<{
-  status: TabStatus;
+  status: PopupStatus;
   report: RunReport | null;
   active: boolean;
   canUndo: boolean;

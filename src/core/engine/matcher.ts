@@ -1,4 +1,4 @@
-import type { Rule, Trigger } from '../model/schema';
+import { triggerFrames, type Rule, type Trigger } from '../model/schema';
 
 function escapeRegex(s: string): string {
   return s.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
@@ -58,6 +58,31 @@ export function matchesTrigger(trigger: Trigger, url: string): boolean {
 /** Regras habilitadas cujo gatilho casa com a URL (não filtra por behavior.mode). */
 export function rulesForUrl(rules: Rule[], url: string): Rule[] {
   return rules.filter((r) => r.enabled && matchesTrigger(r.trigger, url));
+}
+
+/**
+ * Regras do frame: no frame de topo valem todas as que casam com a URL; num frame filho só as
+ * com `frames: 'all'`.
+ */
+export function rulesForFrame(rules: Rule[], url: string, isTop: boolean): Rule[] {
+  const matching = rulesForUrl(rules, url);
+  return isTop ? matching : matching.filter((r) => triggerFrames(r.trigger) === 'all');
+}
+
+/**
+ * URL que representa o documento para o casamento. Frames `about:blank`/`srcdoc` herdam a origem
+ * do pai, mas `location.origin` vale `null` neles: a origem vem de `window.origin` (ou, na falta,
+ * do pai imediato em `ancestorOrigins`). Sem isto nenhum padrão http(s) casaria com eles.
+ */
+export function frameUrlOf(win: {
+  location: { href: string; protocol: string; ancestorOrigins?: ArrayLike<string> };
+  origin?: string;
+}): string {
+  const { href, protocol, ancestorOrigins } = win.location;
+  if (protocol !== 'about:') return href;
+  const own = win.origin;
+  const origin = own && own !== 'null' ? own : ancestorOrigins?.[0];
+  return origin && origin !== 'null' ? `${origin}/` : href;
 }
 
 function normalizeSpaces(s: string): string {

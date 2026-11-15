@@ -296,3 +296,37 @@ describe('prioridade da regra', () => {
     expect(validateDraft({ ...d, priority: 0 }).ok).toBe(true);
   });
 });
+
+describe('atuar também em iframes', () => {
+  const withFrames = (frames: 'top' | 'all' | undefined): Rule => {
+    const r = makeRule();
+    return { ...r, trigger: { ...r.trigger, ...(frames ? { frames } : {}) } };
+  };
+  const triggerOf = (d: ReturnType<typeof ruleToDraft>) =>
+    (draftToRuleInput(d, { now: NOW }) as unknown as { trigger: { frames?: string } }).trigger;
+
+  it('"all" vai e volta e grava a chave', () => {
+    const d = ruleToDraft(withFrames('all'));
+    expect(d.allFrames).toBe(true);
+    expect(d.triggerExtra).toBeUndefined();
+    expect(triggerOf(d).frames).toBe('all');
+  });
+
+  it('ausente ou "top": não marca e não grava; desmarcar remove a chave', () => {
+    for (const f of [undefined, 'top' as const]) {
+      const d = ruleToDraft(withFrames(f));
+      expect(d.allFrames).toBeUndefined();
+      expect(triggerOf(d)).not.toHaveProperty('frames');
+    }
+    const d = ruleToDraft(withFrames('all'));
+    d.allFrames = false;
+    expect(triggerOf(d)).not.toHaveProperty('frames');
+  });
+
+  it('chaves extras do gatilho continuam preservadas', () => {
+    const r = withFrames('all');
+    const d = ruleToDraft({ ...r, trigger: { ...r.trigger, futuro: 1 } } as Rule);
+    expect(d.triggerExtra).toEqual({ futuro: 1 });
+    expect(triggerOf(d)).toMatchObject({ frames: 'all', futuro: 1 });
+  });
+});

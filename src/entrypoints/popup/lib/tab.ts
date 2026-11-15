@@ -18,9 +18,33 @@ export async function sendToTab<M extends Message['type']>(
   tabId: number,
   message: Extract<Message, { type: M }>,
   timeoutMs = STATUS_TIMEOUT_MS,
+  frameId?: number,
 ): Promise<MessageResponse<M>> {
   return withTimeout(
-    browser.tabs.sendMessage(tabId, message) as Promise<MessageResponse<M>>,
+    (frameId === undefined
+      ? browser.tabs.sendMessage(tabId, message)
+      : browser.tabs.sendMessage(tabId, message, { frameId })) as Promise<MessageResponse<M>>,
     timeoutMs,
+  );
+}
+
+/** Mensagem a um frame específico da aba (0 = topo). */
+export function sendToFrame<M extends Message['type']>(
+  tabId: number,
+  frameId: number,
+  message: Extract<Message, { type: M }>,
+  timeoutMs = STATUS_TIMEOUT_MS,
+): Promise<MessageResponse<M>> {
+  return sendToTab(tabId, message, timeoutMs, frameId);
+}
+
+/** Estado agregado dos frames, respondido pelo background. */
+export function askFrames(tabId: number): Promise<MessageResponse<'tab/frames'>> {
+  return withTimeout(
+    browser.runtime.sendMessage({
+      type: 'tab/frames',
+      payload: { tabId },
+    }) as Promise<MessageResponse<'tab/frames'>>,
+    STATUS_TIMEOUT_MS,
   );
 }

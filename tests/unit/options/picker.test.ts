@@ -210,3 +210,38 @@ describe('consumePickerDraft', () => {
     expect(PICKER_DRAFT_KEY in area.data).toBe(false);
   });
 });
+
+describe('captura dentro de iframe', () => {
+  it('a regra nasce com "Atuar também em iframes" e grava frames: all', () => {
+    const { draft } = newRuleFromCapture(
+      capture({ frames: 'all', urlPattern: 'http://localhost/*' }),
+    );
+    expect(draft.allFrames).toBe(true);
+    expect(draft.urlPatterns).toEqual(['http://localhost/*']);
+    draft.name = 'Iframe';
+    const input = draftToRuleInput(draft) as { trigger: { frames?: string } };
+    expect(input.trigger.frames).toBe('all');
+  });
+
+  it('captura do topo não marca iframes e não grava a chave', () => {
+    const { draft } = newRuleFromCapture(capture());
+    expect(draft.allFrames).toBeUndefined();
+    expect((draftToRuleInput(draft) as { trigger: object }).trigger).not.toHaveProperty('frames');
+  });
+
+  it('só regras com o mesmo alcance de frames recebem o campo', () => {
+    const top = rule();
+    const all = rule({
+      id: 'regra-iframe',
+      trigger: {
+        urlPatterns: ['http://127.0.0.1/*'],
+        container: { selector: '.eui-modal-wrapper.is-active', textContains: TITLE },
+        frames: 'all',
+      },
+    });
+    expect(findMatchingRules([top, all], capture()).map((r) => r.id)).toEqual(['regra-a']);
+    expect(findMatchingRules([top, all], capture({ frames: 'all' })).map((r) => r.id)).toEqual([
+      'regra-iframe',
+    ]);
+  });
+});

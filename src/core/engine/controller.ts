@@ -2,7 +2,7 @@ import type { FieldReport, Rule, RunReport } from '../model';
 import { createDefaultRegistry } from '../adapters';
 import { deepQuery, locate } from '../locator';
 import { resolveValue } from '../expressions';
-import { rulesForUrl } from './matcher';
+import { frameUrlOf, rulesForFrame } from './matcher';
 import { createContextWatcher, createUrlWatcher } from './watcher';
 import type { ContextWatcher, UrlWatcher } from './watcher';
 import { rulePriority } from '../model/schema';
@@ -20,6 +20,10 @@ export interface ControllerOptions {
     hideActionButton(id: string): void;
   };
   onReport?(r: RunReport): void;
+  /** Frame filho (padrão: topo). Num filho só rodam regras com `frames: 'all'`. */
+  isTopFrame?: boolean;
+  /** Regras ativas ou último relatório mudaram (alimenta o registro de frames). */
+  onStateChange?(): void;
 }
 
 export interface Controller {
@@ -57,6 +61,8 @@ const NOTABLE = new Set(['filled', 'error', 'not-found', 'undone']);
 
 export function createController(o: ControllerOptions): Controller {
   const win = o.window;
+  const isTop = o.isTopFrame ?? true;
+  const currentUrl = (): string => frameUrlOf(win);
   const adapters = createDefaultRegistry();
   let rules = o.rules;
   let variables = o.variables ?? {};
@@ -128,6 +134,7 @@ export function createController(o: ControllerOptions): Controller {
     }
     last = shown;
     o.onReport?.(shown);
+    o.onStateChange?.();
     if (shown.fields.some((f) => NOTABLE.has(f.outcome))) {
       const canUndo = shown.fields.some((f) => f.outcome === 'filled');
       if (canUndo) {
@@ -160,6 +167,7 @@ export function createController(o: ControllerOptions): Controller {
         const r = await enqueue(el, () => entry.session.undo());
         releaseClaims(a.rule.id, el);
         last = r;
+        o.onStateChange?.();
         o.ui.showReport(r);
         out.push(r);
       }
@@ -193,13 +201,13 @@ export function createController(o: ControllerOptions): Controller {
       resolveValue: (template) =>
         resolveValue(template, {
           variables,
-          url: new URL(win.location.href),
+          url: new URL(currentUrl()),
           now: new Date(),
           field: fieldValue,
           text: (sel) => deepQuery.querySelector(win.document, sel)?.textContent?.trim() ?? null,
         }),
       now: () => new Date(),
-      url: () => win.location.href,
+      url: currentUrl,
       claimedBy: (root) => {
         const c = claims.get(el)?.get(root);
         return c && c.ruleId !== rule.id ? c.name : null;
@@ -286,7 +294,7 @@ export function createController(o: ControllerOptions): Controller {
 
   /** Reconcilia os watchers com as regras que valem para a URL atual. */
   function sync(urlChanged: boolean): void {
-    const wanted = rulesForUrl(rules, win.location.href);
+    const wanted = rulesForFrame(rules, currentUrl(), isTop);
     for (const [id, a] of [...active]) {
       const w = wanted.find((r) => r.id === id);
       const changed = !!w && w !== a.rule && JSON.stringify(w) !== JSON.stringify(a.rule);
@@ -298,6 +306,7 @@ export function createController(o: ControllerOptions): Controller {
       }
     }
     for (const rule of wanted) if (!active.has(rule.id)) startActive(rule);
+    o.onStateChange?.();
   }
 
   return {
@@ -318,6 +327,7 @@ export function createController(o: ControllerOptions): Controller {
       batches.clear();
       chains.clear();
       claims.clear();
+      o.onStateChange?.();
     },
     async runNow(ruleId) {
       const out: RunReport[] = [];

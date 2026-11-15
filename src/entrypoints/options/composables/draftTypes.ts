@@ -59,6 +59,8 @@ export interface RuleDraft {
   containerSelector: string;
   containerText: string;
   settleMs: number;
+  /** Atua também em iframes (`trigger.frames: 'all'`). Ausente/false = só o frame de topo; não grava. */
+  allFrames?: boolean;
   /** Preservado sem edição. */
   queryParams?: Record<string, string>;
   /** Chaves desconhecidas da regra, do gatilho, do contêiner e do comportamento (preservadas). */
