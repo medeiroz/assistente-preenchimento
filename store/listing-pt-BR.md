@@ -18,7 +18,10 @@ O QUE FAZ
 • Preenche campos de formulários (texto, listas, opções, datas e listas com busca) conforme suas regras.
 • Funciona sozinho quando o formulário aparece ou com um clique, em um botão na própria página.
 • Mostra um aviso com o que foi preenchido, pulado ou não encontrado, e permite desfazer.
-• Aceita valores dinâmicos: variáveis suas, parâmetros do endereço da página, datas calculadas e o valor de outros campos.
+• Aceita valores dinâmicos: variáveis suas, parâmetros do endereço da página, datas calculadas, contas, formatação de moeda e o valor de outros campos.
+• Funciona também em iframes, em campos dentro de web components (shadow DOM) e em componentes como React-Select, Select2 e vue-multiselect.
+• Atalhos no menu do botão direito: capturar o campo, preencher com uma regra e pausar o site.
+• Interface em português e inglês.
 
 COMO FUNCIONA
 
@@ -31,15 +34,15 @@ A extensão já vem sem nenhuma regra e sem acesso a nenhum site. Quando você s
 
 PRIVACIDADE
 • Não coleta, não envia e não vende nenhum dado. Não há servidor, análise de uso nem anúncios.
-• Suas regras ficam no navegador e, se você usa a sincronização do Chrome, na sua própria conta Google (chrome.storage.sync).
+• Suas regras ficam no navegador e, se você usa a sincronização do Chrome, na sua própria conta Google (chrome.storage.sync). Variáveis marcadas "Só neste navegador" nunca sincronizam.
 • O acesso a um site só existe depois que você permite, e é usado apenas para preencher os campos das suas regras.
 • Código aberto (licença MIT): github.com/medeiroz/assistente-preenchimento
 
 LIMITAÇÕES
 • Não envia formulários: a extensão nunca clica em botões de enviar, emitir ou confirmar.
 • Não resolve CAPTCHA e não faz login por você.
-• Não guarde senhas em variáveis ou regras: elas são sincronizadas pela sua conta Google.
-• Funciona apenas em sites https. Páginas internas do Chrome e a Chrome Web Store não permitem extensões.
+• Não guarde senhas em regras. Para dados sensíveis, use variáveis "Só neste navegador" (não são criptografadas).
+• Funciona em sites https e http (sites http mostram um aviso de conexão não segura). Páginas internas do Chrome e a Chrome Web Store não permitem extensões.
 • Alguns sites com formulários muito personalizados podem exigir um seletor CSS na regra.
 
 Dúvidas e sugestões: github.com/medeiroz/assistente-preenchimento/issues

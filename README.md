@@ -40,6 +40,7 @@ a partir de regras que você mesmo cria, sem programar.
   mesmas páginas. Com 3 ou mais regras em modo botão, aparece um único botão "Preencher…" com menu.
 - **Importar/Exportar** a configuração e **adicionar regras de um arquivo** sem apagar as que você já tem.
 - **Permissão sob demanda**: a extensão só acessa um site depois que você permite.
+- **Português e inglês**: a interface segue o idioma do navegador.
 - **Não envia formulários**, não resolve CAPTCHA e não clica em botões de confirmação.
 
 ## Instalação
