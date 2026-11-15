@@ -161,6 +161,12 @@ function parseFilter(cur: Cursor): FilterCall {
         a.start,
       );
     }
+    if (type === 'decimal' && (a.kind !== 'number' || !Number.isFinite(a.value))) {
+      throw new ExpressionError(
+        `Argumento ${idx + 1} de "${nameTok.value}" deve ser um número`,
+        a.start,
+      );
+    }
   });
   return { name: nameTok.value, args, start: nameTok.start, end };
 }
