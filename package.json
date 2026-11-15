@@ -32,6 +32,7 @@
     "screenshots": "npm run build:e2e && node scripts/generate-screenshots.mjs"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@playwright/test": "^1.65.0",
     "@wxt-dev/module-vue": "^1.0.3",
     "esbuild": "0.28.2",
