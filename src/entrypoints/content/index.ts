@@ -5,6 +5,8 @@ import { isMessage, type TabStatus } from '../../shared/messages';
 import { createPageUi } from './page-ui';
 import { claimPage } from './guard';
 import { createPicker, deliverCapture } from './picker';
+import { createRecorder } from './recorder';
+import type { RecorderStatus } from '../../core/recorder/types';
 
 const E2E = import.meta.env.MODE === 'e2e';
 
@@ -45,6 +47,19 @@ export default defineContentScript({
           storage: browser.storage.local,
           sendMessage: (m) => browser.runtime.sendMessage(m),
         }).catch((e: unknown) => console.warn('[assistente] falha ao entregar a captura', e));
+      },
+    });
+
+    const recorder = createRecorder({
+      send: (field) =>
+        browser.runtime.sendMessage({
+          type: 'recorder/field',
+          payload: { field },
+        }) as Promise<RecorderStatus>,
+      onStop: (discard) => {
+        browser.runtime
+          .sendMessage({ type: 'recorder/stop', payload: { discard } })
+          .catch((e: unknown) => console.warn('[assistente] falha ao encerrar a gravação', e));
       },
     });
 
@@ -99,9 +114,24 @@ export default defineContentScript({
           picker.start();
           sendResponse(undefined);
           return false;
+        case 'recorder/state':
+          recorder.update(message.payload);
+          sendResponse(undefined);
+          return false;
         default:
           return false;
       }
     });
+
+    // Retoma a gravação depois de uma navegação completa (o background pode estar dormindo).
+    try {
+      const status = (await browser.runtime.sendMessage({
+        type: 'recorder/status',
+        payload: {},
+      })) as RecorderStatus | undefined;
+      if (status?.active) recorder.start(status);
+    } catch {
+      // Sem resposta do background: sem gravação a retomar.
+    }
   },
 });
