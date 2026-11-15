@@ -24,6 +24,13 @@ a partir de regras que você mesmo cria, sem programar.
   sensíveis), e **histórico** de execuções.
 - **Sites `http://`** (sistemas internos) além de https, com aviso de conexão não segura.
 - **Shadow DOM**: campos dentro de web components (shadow roots abertos) também são encontrados.
+- **Componentes suportados**: texto (input e textarea), select nativo, radio, checkbox e botões de
+  escolha, datas (`type=date` e datepickers de texto), texto editável (`contenteditable`),
+  vue-multiselect, React-Select (v5) e Select2 (4.x).
+- **Várias regras na mesma página**: preenchem uma depois da outra, da maior prioridade para a
+  menor (0 a 100, padrão 50, em "Avançado" no editor). Um campo já preenchido por uma regra é pulado
+  pelas seguintes ("preenchido pela regra X"), e o editor avisa quando outra regra pode atuar nas
+  mesmas páginas. Com 3 ou mais regras em modo botão, aparece um único botão "Preencher…" com menu.
 - **Importar/Exportar** a configuração e **adicionar regras de um arquivo** sem apagar as que você já tem.
 - **Permissão sob demanda**: a extensão só acessa um site depois que você permite.
 - **Não envia formulários**, não resolve CAPTCHA e não clica em botões de confirmação.
