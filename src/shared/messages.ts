@@ -8,6 +8,16 @@ export interface TabStatus {
   lastReport: RunReport | null;
 }
 
+/** Estado de um frame da aba (o de topo tem frameId 0). */
+export type FrameStatus = TabStatus & { frameId: number; url: string };
+
+/** Status agregado da aba, somando os frames registrados (o WP-C1 passa a responder assim). */
+export interface TabStatusAggregate {
+  host: string;
+  paused: boolean;
+  frames: FrameStatus[];
+}
+
 /** Mapa tipo da mensagem -> payload e resposta. Fonte única de verdade. */
 export interface MessageMap {
   'config/get': { payload: undefined; response: Config };
@@ -17,6 +27,19 @@ export interface MessageMap {
   'run/last-report': { payload: undefined; response: RunReport | null };
   'run/undo': { payload: { ruleId?: string }; response: RunReport[] };
   'tab/status': { payload: undefined; response: TabStatus };
+  /** Frame -> background, ao iniciar o motor e quando o estado muda. */
+  'frame/hello': {
+    payload: {
+      url: string;
+      topUrl?: string;
+      activeRules: TabStatus['activeRules'];
+      lastReport: RunReport | null;
+    };
+    response: void;
+  };
+  'frame/bye': { payload: Record<string, never>; response: void };
+  /** Frame filho -> background -> frame de topo. */
+  'frame/report': { payload: { report: RunReport; frameId: number }; response: void };
   'site/pause': { payload: { host: string; paused: boolean }; response: void };
   /** popup -> content: liga o modo "Capturar campo". */
   'picker/start': { payload: undefined; response: void };
@@ -55,6 +78,9 @@ const MESSAGE_TYPES: ReadonlySet<string> = new Set<keyof MessageMap>([
   'run/last-report',
   'run/undo',
   'tab/status',
+  'frame/hello',
+  'frame/bye',
+  'frame/report',
   'site/pause',
   'picker/start',
   'options/open-draft',

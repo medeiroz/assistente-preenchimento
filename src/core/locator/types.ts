@@ -14,3 +14,14 @@ export function describeLocator(l: Locator): string {
       return `name=${l.name}`;
   }
 }
+
+/**
+ * Consulta que atravessa shadow roots ABERTOS, sempre em ordem de documento (WP-B2 implementa).
+ * Respeita um limite de profundidade para não percorrer árvores patológicas.
+ * Um seletor pode usar `>>>` (ver `splitDeepSelector`): cada segmento é resolvido dentro do
+ * shadow root do elemento encontrado pelo segmento anterior.
+ */
+export interface DeepQuery {
+  querySelectorAll(scope: ParentNode, selector: string): Element[];
+  querySelector(scope: ParentNode, selector: string): Element | null;
+}
