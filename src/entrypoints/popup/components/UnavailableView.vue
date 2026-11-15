@@ -19,11 +19,8 @@ defineEmits<{
 
 <template>
   <section class="empty" data-testid="unavailable">
-    <p>Nenhuma regra para este site</p>
-    <p class="muted">
-      Para criar uma regra, grave o preenchimento do formulário ou capture um campo desta página. A
-      extensão só acessa a página depois do seu clique.
-    </p>
+    <p>{{ $t('popNoRulesForSite') }}</p>
+    <p class="muted">{{ $t('popHowToCreate') }}</p>
     <RecordingStatus
       v-if="recording.active"
       :count="recording.count"
@@ -42,7 +39,7 @@ defineEmits<{
         :disabled="busy"
         @click="$emit('recordStart')"
       >
-        Gravar preenchimento
+        {{ $t('popRecordStart') }}
       </button>
       <button
         type="button"
@@ -51,9 +48,11 @@ defineEmits<{
         :disabled="busy"
         @click="$emit('capture')"
       >
-        Capturar campo nesta página
+        {{ $t('popCaptureHere') }}
       </button>
-      <button type="button" class="btn" @click="$emit('openSettings')">Abrir configurações</button>
+      <button type="button" class="btn" @click="$emit('openSettings')">
+        {{ $t('popOpenSettings') }}
+      </button>
     </div>
   </section>
 </template>

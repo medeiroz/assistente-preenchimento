@@ -719,5 +719,128 @@
   },
   "menuPause": {
     "message": "Pausar neste site"
+  },
+  "popLoading": {
+    "message": "Carregando…"
+  },
+  "popActiveOnSite": {
+    "message": "Ativo neste site"
+  },
+  "popPausedOnSite": {
+    "message": "Pausado neste site"
+  },
+  "popNoReport": {
+    "message": "Nenhum relatório ainda nesta página."
+  },
+  "popFillNow": {
+    "message": "Preencher agora"
+  },
+  "popCaptureField": {
+    "message": "Capturar campo"
+  },
+  "popRecordStart": {
+    "message": "Gravar preenchimento"
+  },
+  "popStarting": {
+    "message": "Iniciando gravação…"
+  },
+  "popAuthorize": {
+    "message": "Autorize o acesso ao site na janela do Chrome para gravar todas as etapas."
+  },
+  "popRecording": {
+    "message": "Gravando preenchimento · $arg1$ campo(s)",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "popLastReport": {
+    "message": "Último relatório"
+  },
+  "popRulesHere": {
+    "message": "Regras nesta página"
+  },
+  "popNoActiveRules": {
+    "message": "Nenhuma regra ativa nesta página."
+  },
+  "popIframe": {
+    "message": "(iframe)"
+  },
+  "popNoRulesForSite": {
+    "message": "Nenhuma regra para este site"
+  },
+  "popHowToCreate": {
+    "message": "Para criar uma regra, grave o preenchimento do formulário ou capture um campo desta página. A extensão só acessa a página depois do seu clique."
+  },
+  "popCaptureHere": {
+    "message": "Capturar campo nesta página"
+  },
+  "popOpenSettings": {
+    "message": "Abrir configurações"
+  },
+  "popOutFilled": {
+    "message": "Preenchido"
+  },
+  "popOutNotDefault": {
+    "message": "Ignorado: já tinha valor"
+  },
+  "popOutHandled": {
+    "message": "Já tratado nesta abertura"
+  },
+  "popOutDisabled": {
+    "message": "Desativado"
+  },
+  "popOutUnresolved": {
+    "message": "Valor não resolvido"
+  },
+  "popOutNotFound": {
+    "message": "Não encontrado"
+  },
+  "popOutUndone": {
+    "message": "Desfeito"
+  },
+  "popOutError": {
+    "message": "Erro"
+  },
+  "popSummaryUndone": {
+    "message": "$arg1$ desfeitos",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "modeAuto": {
+    "message": "Automático"
+  },
+  "modeButton": {
+    "message": "Com um clique"
+  },
+  "modeOff": {
+    "message": "Desligado"
+  },
+  "popStartFailedWith": {
+    "message": "Não foi possível iniciar a gravação: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "popPageNoResponse": {
+    "message": "A página não respondeu. Tente novamente."
+  },
+  "popCannotCapture": {
+    "message": "Não foi possível capturar nesta página. Páginas internas do Chrome e a Chrome Web Store não permitem extensões."
+  },
+  "popStartFailed": {
+    "message": "Não foi possível iniciar a gravação."
+  },
+  "popStopFailed": {
+    "message": "Não foi possível encerrar a gravação. Tente novamente."
+  },
+  "popSaveFailed": {
+    "message": "Não foi possível salvar a preferência."
   }
 }

@@ -719,5 +719,128 @@
   },
   "menuPause": {
     "message": "Pause on this site"
+  },
+  "popLoading": {
+    "message": "Loading…"
+  },
+  "popActiveOnSite": {
+    "message": "Active on this site"
+  },
+  "popPausedOnSite": {
+    "message": "Paused on this site"
+  },
+  "popNoReport": {
+    "message": "No report yet on this page."
+  },
+  "popFillNow": {
+    "message": "Fill now"
+  },
+  "popCaptureField": {
+    "message": "Capture field"
+  },
+  "popRecordStart": {
+    "message": "Record fill"
+  },
+  "popStarting": {
+    "message": "Starting recording…"
+  },
+  "popAuthorize": {
+    "message": "Allow access to the site in the Chrome window to record every step."
+  },
+  "popRecording": {
+    "message": "Recording fill · $arg1$ field(s)",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "popLastReport": {
+    "message": "Last report"
+  },
+  "popRulesHere": {
+    "message": "Rules on this page"
+  },
+  "popNoActiveRules": {
+    "message": "No active rules on this page."
+  },
+  "popIframe": {
+    "message": "(iframe)"
+  },
+  "popNoRulesForSite": {
+    "message": "No rules for this site"
+  },
+  "popHowToCreate": {
+    "message": "To create a rule, record how you fill in the form or capture a field on this page. The extension only accesses the page after you click."
+  },
+  "popCaptureHere": {
+    "message": "Capture a field on this page"
+  },
+  "popOpenSettings": {
+    "message": "Open settings"
+  },
+  "popOutFilled": {
+    "message": "Filled"
+  },
+  "popOutNotDefault": {
+    "message": "Skipped: already had a value"
+  },
+  "popOutHandled": {
+    "message": "Already handled in this visit"
+  },
+  "popOutDisabled": {
+    "message": "Disabled"
+  },
+  "popOutUnresolved": {
+    "message": "Value not resolved"
+  },
+  "popOutNotFound": {
+    "message": "Not found"
+  },
+  "popOutUndone": {
+    "message": "Undone"
+  },
+  "popOutError": {
+    "message": "Error"
+  },
+  "popSummaryUndone": {
+    "message": "$arg1$ undone",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "modeAuto": {
+    "message": "Automatic"
+  },
+  "modeButton": {
+    "message": "One click"
+  },
+  "modeOff": {
+    "message": "Off"
+  },
+  "popStartFailedWith": {
+    "message": "Could not start recording: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "popPageNoResponse": {
+    "message": "The page did not respond. Try again."
+  },
+  "popCannotCapture": {
+    "message": "Cannot capture on this page. Chrome internal pages and the Chrome Web Store do not allow extensions."
+  },
+  "popStartFailed": {
+    "message": "Could not start recording."
+  },
+  "popStopFailed": {
+    "message": "Could not stop recording. Try again."
+  },
+  "popSaveFailed": {
+    "message": "Could not save the preference."
   }
 }

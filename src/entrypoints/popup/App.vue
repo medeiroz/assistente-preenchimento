@@ -24,11 +24,11 @@ onMounted(() => ctx.load((id) => void loadRecording(id)));
 <template>
   <main>
     <header>
-      <h1>Assistente de Preenchimento</h1>
+      <h1>{{ $t('extName') }}</h1>
       <p v-if="status" class="host" data-testid="host">{{ status.host }}</p>
     </header>
 
-    <p v-if="view === 'loading'" class="muted" role="status">Carregando…</p>
+    <p v-if="view === 'loading'" class="muted" role="status">{{ $t('popLoading') }}</p>
 
     <UnavailableView
       v-else-if="view === 'unavailable'"

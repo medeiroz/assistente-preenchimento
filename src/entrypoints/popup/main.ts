@@ -5,4 +5,6 @@ import { t } from '../../core/i18n';
 
 initI18n();
 localizeDocument(t('extName'));
-createApp(App).mount('#app');
+const app = createApp(App);
+app.config.globalProperties.$t = t;
+app.mount('#app');

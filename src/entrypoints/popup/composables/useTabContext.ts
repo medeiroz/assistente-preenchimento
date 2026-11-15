@@ -12,6 +12,7 @@ import {
   type PopupStatus,
 } from '../lib/frames';
 import { askFrames, resolveTabId, sendToFrame } from '../lib/tab';
+import { t } from '../../../core/i18n';
 
 export type View = 'loading' | 'unavailable' | 'ready';
 
@@ -67,8 +68,7 @@ export function useTabContext() {
       await repo.saveSettings(togglePausedHost(config.settings, status.value.host, !on));
       status.value = { ...status.value, paused: !on };
     } catch (e) {
-      error.value =
-        e instanceof ReadOnlyConfigError ? e.message : 'Não foi possível salvar a preferência.';
+      error.value = e instanceof ReadOnlyConfigError ? e.message : t('popSaveFailed');
     }
   }
 
@@ -101,7 +101,7 @@ export function useTabContext() {
       const reports = results.flat();
       report.value = latestReport(reports) ?? (await lastReport(id));
     } catch {
-      error.value = 'A página não respondeu. Tente novamente.';
+      error.value = t('popPageNoResponse');
     } finally {
       busy.value = false;
     }
@@ -119,7 +119,7 @@ export function useTabContext() {
       );
       report.value = await lastReport(id);
     } catch {
-      error.value = 'A página não respondeu. Tente novamente.';
+      error.value = t('popPageNoResponse');
     } finally {
       busy.value = false;
     }
