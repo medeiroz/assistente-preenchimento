@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { Rule } from '../../../core/model';
+import { classifyRule } from '../../../shared/permissions';
 import { fieldCountLabel, groupRulesBySite, modeLabel } from '../composables/draft';
 
 const props = defineProps<{
@@ -95,6 +96,13 @@ function onToggle(rule: Rule, ev: Event): void {
                 modeLabel(r.behavior.mode)
               }}</span>
               <span>{{ fieldCountLabel(r.fields.length) }}</span>
+              <span
+                v-if="classifyRule(r).insecure.length > 0"
+                class="badge warn"
+                data-testid="insecure-badge"
+                title="Este site usa http: os valores preenchidos trafegam sem criptografia."
+                >conexão não segura</span
+              >
               <span v-if="missingIds.has(r.id)" class="no-permission" data-testid="no-permission">
                 <span class="badge warn">sem permissão</span>
                 <button

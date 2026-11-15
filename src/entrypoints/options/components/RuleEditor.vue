@@ -239,10 +239,9 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
         <p v-if="patternError(i)" :id="`url-${i}-err`" class="error-text">{{ patternError(i) }}</p>
       </div>
       <p v-if="err('urlPatterns')" class="error-text">{{ err('urlPatterns') }}</p>
-      <p v-if="originClasses.unsupported.length > 0" class="hint warn-text" data-testid="warn-http">
-        Sites sem HTTPS não são suportados ({{
-          originClasses.unsupported.map(hostOfOrigin).join(', ')
-        }}). Use um endereço que comece com https://.
+      <p v-if="originClasses.insecure.length > 0" class="hint warn-text" data-testid="warn-http">
+        Conexão não segura ({{ originClasses.insecure.map(hostOfOrigin).join(', ') }}). Este site
+        usa http: os valores preenchidos trafegam sem criptografia.
       </p>
       <p v-if="originClasses.broad.length > 0" class="hint warn-text" data-testid="warn-broad">
         Esse padrão vale para qualquer site. Informe um site específico (por exemplo

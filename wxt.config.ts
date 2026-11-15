@@ -28,6 +28,6 @@ export default defineConfig({
         128: 'icon/128.png',
       },
     },
-    optional_host_permissions: ['https://*/*'],
+    optional_host_permissions: ['https://*/*', 'http://*/*'],
   }),
 });

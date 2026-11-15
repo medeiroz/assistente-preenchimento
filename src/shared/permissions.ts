@@ -4,7 +4,7 @@ import type { Rule } from '../core/model';
  * Permissões sob demanda (WP4.3).
  *
  * Em produção o manifest não cobre site nenhum: todo site depende de `optional_host_permissions`
- * (https) concedida pelo usuário, e o content script é registrado dinamicamente. Só o build de
+ * (https e http) concedida pelo usuário, e o content script é registrado dinamicamente. Só o build de
  * testes (`--mode e2e`) cobre estaticamente o site de exemplo e localhost/127.0.0.1.
  * Permissões são por origem: o caminho do padrão sempre vira `/*`.
  */
@@ -25,23 +25,26 @@ export const STATIC_MATCHES: readonly string[] = import.meta.env.MODE === 'e2e' 
 
 const PATTERN = /^(https?|\*):\/\/([^/]+)\/.*$/;
 
-/** Converte um match pattern em padrão de permissão (`scheme://host/*`); null se inválido. */
+/** Converte um match pattern em padrão de permissão (`scheme://host/*`); null se inválido. `*://` vira https. */
 export function toOriginPattern(pattern: string): string | null {
-  const m = PATTERN.exec(pattern);
-  if (!m) return null;
-  const [, scheme = '', rawHost = ''] = m;
-  const host = rawHost.replace(/:\d+$/, '').toLowerCase();
-  if (host === '') return null;
-  // `*://` cobre http e https, mas optional_host_permissions só cobre https.
-  return `${scheme === '*' ? 'https' : scheme}://${host}/*`;
+  return toOriginPatterns(pattern)[0] ?? null;
 }
 
-/** Origens (padrões de permissão) dos urlPatterns da regra; inclui as http (não suportadas). */
+/** Como `toOriginPattern`, mas `*://` gera as duas origens (https e http). Vazio se inválido. */
+export function toOriginPatterns(pattern: string): string[] {
+  const m = PATTERN.exec(pattern);
+  if (!m) return [];
+  const [, scheme = '', rawHost = ''] = m;
+  const host = rawHost.replace(/:\d+$/, '').toLowerCase();
+  if (host === '') return [];
+  return (scheme === '*' ? ['https', 'http'] : [scheme]).map((s) => `${s}://${host}/*`);
+}
+
+/** Origens (padrões de permissão) dos urlPatterns da regra, http e https. */
 export function originsForRule(rule: Pick<Rule, 'trigger'>): string[] {
   const out: string[] = [];
   for (const p of rule.trigger.urlPatterns) {
-    const o = toOriginPattern(p);
-    if (o !== null && !out.includes(o)) out.push(o);
+    for (const o of toOriginPatterns(p)) if (!out.includes(o)) out.push(o);
   }
   return out;
 }
@@ -50,13 +53,21 @@ export function isStaticallyCovered(
   pattern: string,
   statics: readonly string[] = STATIC_MATCHES,
 ): boolean {
-  const o = toOriginPattern(pattern);
-  return o !== null && statics.some((s) => toOriginPattern(s) === o);
+  const origins = toOriginPatterns(pattern);
+  const covered = new Set(statics.flatMap(toOriginPatterns));
+  return origins.length > 0 && origins.every((o) => covered.has(o));
 }
 
-/** Só https é coberto por optional_host_permissions. */
+/** optional_host_permissions cobre https e http. */
 export function isSupportedOrigin(origin: string): boolean {
-  return origin.startsWith('https://');
+  return origin.startsWith('https://') || origin.startsWith('http://');
+}
+
+/** Origem http que sai da máquina (fora de localhost/127.0.0.1/[::1]): tráfego sem criptografia. */
+export function isInsecureOrigin(origin: string): boolean {
+  if (!origin.startsWith('http://')) return false;
+  const host = hostOfOrigin(origin).replace(/:\d+$/, '');
+  return !['localhost', '127.0.0.1', '[::1]'].includes(host) && !host.endsWith('.localhost');
 }
 
 /** Host `*`, `*.*` ou similar: amplo demais para pedir permissão. */
@@ -66,9 +77,11 @@ export function isBroadOrigin(origin: string): boolean {
 }
 
 export interface OriginClassification {
-  /** https, específicos e não cobertos pelo manifest: dependem de permissão concedida. */
+  /** https/http específicos e não cobertos pelo manifest: dependem de permissão concedida. */
   needed: string[];
-  /** http fora do que o manifest cobre: não suportado. */
+  /** Origens http (exceto loopback) específicas: pedem permissão como as demais, só avisam. */
+  insecure: string[];
+  /** Legado: origens de esquema não suportado. Hoje fica sempre vazio (http é suportado). */
   unsupported: string[];
   /** Host curinga total: não se pede permissão ampla. */
   broad: string[];
@@ -78,16 +91,20 @@ export function classifyOrigins(
   patterns: readonly string[],
   statics: readonly string[] = STATIC_MATCHES,
 ): OriginClassification {
-  const res: OriginClassification = { needed: [], unsupported: [], broad: [] };
-  for (const p of patterns) {
-    const o = toOriginPattern(p);
-    if (o === null || isStaticallyCovered(o, statics)) continue;
-    const bucket = isBroadOrigin(o)
-      ? res.broad
-      : isSupportedOrigin(o)
-        ? res.needed
-        : res.unsupported;
+  const res: OriginClassification = { needed: [], insecure: [], unsupported: [], broad: [] };
+  const push = (bucket: string[], o: string): void => {
     if (!bucket.includes(o)) bucket.push(o);
+  };
+  for (const p of patterns) {
+    for (const o of toOriginPatterns(p)) {
+      if (isBroadOrigin(o)) {
+        push(res.broad, o);
+        continue;
+      }
+      if (isInsecureOrigin(o)) push(res.insecure, o);
+      if (isStaticallyCovered(o, statics)) continue;
+      push(isSupportedOrigin(o) ? res.needed : res.unsupported, o);
+    }
   }
   return res;
 }
