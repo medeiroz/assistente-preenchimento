@@ -11,6 +11,7 @@ import { injectAndStartPicker } from './lib/inject';
 import { hasFilled } from './lib/outcome';
 import { togglePausedHost } from './lib/pause';
 import { resolveTabId, sendToTab } from './lib/tab';
+import { recorderStatus, startRecording } from './lib/recorder';
 
 type View = 'loading' | 'unavailable' | 'ready';
 
@@ -20,6 +21,8 @@ const report = ref<RunReport | null>(null);
 const busy = ref(false);
 const error = ref('');
 let tabId: number | null = null;
+let tabUrl: string | undefined;
+const recording = ref({ active: false, count: 0 });
 
 const repo = chromeSyncRepository();
 const active = computed(() => status.value !== null && !status.value.paused);
@@ -29,12 +32,74 @@ async function load(): Promise<void> {
   try {
     tabId = await resolveTabId();
     if (tabId === null) throw new Error('sem aba');
+    await loadRecording(tabId);
     const s = await sendToTab(tabId, { type: 'tab/status' });
     status.value = s;
     report.value = s.lastReport;
     view.value = 'ready';
   } catch {
     view.value = 'unavailable';
+  }
+}
+
+async function loadRecording(id: number): Promise<void> {
+  try {
+    tabUrl = (await browser.tabs.get(id)).url;
+  } catch {
+    tabUrl = undefined;
+  }
+  recording.value = await recorderStatus(
+    id,
+    (t) =>
+      browser.runtime.sendMessage({ type: 'recorder/status', payload: { tabId: t } }) as Promise<{
+        active: boolean;
+        count: number;
+      }>,
+  );
+}
+
+/** Liga a gravação (também em sites sem permissão) e fecha o popup para o usuário preencher. */
+function recordStart(): void {
+  if (tabId === null || busy.value) return;
+  const id = tabId;
+  busy.value = true;
+  error.value = '';
+  // Chamado direto do clique: o pedido de permissão começa antes de qualquer await.
+  startRecording(id, tabUrl, {
+    requestPermission: (origin) => browser.permissions.request({ origins: [origin] }),
+    sendStart: (t) =>
+      browser.runtime.sendMessage({ type: 'recorder/start', payload: { tabId: t } }),
+    executeScript: (injection) =>
+      browser.scripting.executeScript({
+        target: injection.target,
+        files: injection.files as ScriptPublicPath[],
+      }),
+    scriptFile: contentScriptFile(browser.runtime.getManifest()),
+  })
+    .then(() => window.close())
+    .catch((e: unknown) => {
+      error.value = e instanceof Error ? e.message : 'Não foi possível iniciar a gravação.';
+    })
+    .finally(() => {
+      busy.value = false;
+    });
+}
+
+async function recordStop(discard: boolean): Promise<void> {
+  if (tabId === null || busy.value) return;
+  busy.value = true;
+  error.value = '';
+  try {
+    await browser.runtime.sendMessage({
+      type: 'recorder/stop',
+      payload: discard ? { tabId, discard: true } : { tabId },
+    });
+    if (discard) recording.value = { active: false, count: 0 };
+    window.close();
+  } catch {
+    error.value = 'Não foi possível encerrar a gravação. Tente novamente.';
+  } finally {
+    busy.value = false;
   }
 }
 
@@ -144,6 +209,29 @@ onMounted(load);
         Para criar uma regra, capture um campo desta página. A extensão só acessa a página depois do
         seu clique.
       </p>
+      <section v-if="recording.active" class="recording" data-testid="record-status">
+        <p class="summary">Gravando preenchimento · {{ recording.count }} campo(s)</p>
+        <div class="actions">
+          <button
+            type="button"
+            class="btn primary"
+            data-testid="record-stop"
+            :disabled="busy"
+            @click="recordStop(false)"
+          >
+            Parar e criar regras
+          </button>
+          <button
+            type="button"
+            class="btn"
+            data-testid="record-discard"
+            :disabled="busy"
+            @click="recordStop(true)"
+          >
+            Descartar
+          </button>
+        </div>
+      </section>
       <p v-if="error" class="error" role="alert">{{ error }}</p>
       <div class="actions">
         <button
@@ -154,6 +242,16 @@ onMounted(load);
           @click="captureOnDemand"
         >
           Capturar campo nesta página
+        </button>
+        <button
+          v-if="!recording.active"
+          type="button"
+          class="btn"
+          data-testid="record-start"
+          :disabled="busy"
+          @click="recordStart"
+        >
+          Gravar preenchimento
         </button>
         <button type="button" class="btn" @click="openSettings">Abrir configurações</button>
       </div>
@@ -178,6 +276,29 @@ onMounted(load);
       <ReportList v-if="report" :report="report" />
       <p v-else class="muted" data-testid="no-report">Nenhum relatório ainda nesta página.</p>
 
+      <section v-if="recording.active" class="recording" data-testid="record-status">
+        <p class="summary">Gravando preenchimento · {{ recording.count }} campo(s)</p>
+        <div class="actions">
+          <button
+            type="button"
+            class="btn primary"
+            data-testid="record-stop"
+            :disabled="busy"
+            @click="recordStop(false)"
+          >
+            Parar e criar regras
+          </button>
+          <button
+            type="button"
+            class="btn"
+            data-testid="record-discard"
+            :disabled="busy"
+            @click="recordStop(true)"
+          >
+            Descartar
+          </button>
+        </div>
+      </section>
       <p v-if="error" class="error" role="alert">{{ error }}</p>
 
       <div class="actions">
@@ -195,6 +316,16 @@ onMounted(load);
           @click="startCapture"
         >
           Capturar campo
+        </button>
+        <button
+          v-if="!recording.active"
+          type="button"
+          class="btn"
+          data-testid="record-start"
+          :disabled="busy"
+          @click="recordStart"
+        >
+          Gravar preenchimento
         </button>
         <button type="button" class="btn" @click="openSettings">Configurações</button>
       </div>
@@ -336,6 +467,14 @@ ul {
 }
 .fields .desc {
   color: var(--fg);
+}
+.recording {
+  padding: 10px 12px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 .fields .msg {
   font-size: 12px;

@@ -82,7 +82,7 @@ export function captureToFieldDraft(
   };
 }
 
-function sameLocator(f: FieldDraft, capture: Capture): boolean {
+export function sameLocator(f: FieldDraft, capture: Capture): boolean {
   if (f.locatorBy !== capture.locator.by) return false;
   const a = f.locatorValue.trim();
   const b = locatorValueOf(capture);
