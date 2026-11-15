@@ -1,0 +1,21 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Assistente fictício</title><style>body{font-family:sans-serif;max-width:480px;margin:24px auto}div.f{margin:12px 0}label{display:block}</style></head><body>
+<h1 id="titulo">Passo 2 de 3</h1>
+<main id="passo">
+  <div class="f"><label for="plano">Plano</label>
+    <select id="plano" name="plano"><option value="">Selecione</option><option value="basico">Básico</option><option value="premium">Premium</option></select></div>
+  <div class="f"><label><input id="contato" name="contato" type="checkbox"> Aceita contato</label></div>
+  <div class="f"><label for="obs">Observações</label><textarea id="obs" name="obs"></textarea></div>
+  <button type="button" id="proximo">Próximo</button>
+</main>
+<script>
+  // Troca de passo sem recarregar a página, como em uma SPA.
+  document.getElementById('proximo').addEventListener('click', function () {
+    history.pushState({ passo: 3 }, '', 'step3.html');
+    document.getElementById('titulo').textContent = 'Passo 3 de 3';
+    document.getElementById('passo').innerHTML =
+      '<div class="f"><label for="telefone">Telefone de contato</label><input id="telefone" name="telefone" type="text" autocomplete="off"></div>' +
+      '<div class="f"><label for="bairro">Bairro</label><input id="bairro" name="bairro" type="text" autocomplete="off"></div>' +
+      '<button type="button" id="concluir">Concluir</button>';
+  });
+</script>
+</body></html>
