@@ -1,4 +1,5 @@
 import type { Config, RunReport } from '../core/model';
+import type { RecordedField, RecorderStatus } from '../core/recorder/types';
 
 export interface TabStatus {
   host: string;
@@ -21,6 +22,22 @@ export interface MessageMap {
   'picker/start': { payload: undefined; response: void };
   /** content -> background: abre (ou foca) a página de opções para consumir `picker:draft`. */
   'options/open-draft': { payload: undefined; response: void };
+  /** popup -> background: liga a gravação na aba (antes de injetar o content script). */
+  'recorder/start': { payload: { tabId: number }; response: RecorderStatus };
+  /**
+   * popup ou content -> background: encerra a gravação. Sem `tabId`, vale a aba do remetente.
+   * `discard: true` descarta sem abrir as opções.
+   */
+  'recorder/stop': { payload: { tabId?: number; discard?: boolean }; response: RecorderStatus };
+  /** popup ou content -> background: estado da gravação (sem `tabId`, a aba do remetente). */
+  'recorder/status': { payload: { tabId?: number }; response: RecorderStatus };
+  /**
+   * content -> background: campo alterado pelo usuário (upsert pelo localizador). Valor vazio
+   * remove o campo da gravação.
+   */
+  'recorder/field': { payload: { field: RecordedField }; response: RecorderStatus };
+  /** background -> content: liga/desliga a barra de gravação e atualiza a contagem. */
+  'recorder/state': { payload: RecorderStatus; response: void };
 }
 
 export type Message = {
@@ -41,6 +58,11 @@ const MESSAGE_TYPES: ReadonlySet<string> = new Set<keyof MessageMap>([
   'site/pause',
   'picker/start',
   'options/open-draft',
+  'recorder/start',
+  'recorder/stop',
+  'recorder/status',
+  'recorder/field',
+  'recorder/state',
 ]);
 
 export function isMessage(x: unknown): x is Message {
