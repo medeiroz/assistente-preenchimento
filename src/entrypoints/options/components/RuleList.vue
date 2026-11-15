@@ -77,7 +77,7 @@ function onToggle(rule: Rule, ev: Event): void {
             :disabled="readOnly"
             @click="emit('importExample')"
           >
-            Importar exemplo da Clínica Experts
+            Importar exemplo
           </button>
           <span class="hint">Uma regra pronta para usar de modelo; você pode editá-la depois.</span>
         </li>

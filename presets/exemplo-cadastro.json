@@ -1,0 +1,48 @@
+{
+  "id": "exemplo-cadastro",
+  "name": "Exemplo: formulário de cadastro",
+  "enabled": true,
+  "trigger": {
+    "urlPatterns": ["https://exemplo.test/cadastro*"],
+    "settleMs": 300
+  },
+  "behavior": { "mode": "button", "overwrite": "onlyIfDefault", "refill": "oncePerAppearance" },
+  "fields": [
+    {
+      "id": "nome",
+      "enabled": true,
+      "locator": { "by": "label", "text": "Nome" },
+      "adapter": "auto",
+      "value": "Maria Exemplo"
+    },
+    {
+      "id": "email",
+      "enabled": true,
+      "locator": { "by": "label", "text": "E-mail" },
+      "adapter": "auto",
+      "value": "maria@exemplo.test"
+    },
+    {
+      "id": "cidade",
+      "enabled": true,
+      "locator": { "by": "label", "text": "Cidade" },
+      "adapter": "auto",
+      "value": "{{ var.cidade | default(\"São Paulo\") }}"
+    },
+    {
+      "id": "data-cadastro",
+      "enabled": true,
+      "locator": { "by": "label", "text": "Data de cadastro" },
+      "adapter": "auto",
+      "value": "{{ now | date(\"DD/MM/YYYY\") }}"
+    },
+    {
+      "id": "telefone",
+      "enabled": true,
+      "locator": { "by": "name", "name": "telefone" },
+      "adapter": "auto",
+      "value": "(11) 90000-0000"
+    }
+  ],
+  "updatedAt": "2026-11-15T00:00:00.000Z"
+}
