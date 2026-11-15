@@ -1,9 +1,10 @@
 import { AdapterError, type FieldAdapter } from './types';
 import { dispatch, normalizeSpaces } from './dom';
+import { deepQuery } from '../locator/deep-query';
 
 function findSelect(root: Element): HTMLSelectElement | null {
-  if (root.querySelector('.multiselect')) return null;
-  const selects = root.matches('select') ? [root] : Array.from(root.querySelectorAll('select'));
+  if (deepQuery.querySelector(root, '.multiselect')) return null;
+  const selects = root.matches('select') ? [root] : deepQuery.querySelectorAll(root, 'select');
   const only = selects[0];
   if (selects.length !== 1 || !only) return null;
   const select = only as HTMLSelectElement;

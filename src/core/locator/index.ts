@@ -7,3 +7,4 @@ export { buildCapture, resolveField } from './capture';
 export type { Capture, CaptureContainer, FieldHit } from './capture';
 export { PICKER_DRAFT_KEY, parsePickerDraft } from './picker-draft';
 export type { PickerDraft } from './picker-draft';
+export { deepQuery, MAX_SHADOW_DEPTH } from './deep-query';

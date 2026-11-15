@@ -1,6 +1,7 @@
 import { createDefaultRegistry } from '../adapters';
 import type { AdapterRegistry } from '../adapters';
 import type { AdapterId, Locator } from '../model';
+import { compareDeepOrder, composedParent, deepContains, deepQuery } from './deep-query';
 import { candidateText, locate, locateAll } from './locate';
 
 /** Contêiner sugerido (formato do `trigger.container` do modelo). */
@@ -97,13 +98,16 @@ const STATE_CLASS =
 function findContainer(el: Element): { element: Element; selector: string } | null {
   const body = el.ownerDocument.body;
   // 1) padrões conhecidos, do ancestral mais próximo para o mais distante
-  for (let a: Element | null = el.parentElement; a && a !== body; a = a.parentElement) {
+  // (o seletor do contêiner é resolvido no documento: só vale para ancestrais da árvore leve)
+  for (let a: Element | null = composedParent(el); a && a !== body; a = composedParent(a)) {
+    if (a.getRootNode() !== el.ownerDocument) continue;
     for (const selector of DIALOG_SELECTORS) {
       if (a.matches(selector)) return { element: a, selector };
     }
   }
   // 2) genérico: classe contendo "modal" em um elemento visível
-  for (let a: Element | null = el.parentElement; a && a !== body; a = a.parentElement) {
+  for (let a: Element | null = composedParent(el); a && a !== body; a = composedParent(a)) {
+    if (a.getRootNode() !== el.ownerDocument) continue;
     const cls = Array.from(a.classList).find((c) => /modal/i.test(c) && isStableClass(c));
     if (cls && isVisible(a)) return { element: a, selector: `.${cls}` };
   }
@@ -111,7 +115,7 @@ function findContainer(el: Element): { element: Element; selector: string } | nu
 }
 
 function containerInfo(hit: { element: Element; selector: string }): CaptureContainer {
-  const title = normalizeSpaces(hit.element.querySelector(TITLE_SELECTOR)?.textContent);
+  const title = normalizeSpaces(deepQuery.querySelector(hit.element, TITLE_SELECTOR)?.textContent);
   const container: CaptureContainer = { selector: hit.selector };
   if (title) container.textContains = title.slice(0, TITLE_MAX).trim();
   return container;
@@ -122,18 +126,20 @@ function containerInfo(hit: { element: Element; selector: string }): CaptureCont
 function labelTargetIsRadio(label: Element): boolean {
   if (label.tagName !== 'LABEL') return false;
   const forId = label.getAttribute('for');
-  const control = forId ? label.ownerDocument.getElementById(forId) : label.querySelector('input');
+  const control = forId
+    ? (label.getRootNode() as Document | ShadowRoot).getElementById(forId)
+    : deepQuery.querySelector(label, 'input');
   return control?.getAttribute('type')?.toLowerCase() === 'radio';
 }
 
 function candidatesIn(a: Element): Element[] {
-  const doc = a.ownerDocument;
   const set = new Set<Element>();
   if (a.matches(CANDIDATE_SELECTOR)) set.add(a);
-  for (const c of Array.from(a.querySelectorAll(CANDIDATE_SELECTOR))) set.add(c);
-  for (const control of Array.from(a.querySelectorAll('[aria-labelledby]'))) {
+  for (const c of deepQuery.querySelectorAll(a, CANDIDATE_SELECTOR)) set.add(c);
+  for (const control of deepQuery.querySelectorAll(a, '[aria-labelledby]')) {
+    const tree = control.getRootNode() as Document | ShadowRoot;
     for (const id of (control.getAttribute('aria-labelledby') ?? '').split(/\s+/)) {
-      const ref = id ? doc.getElementById(id) : null;
+      const ref = id ? tree.getElementById(id) : null;
       if (ref) set.add(ref);
     }
   }
@@ -157,28 +163,36 @@ function findByLabel(
 ): { root: Element; label: string } | null {
   const doc = el.ownerDocument;
   let level = 0;
-  for (let a: Element | null = el; a && level < MAX_LEVELS; a = a.parentElement, level++) {
+  for (let a: Element | null = el; a && level < MAX_LEVELS; a = composedParent(a), level++) {
     if (a === doc.body || a === doc.documentElement) break;
     const candidates = candidatesIn(a);
     if (candidates.length > MAX_CANDIDATES) break;
-    candidates.sort((x, y) => (x.compareDocumentPosition(y) & 4 ? -1 : 1));
+    candidates.sort(compareDeepOrder);
     for (const cand of candidates) {
       // botões/links com aria-label (ex.: "Fechar") não nomeiam campos
       if (cand.matches('button, a, [role="button"], [role="tab"]')) continue;
       if (skipOptionLabels && labelTargetIsRadio(cand)) continue;
       const label = cleanLabel(candidateText(cand));
       if (!label) continue;
-      const hits = rootsForLabel(label, scope, memo).filter((r) => r.contains(el));
+      const hits = rootsForLabel(label, scope, memo).filter((r) => deepContains(r, el));
       // a menor raiz que contém o elemento
-      const root = hits.sort((x, y) => (x.contains(y) ? 1 : -1))[0];
+      const root = hits.sort((x, y) => (deepContains(x, y) ? 1 : -1))[0];
       if (root) return { root, label };
     }
   }
   return null;
 }
 
+/** `closest` que atravessa a fronteira de shadow roots. */
+function closestDeep(el: Element, selector: string): Element | null {
+  for (let a: Element | null = el; a; a = composedParent(a)) {
+    if (a.matches(selector)) return a;
+  }
+  return null;
+}
+
 function findByControl(el: Element): { root: Element; label: string | null } | null {
-  const control = el.closest('.multiselect') ?? el.closest(CONTROL_SELECTOR);
+  const control = closestDeep(el, '.multiselect') ?? closestDeep(el, CONTROL_SELECTOR);
   if (!control) return null;
   const aria = cleanLabel(control.getAttribute('aria-label') ?? '');
   return { root: control, label: aria || null };
@@ -244,7 +258,7 @@ function nthOfType(el: Element): number {
 
 function segmentWithPosition(el: Element): string {
   const seg = segmentOf(el);
-  const parent = el.parentElement;
+  const parent = el.parentNode as ParentNode | null;
   if (!parent) return seg;
   const twins = Array.from(parent.children).filter((c) => c !== el && c.matches(seg));
   return twins.length > 0 ? `${seg}:nth-of-type(${nthOfType(el)})` : seg;
@@ -252,21 +266,43 @@ function segmentWithPosition(el: Element): string {
 
 function resolvesTo(css: string, root: Element, scope: ParentNode): boolean {
   try {
-    const all = scope.querySelectorAll(css);
+    const all = deepQuery.querySelectorAll(scope, css);
     return all.length === 1 && all[0] === root;
   } catch {
     return false;
   }
 }
 
-/** Seletor curto que, dentro de `scope`, devolve exatamente `root`. */
-function buildSelector(root: Element, scope: ParentNode): string {
-  const parts: string[] = [];
+interface Part {
+  seg: string;
+  /** Topo de um shadow root: o ancestral seguinte (mais externo) é o seu host. */
+  topOfShadow: boolean;
+}
+
+/** Junta os trechos (do mais externo ao mais interno): `>` na mesma árvore, `>>>` ao descer. */
+function joinParts(parts: Part[]): string {
   let css = '';
-  for (let cur: Element | null = root; cur; cur = cur.parentElement) {
-    parts.unshift(segmentWithPosition(cur));
-    css = parts.join(' > ');
-    if (resolvesTo(css, root, scope)) return css;
+  parts.forEach((p, i) => {
+    if (i === 0) css = p.seg;
+    else css += `${p.topOfShadow ? ' >>> ' : ' > '}${p.seg}`;
+  });
+  return css;
+}
+
+/**
+ * Seletor curto que, dentro de `scope`, devolve exatamente `root`. Para um campo dentro de
+ * shadow root, a cadeia sempre inclui o host (`host >>> interno`).
+ */
+function buildSelector(root: Element, scope: ParentNode): string {
+  const parts: Part[] = [];
+  let css = '';
+  let hostIncluded = root.getRootNode() === root.ownerDocument;
+  for (let cur: Element | null = root; cur; cur = composedParent(cur)) {
+    if (parts[0]?.topOfShadow) hostIncluded = true;
+    const topOfShadow = cur.parentElement === null && cur.getRootNode() !== cur.ownerDocument;
+    parts.unshift({ seg: segmentWithPosition(cur), topOfShadow });
+    css = joinParts(parts);
+    if (hostIncluded && resolvesTo(css, root, scope)) return css;
     if (cur.tagName === 'HTML') break;
   }
   return css;
@@ -275,12 +311,12 @@ function buildSelector(root: Element, scope: ParentNode): string {
 // ------------------------------------------------------------------ locator
 
 function uniqueName(root: Element, scope: ParentNode): string | null {
-  const named = root.hasAttribute('name') ? root : root.querySelector('[name]');
+  const named = root.hasAttribute('name') ? root : deepQuery.querySelector(root, '[name]');
   const name = named?.getAttribute('name');
   if (!name) return null;
-  const all = Array.from(scope.querySelectorAll(`[name="${attrValue(name)}"]`));
+  const all = deepQuery.querySelectorAll(scope, `[name="${attrValue(name)}"]`);
   // vários inputs com o mesmo name (grupo de radios) só valem se todos estão dentro da raiz
-  return all.length > 0 && all.every((n) => root.contains(n)) ? name : null;
+  return all.length > 0 && all.every((n) => deepContains(root, n)) ? name : null;
 }
 
 function buildLocator(root: Element, label: string | null, scope: ParentNode): Locator {

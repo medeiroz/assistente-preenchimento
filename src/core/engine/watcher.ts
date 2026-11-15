@@ -1,4 +1,5 @@
 import type { Trigger } from '../model/schema';
+import { collectOpenShadowRoots, deepContains } from '../locator/deep-query';
 import { containerMatches } from './matcher';
 
 export interface ContextWatcherOptions {
@@ -30,6 +31,26 @@ export function createContextWatcher(o: ContextWatcherOptions): ContextWatcher {
   let observer: MutationObserver | undefined;
   let evalTimer: ReturnType<typeof setTimeout> | undefined;
   let running = false;
+  /** Shadow roots abertos já observados (mutações dentro deles não chegam ao observer do document). */
+  const shadows = new Set<ShadowRoot>();
+  /** Só varre atrás de shadow roots quando entrou nó novo (páginas sem shadow DOM: 1 varredura). */
+  let needScan = true;
+
+  const observeInit: MutationObserverInit = {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['class', 'style', 'hidden'],
+  };
+
+  function syncShadows(): void {
+    for (const s of shadows) if (!s.host.isConnected) shadows.delete(s);
+    for (const shadow of collectOpenShadowRoots(o.document)) {
+      if (shadows.has(shadow)) continue;
+      shadows.add(shadow);
+      observer?.observe(shadow, observeInit);
+    }
+  }
 
   function clearTimers(t: Tracked): void {
     if (t.settleTimer !== undefined) clearTimeout(t.settleTimer);
@@ -59,6 +80,10 @@ export function createContextWatcher(o: ContextWatcherOptions): ContextWatcher {
 
   function evaluate(): void {
     if (!running) return;
+    if (needScan) {
+      needScan = false;
+      syncShadows();
+    }
     const current = new Set<Element>();
     for (const el of o.document.querySelectorAll(o.container.selector)) {
       if (containerMatches(el, o.container)) current.add(el);
@@ -86,8 +111,9 @@ export function createContextWatcher(o: ContextWatcherOptions): ContextWatcher {
   }
 
   function onMutations(records: MutationRecord[]): void {
+    if (!needScan && records.some((r) => r.addedNodes.length > 0)) needScan = true;
     for (const [el, t] of tracked) {
-      if (records.some((r) => el.contains(r.target))) {
+      if (records.some((r) => el.contains(r.target) || deepContains(el, r.target))) {
         if (t.appeared) armChange(el, t);
         else armSettle(el, t);
       }
@@ -100,18 +126,15 @@ export function createContextWatcher(o: ContextWatcherOptions): ContextWatcher {
       if (running) return;
       running = true;
       observer = new MutationObserver(onMutations);
-      observer.observe(o.document, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: ['class', 'style', 'hidden'],
-      });
+      observer.observe(o.document, observeInit);
+      needScan = true;
       evaluate();
     },
     stop() {
       running = false;
       observer?.disconnect();
       observer = undefined;
+      shadows.clear();
       if (evalTimer !== undefined) clearTimeout(evalTimer);
       evalTimer = undefined;
       for (const t of tracked.values()) clearTimers(t);

@@ -1,6 +1,7 @@
 import { AdapterError, type FieldAdapter } from './types';
 import { defaultSleep, dispatch, setNativeValue, typeText, valueMatches } from './dom';
 import { isDateControl } from './date';
+import { deepQuery } from '../locator/deep-query';
 
 type TextControl = HTMLInputElement | HTMLTextAreaElement;
 
@@ -15,8 +16,10 @@ function isTextControl(el: Element): el is TextControl {
 }
 
 function findControl(root: Element): TextControl | null {
-  if (root.querySelector('.multiselect')) return null;
-  const texts = Array.from(root.querySelectorAll('input, textarea')).filter(isTextControl);
+  if (deepQuery.querySelector(root, '.multiselect')) return null;
+  const texts = isTextControl(root)
+    ? [root]
+    : deepQuery.querySelectorAll(root, 'input, textarea').filter(isTextControl);
   if (texts.some(isDateControl)) return null; // campos de data pertencem ao dateAdapter
   const only = texts[0];
   return texts.length === 1 && only ? only : null;

@@ -23,13 +23,25 @@ export function setNativeValue(el: HTMLInputElement | HTMLTextAreaElement, value
   else el.value = value;
 }
 
+/** O elemento está dentro de um shadow root (aberto)? */
+export function inShadow(el: Element): boolean {
+  const root = el.getRootNode();
+  return root.nodeType === 11 && 'host' in root;
+}
+
 export function dispatch(
   el: Element,
   type: string,
   init: KeyboardEventInit & MouseEventInit = {},
 ): void {
   const view = el.ownerDocument.defaultView;
-  const common = { bubbles: true, cancelable: true, ...init };
+  // Dentro de shadow DOM o evento precisa ser `composed` para chegar aos ouvintes de fora.
+  const common = {
+    bubbles: true,
+    cancelable: true,
+    ...(inShadow(el) ? { composed: true } : {}),
+    ...init,
+  };
   if (type.startsWith('key') && common.bubbles) {
     throw new Error(`dispatch: evento de teclado "${type}" com bubbles:true é proibido`);
   }
@@ -95,15 +107,24 @@ export async function typeText(
   aborted: () => boolean = () => false,
 ): Promise<boolean> {
   const view = el.ownerDocument.defaultView ?? window;
+  const composed = inShadow(el);
   el.focus();
   setNativeValue(el, '');
   el.dispatchEvent(
-    new view.InputEvent('input', { inputType: 'deleteContentBackward', bubbles: true }),
+    new view.InputEvent('input', { inputType: 'deleteContentBackward', bubbles: true, composed }),
   );
   for (const char of Array.from(text)) {
     if (aborted()) return false;
     const { code, keyCode } = keyInfo(char);
-    const init = { key: char, code, keyCode, charCode: 0, bubbles: true, cancelable: true };
+    const init = {
+      key: char,
+      code,
+      keyCode,
+      charCode: 0,
+      bubbles: true,
+      cancelable: true,
+      composed,
+    };
     const down = new view.KeyboardEvent('keydown', init);
     el.dispatchEvent(down);
     const press = new view.KeyboardEvent('keypress', { ...init, charCode: char.charCodeAt(0) });
@@ -112,7 +133,12 @@ export async function typeText(
     if (!down.defaultPrevented && pressOk && room) {
       setNativeValue(el, el.value + char);
       el.dispatchEvent(
-        new view.InputEvent('input', { inputType: 'insertText', data: char, bubbles: true }),
+        new view.InputEvent('input', {
+          inputType: 'insertText',
+          data: char,
+          bubbles: true,
+          composed,
+        }),
       );
     }
     el.dispatchEvent(new view.KeyboardEvent('keyup', init));
