@@ -64,17 +64,11 @@ function recordStart(): void {
   const id = tabId;
   busy.value = true;
   error.value = '';
-  // Chamado direto do clique: o pedido de permissão começa antes de qualquer await.
+  // Chamado direto do clique: permissão e `recorder/start` saem juntos, antes de qualquer await.
   startRecording(id, tabUrl, {
     requestPermission: (origin) => browser.permissions.request({ origins: [origin] }),
     sendStart: (t) =>
       browser.runtime.sendMessage({ type: 'recorder/start', payload: { tabId: t } }),
-    executeScript: (injection) =>
-      browser.scripting.executeScript({
-        target: injection.target,
-        files: injection.files as ScriptPublicPath[],
-      }),
-    scriptFile: contentScriptFile(browser.runtime.getManifest()),
   })
     .then(() => window.close())
     .catch((e: unknown) => {

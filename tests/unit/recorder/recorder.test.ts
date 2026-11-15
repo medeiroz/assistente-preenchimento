@@ -211,4 +211,117 @@ describe('createRecorder', () => {
     expect(send).toHaveBeenCalledTimes(2);
     r.stop();
   });
+
+  describe('não perder o último valor', () => {
+    function typed(r: ReturnType<typeof make>): HTMLInputElement {
+      r.start({ active: true, count: 0 });
+      const input = document.getElementById('i1') as HTMLInputElement;
+      input.value = 'Exemplo';
+      fire('input', input);
+      expect(send).not.toHaveBeenCalled();
+      return input;
+    }
+
+    it('change reporta na hora, sem debounce', () => {
+      const r = make();
+      r.start({ active: true, count: 0 });
+      const input = document.getElementById('i1') as HTMLInputElement;
+      input.value = 'Final';
+      fire('change', input);
+      expect(send).toHaveBeenCalledTimes(1);
+      expect(sent[0]?.value).toBe('Final');
+      r.stop();
+    });
+
+    it('focusout reporta o campo na hora e cancela o debounce', async () => {
+      const r = make();
+      const input = typed(r);
+      fire('focusout', input);
+      expect(send).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(500);
+      expect(send).toHaveBeenCalledTimes(1);
+      r.stop();
+    });
+
+    it('clique fora de campo (ex.: Próximo) reporta o pendente antes de tudo', () => {
+      const r = make();
+      typed(r);
+      fire('click', document.getElementById('b') as Element);
+      expect(send).toHaveBeenCalledTimes(1);
+      expect(sent[0]?.value).toBe('Exemplo');
+      r.stop();
+    });
+
+    it('clique no botão da barra também descarrega o pendente', () => {
+      const r = make();
+      typed(r);
+      (bar()?.querySelector('.stop') as HTMLElement).click();
+      expect(send).toHaveBeenCalledTimes(1);
+      r.stop();
+    });
+
+    it('clique dentro de um campo não descarrega (segue o debounce)', async () => {
+      const r = make();
+      const input = typed(r);
+      fire('click', input);
+      expect(send).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(400);
+      expect(send).toHaveBeenCalledTimes(1);
+      r.stop();
+    });
+
+    for (const type of ['submit', 'pagehide', 'beforeunload']) {
+      it(`${type} descarrega o pendente`, () => {
+        const r = make();
+        typed(r);
+        window.dispatchEvent(new Event(type));
+        expect(send).toHaveBeenCalledTimes(1);
+        expect(sent[0]?.value).toBe('Exemplo');
+        r.stop();
+      });
+    }
+
+    it('submit vindo de um formulário (borbulhando) descarrega', () => {
+      const r = make();
+      typed(r);
+      document.body.dispatchEvent(new Event('submit', { bubbles: true }));
+      expect(send).toHaveBeenCalledTimes(1);
+      r.stop();
+    });
+
+    it('flush() público descarrega tudo e não reenvia o mesmo valor', async () => {
+      const r = make();
+      typed(r);
+      r.flush();
+      r.flush();
+      await vi.advanceTimersByTimeAsync(500);
+      expect(send).toHaveBeenCalledTimes(1);
+      r.stop();
+    });
+
+    it('depois de parar, saídas da página não enviam nada', () => {
+      const r = make();
+      typed(r);
+      r.stop();
+      window.dispatchEvent(new Event('pagehide'));
+      expect(send).not.toHaveBeenCalled();
+    });
+  });
+
+  it('isPaused ignora tudo enquanto verdadeiro', async () => {
+    let paused = true;
+    const r = createRecorder({ send, onStop, isTrusted: () => true, isPaused: () => paused });
+    r.start({ active: true, count: 0 });
+    const input = document.getElementById('i1') as HTMLInputElement;
+    input.value = 'a';
+    fire('input', input);
+    fire('change', input);
+    fire('click', document.getElementById('b') as Element);
+    await vi.advanceTimersByTimeAsync(500);
+    expect(send).not.toHaveBeenCalled();
+    paused = false;
+    fire('change', input);
+    expect(send).toHaveBeenCalledTimes(1);
+    r.stop();
+  });
 });

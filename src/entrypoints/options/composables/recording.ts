@@ -1,7 +1,7 @@
 import { onMounted, onUnmounted } from 'vue';
-import { z } from 'zod';
-import { AdapterIdSchema, LocatorSchema, type Rule } from '../../../core/model';
+import type { Rule } from '../../../core/model';
 import type { Capture } from '../../../core/locator';
+import { parseRecordingDraft } from '../../../core/recorder';
 import {
   RECORDING_DRAFT_KEY,
   RECORDING_DRAFT_MAX_AGE_MS,
@@ -18,43 +18,6 @@ import {
   type PickerStorageArea,
 } from './picker';
 
-// ---------------------------------------------------------------- validação
-
-const ContainerSchema = z.object({
-  selector: z.string().min(1),
-  textContains: z.string().optional(),
-});
-
-const CaptureSchema = z.object({
-  locator: LocatorSchema,
-  adapter: z.union([z.literal('auto'), AdapterIdSchema]),
-  currentValue: z.string().nullable(),
-  label: z.string().nullable(),
-  container: ContainerSchema.optional(),
-  urlPattern: z.string(),
-});
-
-const FieldSchema = z.object({
-  capture: CaptureSchema,
-  value: z.string(),
-  url: z.string(),
-  recordedAt: z.number(),
-});
-
-const GroupSchema = z.object({
-  urlPattern: z.string(),
-  container: ContainerSchema.optional(),
-  fields: z.array(FieldSchema).min(1),
-});
-
-const DraftSchema = z.object({ createdAt: z.number(), groups: z.array(GroupSchema).min(1) });
-
-/** Valida o que veio do storage; null para lixo ou formato antigo. */
-export function parseDraft(raw: unknown): RecordingDraft | null {
-  const r = DraftSchema.safeParse(raw);
-  return r.success ? (r.data as RecordingDraft) : null;
-}
-
 // ---------------------------------------------------------------- consumo único
 
 /** Lê e APAGA a chave da gravação. Devolve null se não há rascunho válido e recente. */
@@ -65,7 +28,7 @@ export async function consumeRecordingDraft(
   const raw = (await area.get(RECORDING_DRAFT_KEY))[RECORDING_DRAFT_KEY];
   if (raw === undefined) return null;
   await area.remove(RECORDING_DRAFT_KEY);
-  const draft = parseDraft(raw);
+  const draft = parseRecordingDraft(raw);
   if (!draft || now - draft.createdAt > RECORDING_DRAFT_MAX_AGE_MS) return null;
   return draft;
 }

@@ -123,8 +123,9 @@ async function saveVariables(variables: Variable[]): Promise<void> {
 /** Fecha o editor; se veio de uma gravação, marca o grupo como tratado (o painel reaparece). */
 function closeEditor(): void {
   const g = editing.value?.group ?? null;
-  if (g !== null && recording.value && !recording.value.handled.includes(g)) {
-    recording.value.handled.push(g);
+  if (g !== null && recording.value) {
+    if (recording.value.direct) recording.value = null;
+    else if (!recording.value.handled.includes(g)) recording.value.handled.push(g);
   }
   editing.value = null;
 }
@@ -213,6 +214,8 @@ usePickerDraft(onPicked);
 interface RecordingReviewState {
   groups: RecordingGroup[];
   handled: number[];
+  /** Grupo único aberto direto no editor: ao fechar, não sobra painel. */
+  direct: boolean;
 }
 const recording = ref<RecordingReviewState | null>(null);
 
@@ -233,9 +236,10 @@ async function onRecorded(rec: RecordingDraft): Promise<void> {
   tab.value = 'rules';
   editing.value = null;
   capturePrompt.value = null;
-  recording.value = { groups: rec.groups, handled: [] };
+  recording.value = { groups: rec.groups, handled: [], direct: false };
   const only = rec.groups.length === 1 ? rec.groups[0] : undefined;
   if (only && findMatchingRulesForGroup(config.value.rules, only).length === 0) {
+    recording.value.direct = true;
     recordingNewRule(0);
   }
 }

@@ -51,6 +51,7 @@ export default defineContentScript({
     });
 
     const recorder = createRecorder({
+      isPaused: () => picker.active,
       send: (field) =>
         browser.runtime.sendMessage({
           type: 'recorder/field',

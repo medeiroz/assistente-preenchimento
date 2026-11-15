@@ -8,8 +8,10 @@ import { createRecorderBar, RECORDER_HOST_ATTR, type RecorderBar } from './bar';
 export { RECORDER_HOST_ATTR } from './bar';
 
 const EVENTS = ['input', 'change', 'click', 'focusout'] as const;
+/** Saídas da página: o que ainda estiver pendente precisa ir embora agora. */
+const LEAVE_EVENTS = ['submit', 'pagehide', 'beforeunload'] as const;
 const INPUT_DEBOUNCE_MS = 300;
-const OTHER_DEBOUNCE_MS = 150;
+const CLICK_DEBOUNCE_MS = 150;
 
 const OWN_HOST_ATTRS = [RECORDER_HOST_ATTR, PICKER_HOST_ATTR, TOAST_HOST_ATTR, ACTION_HOST_ATTR];
 const SENSITIVE_AUTOCOMPLETE = ['current-password', 'new-password', 'one-time-code'];
@@ -23,12 +25,16 @@ export interface RecorderDeps {
   now?(): number;
   /** Só eventos de usuário contam. Padrão: `ev.isTrusted` (os do motor de preenchimento são sintéticos). */
   isTrusted?(ev: Event): boolean;
+  /** Pausa a observação (ex.: enquanto o seletor de campos está ativo). */
+  isPaused?(): boolean;
 }
 
 export interface Recorder {
   start(status: RecorderStatus): void;
   update(status: RecorderStatus): void;
   stop(): void;
+  /** Reporta já tudo o que está pendente (debounce), sem esperar os timers. */
+  flush(): void;
   readonly active: boolean;
 }
 
@@ -60,7 +66,8 @@ export function createRecorder(deps: RecorderDeps): Recorder {
   const trusted = deps.isTrusted ?? ((ev: Event) => ev.isTrusted);
   let bar: RecorderBar | null = null;
   let count = 0;
-  const timers = new Map<Element, ReturnType<typeof setTimeout>>();
+  const paused = deps.isPaused ?? (() => false);
+  const timers = new Map<Element, { timer: ReturnType<typeof setTimeout>; target: Element }>();
   const lastSent = new Map<string, string>();
 
   function fromOwnUi(ev: Event): boolean {
@@ -102,25 +109,47 @@ export function createRecorder(deps: RecorderDeps): Recorder {
     );
   }
 
+  function schedule(root: Element, target: Element, delay: number): void {
+    const pending = timers.get(root);
+    if (pending) clearTimeout(pending.timer);
+    timers.set(root, { timer: setTimeout(() => report(root, target), delay), target });
+  }
+
+  function flush(): void {
+    for (const [root, p] of Array.from(timers)) {
+      clearTimeout(p.timer);
+      report(root, p.target);
+    }
+  }
+
   function onEvent(ev: Event): void {
-    if (!bar || !trusted(ev) || fromOwnUi(ev)) return;
+    if (!bar || paused() || !trusted(ev)) return;
     const target = ev.composedPath()[0];
     if (!isElement(target)) return;
     const hit = resolveField(target);
-    if (!hit) return;
-    const pending = timers.get(hit.root);
-    if (pending) clearTimeout(pending);
-    const delay = ev.type === 'input' ? INPUT_DEBOUNCE_MS : OTHER_DEBOUNCE_MS;
-    timers.set(
-      hit.root,
-      setTimeout(() => report(hit.root, target), delay),
-    );
+    // Clique fora de campo (Próximo, Salvar, Parar...): a página pode navegar já, então
+    // reporta antes de qualquer outra coisa o que ainda está no debounce.
+    if (ev.type === 'click' && !hit) return flush();
+    if (fromOwnUi(ev) || !hit) return;
+    if (ev.type === 'change' || ev.type === 'focusout') {
+      // Valor final já está no campo: reporta na hora (cancela o debounce pendente).
+      const pending = timers.get(hit.root);
+      if (pending) clearTimeout(pending.timer);
+      report(hit.root, target);
+      return;
+    }
+    schedule(hit.root, target, ev.type === 'input' ? INPUT_DEBOUNCE_MS : CLICK_DEBOUNCE_MS);
+  }
+
+  function onLeave(): void {
+    if (bar && !paused()) flush();
   }
 
   function stopLocal(): void {
     if (!bar) return;
     for (const type of EVENTS) win.removeEventListener(type, onEvent, true);
-    for (const t of timers.values()) clearTimeout(t);
+    for (const type of LEAVE_EVENTS) win.removeEventListener(type, onLeave, true);
+    for (const p of timers.values()) clearTimeout(p.timer);
     timers.clear();
     lastSent.clear();
     bar.destroy();
@@ -137,6 +166,9 @@ export function createRecorder(deps: RecorderDeps): Recorder {
       for (const type of EVENTS) {
         win.addEventListener(type, onEvent, { capture: true, passive: true });
       }
+      for (const type of LEAVE_EVENTS) {
+        win.addEventListener(type, onLeave, { capture: true, passive: true });
+      }
     }
     setCount(status.count);
   }
@@ -146,6 +178,7 @@ export function createRecorder(deps: RecorderDeps): Recorder {
       return bar !== null;
     },
     start,
+    flush,
     update(status) {
       if (!status.active) return stopLocal();
       if (!bar) return start(status);

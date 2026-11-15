@@ -4,11 +4,6 @@ import { isStaticallyCovered, toOriginPattern } from '../../../shared/permission
 export interface StartRecordingDeps {
   requestPermission(origin: string): Promise<boolean>;
   sendStart(tabId: number): Promise<RecorderStatus>;
-  executeScript(injection: {
-    target: { tabId: number };
-    files: [string, ...string[]];
-  }): Promise<unknown>;
-  scriptFile: string;
   /** Origens que o manifest já cobre. */
   statics?: readonly string[];
 }
@@ -30,12 +25,12 @@ export function originToRequest(
 }
 
 /**
- * Liga a gravação: (1) pede a permissão do site, para o background reinjetar o content script
- * depois de navegações completas do wizard; (2) grava a sessão no background; (3) injeta o
- * content script (que mostra a barra de gravação). Chamado de dentro do clique: o pedido de
- * permissão começa de forma síncrona (a URL da aba é lida antes, ao abrir o popup). O Chrome não
- * pergunta de novo por origens já concedidas. Se o usuário negar, a gravação segue valendo só
- * para a página atual (o popup fecha em seguida, então não há onde avisar).
+ * Liga a gravação. Chamado de dentro do clique: o pedido de permissão do site (para o
+ * background reinjetar o content script depois de navegações completas) e o `recorder/start`
+ * saem juntos e de forma síncrona, sem um esperar o outro. O Chrome pode fechar o popup durante
+ * o pedido de permissão; por isso a sessão não depende dele, e o próprio background injeta o
+ * content script. Só o `recorder/start` pode falhar a operação; permissão negada ou com erro
+ * deixa a gravação valendo apenas para a página atual.
  */
 export async function startRecording(
   tabId: number,
@@ -44,18 +39,10 @@ export async function startRecording(
 ): Promise<void> {
   const origin = originToRequest(tabUrl, deps.statics);
   const asking = origin === null ? Promise.resolve(false) : safe(deps.requestPermission(origin));
-  await asking;
-  try {
-    await deps.sendStart(tabId);
-  } catch (e) {
-    throw new Error(`Não foi possível iniciar a gravação: ${reason(e)}`);
-  }
-  try {
-    await deps.executeScript({ target: { tabId }, files: [deps.scriptFile] });
-  } catch (e) {
-    throw new Error(
-      `Não foi possível gravar nesta página. Páginas internas do Chrome e a Chrome Web Store não permitem extensões (${reason(e)}).`,
-    );
+  const starting = deps.sendStart(tabId);
+  const [, started] = await Promise.allSettled([asking, starting]);
+  if (started.status === 'rejected') {
+    throw new Error(`Não foi possível iniciar a gravação: ${reason(started.reason)}`);
   }
 }
 
