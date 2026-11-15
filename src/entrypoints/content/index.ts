@@ -25,21 +25,8 @@ export default defineContentScript({
   async main() {
     // Registro dinâmico + injeção sob demanda podem executar o script duas vezes na mesma página.
     if (!claimPage(globalThis)) return;
-    const repo = chromeSyncRepository();
-    const history = chromeHistoryRepository();
-    const host = location.hostname;
-    let config = await repo.load();
-
-    const controller: Controller = createController({
-      window,
-      rules: config.rules,
-      variables: varsOf(config),
-      ui: createPageUi(),
-      onReport: (r: RunReport) => {
-        history.append(r).catch((e: unknown) => console.warn('[assistente] histórico', e));
-      },
-    });
-
+    // A gravação retoma antes do carregamento da configuração: picker, gravador e o ouvinte de
+    // `recorder/state` não dependem dela, e o estado é pedido ao background logo em seguida.
     const picker = createPicker({
       trustedOnly: true,
       onCapture: (capture) => {
@@ -61,6 +48,39 @@ export default defineContentScript({
         browser.runtime
           .sendMessage({ type: 'recorder/stop', payload: { discard } })
           .catch((e: unknown) => console.warn('[assistente] falha ao encerrar a gravação', e));
+      },
+    });
+
+    browser.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
+      if (!isMessage(message) || message.type !== 'recorder/state') return false;
+      recorder.update(message.payload);
+      sendResponse(undefined);
+      return false;
+    });
+
+    // Retoma a gravação depois de uma navegação completa (o background pode estar dormindo).
+    (browser.runtime.sendMessage({ type: 'recorder/status', payload: {} }) as Promise<
+      RecorderStatus | undefined
+    >)
+      .then((status) => {
+        if (status?.active) recorder.start(status);
+      })
+      .catch(() => {
+        // Sem resposta do background: sem gravação a retomar.
+      });
+
+    const repo = chromeSyncRepository();
+    const history = chromeHistoryRepository();
+    const host = location.hostname;
+    let config = await repo.load();
+
+    const controller: Controller = createController({
+      window,
+      rules: config.rules,
+      variables: varsOf(config),
+      ui: createPageUi(),
+      onReport: (r: RunReport) => {
+        history.append(r).catch((e: unknown) => console.warn('[assistente] histórico', e));
       },
     });
 
@@ -115,24 +135,9 @@ export default defineContentScript({
           picker.start();
           sendResponse(undefined);
           return false;
-        case 'recorder/state':
-          recorder.update(message.payload);
-          sendResponse(undefined);
-          return false;
         default:
           return false;
       }
     });
-
-    // Retoma a gravação depois de uma navegação completa (o background pode estar dormindo).
-    try {
-      const status = (await browser.runtime.sendMessage({
-        type: 'recorder/status',
-        payload: {},
-      })) as RecorderStatus | undefined;
-      if (status?.active) recorder.start(status);
-    } catch {
-      // Sem resposta do background: sem gravação a retomar.
-    }
   },
 });

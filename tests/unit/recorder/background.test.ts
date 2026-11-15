@@ -54,6 +54,7 @@ describe('createRecorderBackground', () => {
   it('start cria a sessão e avisa a aba', async () => {
     const { bg, session, deps } = setup();
     expect(await bg.start(7)).toEqual({ active: true, count: 0 });
+    await bg.status(7);
     expect(session.data[RECORDER_SESSION_KEY]).toMatchObject({ tabId: 7, fields: [] });
     expect(deps.sendState).toHaveBeenCalledWith(7, { active: true, count: 0 });
   });
@@ -69,12 +70,28 @@ describe('createRecorderBackground', () => {
       }),
     });
     await bg.start(4);
+    await bg.status(4);
     expect(calls).toEqual(['inject:com-sessao', 'state']);
+  });
+
+  it('start responde antes de a injeção lenta terminar e status() segue funcionando', async () => {
+    let release: () => void = () => undefined;
+    const { bg, deps } = setup({
+      inject: vi.fn(() => new Promise<void>((r) => (release = r))),
+    });
+    expect(await bg.start(5)).toEqual({ active: true, count: 0 });
+    expect(deps.sendState).not.toHaveBeenCalled();
+    const status = bg.status(5);
+    release();
+    expect(await status).toEqual({ active: true, count: 0 });
+    expect(deps.inject).toHaveBeenCalledWith(5);
+    expect(deps.sendState).toHaveBeenCalledWith(5, { active: true, count: 0 });
   });
 
   it('start tolera falha na injeção', async () => {
     const { bg, deps } = setup({ inject: vi.fn(() => Promise.reject(new Error('sem permissão'))) });
     expect(await bg.start(4)).toEqual({ active: true, count: 0 });
+    await bg.status(4);
     expect(deps.sendState).toHaveBeenCalledWith(4, { active: true, count: 0 });
   });
 
@@ -163,6 +180,7 @@ describe('createRecorderBackground', () => {
   it('tabUpdated reinjeta só na aba da sessão e só em "complete"', async () => {
     const { bg, deps } = setup();
     await bg.start(1);
+    await bg.status(1);
     vi.mocked(deps.inject).mockClear();
     await bg.tabUpdated(1, 'loading');
     await bg.tabUpdated(2, 'complete');

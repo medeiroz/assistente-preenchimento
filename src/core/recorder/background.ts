@@ -119,14 +119,17 @@ export function createRecorderBackground(deps: RecorderBackgroundDeps): Recorder
         const session: RecorderSession = { tabId, startedAt: now(), fields: [] };
         await deps.session.set({ [RECORDER_SESSION_KEY]: session });
         const status = { active: true, count: 0 };
-        // O popup pode ser fechado pelo pedido de permissão: quem injeta é o background, com a
-        // sessão já gravada (o content script pergunta `recorder/status` ao iniciar).
-        try {
-          await guarded(() => deps.inject(tabId));
-        } catch {
-          // Sem permissão de host nessa página: a barra não aparece, nada a fazer.
-        }
-        await push(tabId, status);
+        // Responde já com a sessão gravada: o popup não espera a injeção. Quem injeta e avisa a
+        // aba é um trabalho seguinte na mesma fila (ordem preservada com campo/status/parar); o
+        // content script também pergunta `recorder/status` ao iniciar.
+        void enqueue(async () => {
+          try {
+            await guarded(() => deps.inject(tabId));
+          } catch {
+            // Sem permissão de host nessa página: a barra não aparece, nada a fazer.
+          }
+          await push(tabId, status);
+        });
         return status;
       }),
 

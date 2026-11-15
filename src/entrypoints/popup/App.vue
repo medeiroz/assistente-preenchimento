@@ -20,6 +20,8 @@ const view = ref<View>('loading');
 const status = ref<TabStatus | null>(null);
 const report = ref<RunReport | null>(null);
 const busy = ref(false);
+const starting = ref(false);
+const awaitingPermission = ref(false);
 const error = ref('');
 let tabId: number | null = null;
 let tabUrl: string | undefined;
@@ -66,10 +68,17 @@ function recordStart(): void {
   if (tabId === null || busy.value) return;
   const id = tabId;
   busy.value = true;
+  starting.value = true;
   error.value = '';
   // Chamado direto do clique: permissão e `recorder/start` saem juntos, antes de qualquer await.
+  // O popup só fecha quando as duas terminam: fechar antes cancelaria o pedido de permissão.
   startRecording(id, tabUrl, {
-    requestPermission: (origin) => browser.permissions.request({ origins: [origin] }),
+    requestPermission: (origin) => {
+      awaitingPermission.value = true;
+      return browser.permissions.request({ origins: [origin] }).finally(() => {
+        awaitingPermission.value = false;
+      });
+    },
     sendStart: (t) =>
       browser.runtime.sendMessage({ type: 'recorder/start', payload: { tabId: t } }),
   })
@@ -79,6 +88,8 @@ function recordStart(): void {
     })
     .finally(() => {
       busy.value = false;
+      starting.value = false;
+      awaitingPermission.value = false;
     });
 }
 
@@ -230,7 +241,13 @@ onMounted(load);
         </div>
       </section>
       <p v-if="error" class="error" role="alert">{{ error }}</p>
-      <div class="actions">
+      <div v-if="starting" class="starting" role="status" data-testid="record-starting">
+        <p class="summary">Iniciando gravação…</p>
+        <p v-if="awaitingPermission" class="muted">
+          Autorize o acesso ao site na janela do Chrome para gravar todas as etapas.
+        </p>
+      </div>
+      <div v-else class="actions">
         <button
           type="button"
           class="btn primary"
@@ -298,7 +315,13 @@ onMounted(load);
       </section>
       <p v-if="error" class="error" role="alert">{{ error }}</p>
 
-      <div class="actions">
+      <div v-if="starting" class="starting" role="status" data-testid="record-starting">
+        <p class="summary">Iniciando gravação…</p>
+        <p v-if="awaitingPermission" class="muted">
+          Autorize o acesso ao site na janela do Chrome para gravar todas as etapas.
+        </p>
+      </div>
+      <div v-else class="actions">
         <button type="button" class="btn primary" :disabled="busy || status.paused" @click="runNow">
           Preencher agora
         </button>
