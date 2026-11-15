@@ -538,5 +538,186 @@
   },
   "optionsTitle": {
     "message": "Settings"
+  },
+  "outFilled": {
+    "message": "filled"
+  },
+  "outSkippedNotDefault": {
+    "message": "skipped (already had a value)"
+  },
+  "outSkippedHandled": {
+    "message": "skipped (already handled)"
+  },
+  "outSkippedDisabled": {
+    "message": "skipped (disabled)"
+  },
+  "outSkippedUnresolved": {
+    "message": "skipped (value not resolved)"
+  },
+  "outNotFound": {
+    "message": "field not found"
+  },
+  "outUndone": {
+    "message": "undone"
+  },
+  "outError": {
+    "message": "error"
+  },
+  "toastTitle": {
+    "message": "Assistant · $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "close": {
+    "message": "Close"
+  },
+  "toastRestoredOne": {
+    "message": "1 field restored · $arg1$ errors",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "toastRestoredMany": {
+    "message": "$arg1$ fields restored · $arg2$ errors",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      },
+      "arg2": {
+        "content": "$2"
+      }
+    }
+  },
+  "toastSummary": {
+    "message": "$arg1$ filled · $arg2$ skipped · $arg3$ not found · $arg4$ errors",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      },
+      "arg2": {
+        "content": "$2"
+      },
+      "arg3": {
+        "content": "$3"
+      },
+      "arg4": {
+        "content": "$4"
+      }
+    }
+  },
+  "toastDetails": {
+    "message": "Details"
+  },
+  "toastUndoAria": {
+    "message": "Undo fill"
+  },
+  "toastUndo": {
+    "message": "Undo"
+  },
+  "actionMenuLabel": {
+    "message": "Fill…"
+  },
+  "fillRuleLabel": {
+    "message": "Fill: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "barRecordingOne": {
+    "message": "Recording fill · 1 field"
+  },
+  "barRecordingMany": {
+    "message": "Recording fill · $arg1$ fields",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "barAria": {
+    "message": "Fill recording"
+  },
+  "barStop": {
+    "message": "Stop and create rules"
+  },
+  "barDiscard": {
+    "message": "Discard"
+  },
+  "barRecorded": {
+    "message": "Recorded: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "fieldNoLabelLower": {
+    "message": "field without a label"
+  },
+  "fieldNoLabel": {
+    "message": "Field without a label"
+  },
+  "pickerAria": {
+    "message": "Capture field"
+  },
+  "pickerPrompt": {
+    "message": "Click the field you want to fill automatically"
+  },
+  "pickerNotField": {
+    "message": "That doesn't look like a field. Try another."
+  },
+  "cancel": {
+    "message": "Cancel"
+  },
+  "typeText": {
+    "message": "Text"
+  },
+  "typeList": {
+    "message": "List"
+  },
+  "typeChoice": {
+    "message": "Choice"
+  },
+  "typeSearchList": {
+    "message": "Searchable list"
+  },
+  "typeDate": {
+    "message": "Date"
+  },
+  "typeEditableText": {
+    "message": "Editable text"
+  },
+  "typeField": {
+    "message": "Field"
+  },
+  "menuCapture": {
+    "message": "Capture this field"
+  },
+  "menuFillWith": {
+    "message": "Fill with"
+  },
+  "menuNoRules": {
+    "message": "No rules on this page"
+  },
+  "menuRuleInIframe": {
+    "message": "$arg1$ (iframe)",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "menuResume": {
+    "message": "Resume on this site"
+  },
+  "menuPause": {
+    "message": "Pause on this site"
   }
 }

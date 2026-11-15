@@ -538,5 +538,186 @@
   },
   "optionsTitle": {
     "message": "Configurações"
+  },
+  "outFilled": {
+    "message": "preenchido"
+  },
+  "outSkippedNotDefault": {
+    "message": "ignorado (já tinha valor)"
+  },
+  "outSkippedHandled": {
+    "message": "ignorado (já tratado)"
+  },
+  "outSkippedDisabled": {
+    "message": "ignorado (desabilitado)"
+  },
+  "outSkippedUnresolved": {
+    "message": "ignorado (valor não resolvido)"
+  },
+  "outNotFound": {
+    "message": "campo não encontrado"
+  },
+  "outUndone": {
+    "message": "desfeito"
+  },
+  "outError": {
+    "message": "erro"
+  },
+  "toastTitle": {
+    "message": "Assistente · $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "close": {
+    "message": "Fechar"
+  },
+  "toastRestoredOne": {
+    "message": "1 campo restaurado · $arg1$ erros",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "toastRestoredMany": {
+    "message": "$arg1$ campos restaurados · $arg2$ erros",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      },
+      "arg2": {
+        "content": "$2"
+      }
+    }
+  },
+  "toastSummary": {
+    "message": "$arg1$ preenchidos · $arg2$ ignorados · $arg3$ não encontrados · $arg4$ erros",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      },
+      "arg2": {
+        "content": "$2"
+      },
+      "arg3": {
+        "content": "$3"
+      },
+      "arg4": {
+        "content": "$4"
+      }
+    }
+  },
+  "toastDetails": {
+    "message": "Detalhes"
+  },
+  "toastUndoAria": {
+    "message": "Desfazer preenchimento"
+  },
+  "toastUndo": {
+    "message": "Desfazer"
+  },
+  "actionMenuLabel": {
+    "message": "Preencher…"
+  },
+  "fillRuleLabel": {
+    "message": "Preencher: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "barRecordingOne": {
+    "message": "Gravando preenchimento · 1 campo"
+  },
+  "barRecordingMany": {
+    "message": "Gravando preenchimento · $arg1$ campos",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "barAria": {
+    "message": "Gravação de preenchimento"
+  },
+  "barStop": {
+    "message": "Parar e criar regras"
+  },
+  "barDiscard": {
+    "message": "Descartar"
+  },
+  "barRecorded": {
+    "message": "Gravado: $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "fieldNoLabelLower": {
+    "message": "campo sem rótulo"
+  },
+  "fieldNoLabel": {
+    "message": "Campo sem rótulo"
+  },
+  "pickerAria": {
+    "message": "Capturar campo"
+  },
+  "pickerPrompt": {
+    "message": "Clique no campo que deseja preencher automaticamente"
+  },
+  "pickerNotField": {
+    "message": "Isso não parece ser um campo. Tente outro."
+  },
+  "cancel": {
+    "message": "Cancelar"
+  },
+  "typeText": {
+    "message": "Texto"
+  },
+  "typeList": {
+    "message": "Lista"
+  },
+  "typeChoice": {
+    "message": "Escolha"
+  },
+  "typeSearchList": {
+    "message": "Lista com busca"
+  },
+  "typeDate": {
+    "message": "Data"
+  },
+  "typeEditableText": {
+    "message": "Texto editável"
+  },
+  "typeField": {
+    "message": "Campo"
+  },
+  "menuCapture": {
+    "message": "Capturar este campo"
+  },
+  "menuFillWith": {
+    "message": "Preencher com"
+  },
+  "menuNoRules": {
+    "message": "Nenhuma regra nesta página"
+  },
+  "menuRuleInIframe": {
+    "message": "$arg1$ (iframe)",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "menuResume": {
+    "message": "Retomar neste site"
+  },
+  "menuPause": {
+    "message": "Pausar neste site"
   }
 }

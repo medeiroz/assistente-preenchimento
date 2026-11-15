@@ -2,20 +2,31 @@ import { summarize } from '../../../core/model';
 import type { FieldOutcome, RunReport } from '../../../core/model';
 
 import { isolateEvents } from './shared';
+import { t } from '../../../core/i18n';
 
 export const TOAST_HOST_ATTR = 'data-assistente-preenchimento';
 export const TOAST_DURATION_MS = 6000;
 
-const OUTCOME_LABEL: Record<FieldOutcome, string> = {
-  filled: 'preenchido',
-  'skipped-not-default': 'ignorado (já tinha valor)',
-  'skipped-already-handled': 'ignorado (já tratado)',
-  'skipped-disabled': 'ignorado (desabilitado)',
-  'skipped-unresolved-value': 'ignorado (valor não resolvido)',
-  'not-found': 'campo não encontrado',
-  undone: 'desfeito',
-  error: 'erro',
-};
+function outcomeLabel(outcome: FieldOutcome): string {
+  switch (outcome) {
+    case 'filled':
+      return t('outFilled');
+    case 'skipped-not-default':
+      return t('outSkippedNotDefault');
+    case 'skipped-already-handled':
+      return t('outSkippedHandled');
+    case 'skipped-disabled':
+      return t('outSkippedDisabled');
+    case 'skipped-unresolved-value':
+      return t('outSkippedUnresolved');
+    case 'not-found':
+      return t('outNotFound');
+    case 'undone':
+      return t('outUndone');
+    case 'error':
+      return t('outError');
+  }
+}
 
 const STYLE = `
 :host { all: initial; }
@@ -61,11 +72,11 @@ function buildToast(report: RunReport, onClose: () => void, onUndo?: () => void)
   head.className = 'head';
   const title = document.createElement('div');
   title.className = 'title';
-  title.textContent = `Assistente · ${report.ruleName}`;
+  title.textContent = t('toastTitle', report.ruleName);
   const close = document.createElement('button');
   close.className = 'close';
   close.type = 'button';
-  close.setAttribute('aria-label', 'Fechar');
+  close.setAttribute('aria-label', t('close'));
   close.textContent = '×';
   close.addEventListener('click', onClose);
   head.append(title, close);
@@ -75,18 +86,20 @@ function buildToast(report: RunReport, onClose: () => void, onUndo?: () => void)
   const restored = s.undone;
   summary.textContent =
     restored > 0
-      ? `${restored} ${restored === 1 ? 'campo restaurado' : 'campos restaurados'} · ${s.errors} erros`
-      : `${s.filled} preenchidos · ${s.skipped} ignorados · ${s.notFound} não encontrados · ${s.errors} erros`;
+      ? restored === 1
+        ? t('toastRestoredOne', s.errors)
+        : t('toastRestoredMany', restored, s.errors)
+      : t('toastSummary', s.filled, s.skipped, s.notFound, s.errors);
 
   const details = document.createElement('details');
   const dsum = document.createElement('summary');
-  dsum.textContent = 'Detalhes';
+  dsum.textContent = t('toastDetails');
   const list = document.createElement('ul');
   for (const f of report.fields) {
     const li = document.createElement('li');
     li.className = f.outcome;
     const msg = f.message ? ` (${f.message})` : '';
-    li.textContent = `${f.description} → ${OUTCOME_LABEL[f.outcome]}${msg}`;
+    li.textContent = `${f.description} → ${outcomeLabel(f.outcome)}${msg}`;
     list.append(li);
   }
   details.append(dsum, list);
@@ -98,8 +111,8 @@ function buildToast(report: RunReport, onClose: () => void, onUndo?: () => void)
     const undo = document.createElement('button');
     undo.className = 'undo';
     undo.type = 'button';
-    undo.setAttribute('aria-label', 'Desfazer preenchimento');
-    undo.textContent = 'Desfazer';
+    undo.setAttribute('aria-label', t('toastUndoAria'));
+    undo.textContent = t('toastUndo');
     undo.addEventListener('click', onUndo);
     actions.append(undo);
     box.append(actions);

@@ -1,4 +1,5 @@
 import { isolateEvents } from './shared';
+import { t } from '../../../core/i18n';
 
 export const ACTION_HOST_ATTR = 'data-assistente-acao';
 
@@ -34,7 +35,6 @@ const STYLE = `
 
 /** A partir deste número de regras com botão, os botões viram um único menu "Preencher…". */
 export const MENU_THRESHOLD = 3;
-export const MENU_LABEL = 'Preencher…';
 
 export interface ActionButtons {
   show(id: string, label: string, onClick: () => void): void;
@@ -137,28 +137,28 @@ export function createActionButtons(): ActionButtons {
   function buildMenu(): HTMLElement {
     const wrap = document.createElement('div');
     wrap.className = 'menu-wrap';
-    const t = document.createElement('button');
-    t.type = 'button';
-    t.className = 'act';
-    t.textContent = MENU_LABEL;
-    t.setAttribute('aria-label', MENU_LABEL);
-    t.setAttribute('aria-haspopup', 'menu');
-    t.setAttribute('aria-expanded', String(menuOpen));
-    t.onclick = () => (menuOpen ? closeMenu(false) : openMenu(false));
-    t.onkeydown = (e) => {
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'act';
+    toggle.textContent = t('actionMenuLabel');
+    toggle.setAttribute('aria-label', t('actionMenuLabel'));
+    toggle.setAttribute('aria-haspopup', 'menu');
+    toggle.setAttribute('aria-expanded', String(menuOpen));
+    toggle.onclick = () => (menuOpen ? closeMenu(false) : openMenu(false));
+    toggle.onkeydown = (e) => {
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         e.preventDefault();
         if (menuOpen) shadow?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
         else openMenu(true);
       }
     };
-    trigger = t;
-    wrap.append(t);
+    trigger = toggle;
+    wrap.append(toggle);
     if (!menuOpen) return wrap;
     const menu = document.createElement('div');
     menu.className = 'menu';
     menu.setAttribute('role', 'menu');
-    menu.setAttribute('aria-label', MENU_LABEL);
+    menu.setAttribute('aria-label', t('actionMenuLabel'));
     const items: HTMLElement[] = [];
     for (const [id, e] of entries) {
       const it = document.createElement('button');

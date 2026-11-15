@@ -8,6 +8,7 @@ import type { ContextWatcher, UrlWatcher } from './watcher';
 import { rulePriority } from '../model/schema';
 import { createSession } from './session';
 import type { FillSession } from './session';
+import { t } from '../i18n';
 
 export interface ControllerOptions {
   window: Window;
@@ -176,7 +177,7 @@ export function createController(o: ControllerOptions): Controller {
   }
 
   function showButton(a: Active): void {
-    o.ui.showActionButton(a.rule.id, `Preencher: ${a.rule.name}`, () => {
+    o.ui.showActionButton(a.rule.id, t('fillRuleLabel', a.rule.name), () => {
       if (!running || active.get(a.rule.id) !== a) return;
       o.ui.hideActionButton(a.rule.id);
       for (const [el, entry] of [...a.entries]) {
