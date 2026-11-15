@@ -287,3 +287,30 @@ export async function syncDynamicScripts(deps: DynamicSyncDeps): Promise<Dynamic
     return 'error';
   }
 }
+
+type Listener<A extends unknown[]> = { addListener(cb: (...args: A) => void): void };
+
+export interface SyncTriggersApi {
+  runtime: {
+    onStartup: Listener<[]>;
+    onInstalled: Listener<[{ reason: string }]>;
+  };
+  permissions: { onAdded: Listener<[]>; onRemoved: Listener<[]> };
+}
+
+/**
+ * Quando re-sincronizar o registro dinâmico. Cobre os dois navegadores:
+ * - `permissions.onAdded/onRemoved`: o usuário concede ou revoga o acesso a qualquer momento
+ *   (no Firefox MV3 isso é feito em about:addons);
+ * - `runtime.onStartup`: não depende de `persistAcrossSessions` ser respeitado após reiniciar;
+ * - `runtime.onInstalled` com motivo `update`: atualizações limpam os scripts registrados.
+ * (`install` é tratado à parte, junto com a semeadura.)
+ */
+export function watchSyncTriggers(api: SyncTriggersApi, schedule: () => void): void {
+  api.runtime.onStartup.addListener(() => schedule());
+  api.runtime.onInstalled.addListener((d) => {
+    if (d.reason === 'update') schedule();
+  });
+  api.permissions.onAdded.addListener(() => schedule());
+  api.permissions.onRemoved.addListener(() => schedule());
+}

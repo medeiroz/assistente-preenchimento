@@ -13,7 +13,7 @@ import {
   type ClickTab,
   type MenuItem,
 } from '../shared/context-menu';
-import { syncDynamicScripts, type DynamicSyncDeps } from '../shared/permissions';
+import { syncDynamicScripts, watchSyncTriggers, type DynamicSyncDeps } from '../shared/permissions';
 
 const E2E = import.meta.env.MODE === 'e2e';
 
@@ -215,7 +215,6 @@ export default defineBackground(() => {
   });
   chromeSyncRepository().onChange(scheduleSync);
   chromeSyncRepository().onChange(() => menu.schedule()); // pausa mudou
-  browser.permissions.onAdded.addListener(scheduleSync);
-  browser.permissions.onRemoved.addListener(scheduleSync);
+  watchSyncTriggers(browser, scheduleSync);
   run();
 });
