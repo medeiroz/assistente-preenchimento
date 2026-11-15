@@ -59,9 +59,11 @@ export default defineContentScript({
     });
 
     // Retoma a gravação depois de uma navegação completa (o background pode estar dormindo).
-    (browser.runtime.sendMessage({ type: 'recorder/status', payload: {} }) as Promise<
-      RecorderStatus | undefined
-    >)
+    (
+      browser.runtime.sendMessage({ type: 'recorder/status', payload: {} }) as Promise<
+        RecorderStatus | undefined
+      >
+    )
       .then((status) => {
         if (status?.active) recorder.start(status);
       })

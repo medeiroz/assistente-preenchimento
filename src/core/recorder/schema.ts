@@ -1,7 +1,10 @@
 import { z } from 'zod';
 import { AdapterIdSchema, LocatorSchema } from '../model';
 
-const ContainerSchema = z.object({ selector: z.string().min(1), textContains: z.string().optional() });
+const ContainerSchema = z.object({
+  selector: z.string().min(1),
+  textContains: z.string().optional(),
+});
 
 export const CaptureSchema = z.object({
   locator: LocatorSchema,
