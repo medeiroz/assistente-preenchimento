@@ -44,6 +44,8 @@ export interface ChromeSyncRepository extends ConfigRepository {
 
 /** Limite do chrome.storage.sync por item. */
 export const MAX_ITEM_BYTES = 8192;
+/** Cota total do chrome.storage.sync. */
+export const SYNC_QUOTA_BYTES = 102400;
 const DEBOUNCE_MS = 50;
 
 const META_KEY = 'cfg:meta';
@@ -60,13 +62,44 @@ export class StorageQuotaError extends Error {
   }
 }
 
-function itemBytes(key: string, value: unknown): number {
+/** Bytes que o item ocupa no storage.sync (chave + valor em JSON), como o Chrome conta. */
+export function measureItem(key: string, value: unknown): number {
   const enc = new TextEncoder();
   return enc.encode(JSON.stringify(key)).length + enc.encode(JSON.stringify(value)).length;
 }
 
+/** Chave do item de uma regra no storage.sync. */
+export function ruleItemKey(id: string): string {
+  return RULE_PREFIX + id;
+}
+
+/** Tamanho que a regra terá ao ser gravada (a data de atualização tem tamanho fixo). */
+export function measureRule(rule: unknown): number {
+  const id = isRecord(rule) && typeof rule.id === 'string' ? rule.id : '';
+  return measureItem(ruleItemKey(id), rule);
+}
+
+/** Tamanho do item de variáveis como será gravado: as locais entram com `value: ''`. */
+export function measureVariables(vars: Variable[]): number {
+  return measureItem(VARIABLES_KEY, splitVariables(vars, {}, false).syncVars);
+}
+
+/** Bytes que a configuração ocupa no storage.sync (itens que `replaceAll` gravaria). */
+export function measureConfig(config: Config): number {
+  let total = measureVariables(config.variables) + measureItem(SETTINGS_KEY, config.settings);
+  total += measureItem(
+    META_KEY,
+    nextMeta(
+      undefined,
+      config.rules.map((r) => r.id),
+    ),
+  );
+  for (const r of config.rules) total += measureRule(r);
+  return total;
+}
+
 function assertFits(key: string, value: unknown, what: string): void {
-  const bytes = itemBytes(key, value);
+  const bytes = measureItem(key, value);
   if (bytes > MAX_ITEM_BYTES) {
     const kb = (bytes / 1024).toFixed(1);
     throw new StorageQuotaError(
@@ -221,7 +254,7 @@ export function createChromeSyncRepository(deps: ChromeSyncDeps): ChromeSyncRepo
           throw new Error(`Regra inválida: ${formatZodIssues(parsed.error).join('; ')}`);
         }
         const valid: Rule = { ...parsed.data, updatedAt: new Date().toISOString() };
-        const key = RULE_PREFIX + valid.id;
+        const key = ruleItemKey(valid.id);
         assertFits(key, valid, 'Regra');
         const meta = await readMetaForWrite();
         const ids = parseRuleIds(meta);
@@ -284,7 +317,7 @@ export function createChromeSyncRepository(deps: ChromeSyncDeps): ChromeSyncRepo
         const cfg = parsed.data;
         const items: Record<string, unknown> = {};
         for (const r of cfg.rules) {
-          const key = RULE_PREFIX + r.id;
+          const key = ruleItemKey(r.id);
           assertFits(key, r, 'Regra');
           items[key] = r;
         }

@@ -716,3 +716,44 @@ summary {
   margin: 0;
   min-width: 0;
 }
+
+.size-meter {
+  margin: 8px 0;
+}
+
+.size-meter-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.size-meter-track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--border);
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.size-meter-bar {
+  height: 100%;
+  background: var(--primary);
+}
+
+.size-meter.level-warn .size-meter-bar {
+  background: #b7791f;
+}
+
+.size-meter.level-warn .size-meter-head strong {
+  color: var(--warn-text);
+}
+
+.size-meter.level-error .size-meter-bar {
+  background: var(--danger);
+}
+
+.size-meter.level-error .size-meter-head strong {
+  color: var(--danger);
+}

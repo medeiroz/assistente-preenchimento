@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import type { Rule, Variable } from '../../../core/model';
-import { StorageQuotaError } from '../../../core/storage';
+import { MAX_ITEM_BYTES, StorageQuotaError, measureRule } from '../../../core/storage';
+import { draftToRuleInput } from '../composables/draftConvert';
+import SizeMeter from './SizeMeter.vue';
 import {
   MODE_OPTIONS,
   OVERWRITE_OPTIONS,
@@ -42,6 +44,16 @@ const errorBox = ref<HTMLElement | null>(null);
 // Prévia estável (sem sorteio de id) para marcar erros ao vivo.
 const live = computed(() => validateDraft(draft.value, { rng: () => 0.5 }));
 const dirty = computed(() => isDirty(props.initial, draft.value));
+
+// Tamanho que a regra terá no storage.sync: usa a regra validada; se o rascunho estiver
+// inválido, mede o que a conversão produz; se nem isso der, esconde o medidor.
+const ruleBytes = computed<number | null>(() => {
+  try {
+    return measureRule(live.value.rule ?? draftToRuleInput(draft.value, { rng: () => 0.5 }));
+  } catch {
+    return null;
+  }
+});
 defineExpose({ dirty });
 
 const shownErrors = computed<Record<string, string[]>>(() => {
@@ -383,6 +395,13 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
       :hints="captureFocus ? { [captureFocus.fieldId]: captureFocus.hint } : {}"
     />
     <p v-if="err('fields')" class="error-text">{{ err('fields') }}</p>
+
+    <SizeMeter
+      v-if="ruleBytes !== null"
+      :bytes="ruleBytes"
+      :limit="MAX_ITEM_BYTES"
+      over-message="reduza o número de campos"
+    />
 
     <div class="actions-bar">
       <button
