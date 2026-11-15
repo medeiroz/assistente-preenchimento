@@ -1,5 +1,5 @@
 import { AdapterError, type FieldAdapter } from './types';
-import { dispatch, setNativeValue } from './dom';
+import { defaultSleep, dispatch, setNativeValue, typeText, valueMatches } from './dom';
 import { isDateControl } from './date';
 
 type TextControl = HTMLInputElement | HTMLTextAreaElement;
@@ -32,11 +32,21 @@ export const nativeTextAdapter: FieldAdapter = {
     const value = findControl(root)?.value;
     return value !== undefined && value === (defaultValue ?? '');
   },
-  async write(root, value) {
+  async write(root, value, options) {
     const el = findControl(root);
     if (!el) throw new AdapterError('Controle de texto não encontrado', 'control-not-found');
     if (el.readOnly || el.disabled) {
       throw new AdapterError('Controle somente leitura ou desabilitado', 'write-failed');
+    }
+    if (options?.typing) {
+      await typeText(
+        el,
+        value,
+        options.typing.keyDelayMs,
+        options.sleep ?? defaultSleep,
+        options.aborted,
+      );
+      return;
     }
     el.focus();
     setNativeValue(el, value);
@@ -47,7 +57,7 @@ export const nativeTextAdapter: FieldAdapter = {
   async clear(root) {
     await this.write(root, '');
   },
-  verify(root, value) {
-    return this.read(root) === value;
+  verify(root, value, options) {
+    return valueMatches(this.read(root), value, options?.typing !== undefined);
   },
 };

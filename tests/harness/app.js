@@ -122,6 +122,28 @@
     window.__escapeCount++;
     if (vm.mounted && vm.active) vm.confirmOpen = true;
   }
+  // Campo CPF com máscara e "busca automática" que só reage a digitação real (keydown):
+  // depois de 11 dígitos digitados à mão, habilita "Nome do tomador" (como um cadastro que
+  // consulta o documento). Escrita programática sem teclas não dispara a busca.
+  window.__docKeys = 0;
+  document.addEventListener('keydown', function (ev) {
+    if (ev.target && ev.target.id === 'doc-cpf') window.__docKeys++;
+  });
+  document.addEventListener('input', function (ev) {
+    var el = ev.target;
+    if (!el || el.id !== 'doc-cpf') return;
+    var d = el.value.replace(/\D/g, '').slice(0, 11);
+    el.value = d
+      .replace(/^(\d{3})(\d)/, '$1.$2')
+      .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
+      .replace(/\.(\d{3})(\d)/, '.$1-$2');
+    if (d.length === 11 && window.__docKeys > 0) {
+      setTimeout(function () {
+        var nome = document.getElementById('doc-nome');
+        if (nome) nome.disabled = false;
+      }, 150);
+    }
+  });
   document.addEventListener('keydown', onEscape);
   document.addEventListener('keyup', onEscape);
   window.__harness = {

@@ -6,8 +6,12 @@ import {
   ADAPTER_OPTIONS,
   LOCATOR_OPTIONS,
   LOCATOR_PLACEHOLDERS,
+  DEFAULT_KEY_DELAY_MS,
+  adapterSupportsTyping,
+  dropTarget,
   fieldValueError,
   moveField,
+  reorderFields,
   newFieldDraft,
   type AdapterChoice,
   type FieldDraft,
@@ -60,10 +64,96 @@ function onText(index: number, key: 'locatorValue' | 'value' | 'defaultValue', e
 
 function onSelect(index: number, key: 'locatorBy' | 'adapter', ev: Event): void {
   const v = (ev.target as HTMLSelectElement).value;
-  patch(
-    index,
-    key === 'locatorBy' ? { locatorBy: v as LocatorBy } : { adapter: v as AdapterChoice },
-  );
+  if (key === 'locatorBy') {
+    patch(index, { locatorBy: v as LocatorBy });
+    return;
+  }
+  const adapter = v as AdapterChoice;
+  // Adaptadores que não digitam ignorariam a opção: desliga para não enganar.
+  patch(index, adapterSupportsTyping(adapter) ? { adapter } : { adapter, typing: false });
+}
+
+/** Número de um <input type=number>; vazio vira null (a validação acusa quando obrigatório). */
+function numberOf(ev: Event): number | null {
+  const raw = (ev.target as HTMLInputElement).value.trim();
+  if (raw === '') return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+function onDelay(index: number, ev: Event): void {
+  patch(index, { delayMs: numberOf(ev) });
+}
+
+function onKeyDelay(index: number, ev: Event): void {
+  patch(index, { keyDelayMs: numberOf(ev) });
+}
+
+function onTyping(index: number, ev: Event): void {
+  const on = (ev.target as HTMLInputElement).checked;
+  const f = props.fields[index];
+  patch(index, {
+    typing: on,
+    keyDelayMs: on && (f?.keyDelayMs ?? null) === null ? DEFAULT_KEY_DELAY_MS : f?.keyDelayMs,
+  });
+}
+
+function delayError(f: FieldDraft): string | null {
+  return props.errors[`fields.${f.id}.delay`]?.join('; ') ?? null;
+}
+
+function keyDelayError(f: FieldDraft): string | null {
+  return props.errors[`fields.${f.id}.keyDelay`]?.join('; ') ?? null;
+}
+
+function hasDelay(f: FieldDraft): boolean {
+  return f.delayMs !== null && f.delayMs > 0;
+}
+
+// ------------------------------------------------ arrastar e soltar
+// Só a alça (⠿) é arrastável: os inputs do card continuam selecionáveis/editáveis.
+const dragIndex = ref<number | null>(null);
+const overIndex = ref<number | null>(null);
+const overWhere = ref<'before' | 'after'>('before');
+
+function onDragStart(i: number, ev: DragEvent): void {
+  dragIndex.value = i;
+  const dt = ev.dataTransfer;
+  if (!dt) return;
+  dt.effectAllowed = 'move';
+  dt.setData('text/plain', props.fields[i]?.id ?? '');
+  const card = (ev.currentTarget as HTMLElement).closest('li');
+  if (card) dt.setDragImage(card, 12, 12);
+}
+
+function onDragOver(i: number, ev: DragEvent): void {
+  if (dragIndex.value === null) return;
+  ev.preventDefault();
+  if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'move';
+  const rect = (ev.currentTarget as HTMLElement).getBoundingClientRect();
+  overIndex.value = i;
+  overWhere.value = ev.clientY < rect.top + rect.height / 2 ? 'before' : 'after';
+}
+
+function onDrop(i: number, ev: DragEvent): void {
+  if (dragIndex.value === null) return;
+  ev.preventDefault();
+  const from = dragIndex.value;
+  const to = dropTarget(from, i, overWhere.value);
+  onDragEnd();
+  if (to !== from) emit('update:fields', reorderFields(props.fields, from, to));
+}
+
+function onDragEnd(): void {
+  dragIndex.value = null;
+  overIndex.value = null;
+}
+
+function dropClass(i: number): string {
+  if (dragIndex.value === null || overIndex.value !== i) return '';
+  // Soltar no mesmo lugar não muda nada: sem indicador.
+  if (dropTarget(dragIndex.value, i, overWhere.value) === dragIndex.value) return '';
+  return overWhere.value === 'before' ? 'drop-before' : 'drop-after';
 }
 
 function add(): void {
@@ -132,8 +222,27 @@ function otherErrors(f: FieldDraft): string[] {
     </p>
 
     <ol class="fields">
-      <li v-for="(f, i) in fields" :key="f.id" class="field-card" :data-field-id="f.id">
+      <li
+        v-for="(f, i) in fields"
+        :key="f.id"
+        class="field-card"
+        :class="[dropClass(i), { dragging: dragIndex === i }]"
+        :data-field-id="f.id"
+        @dragover="onDragOver(i, $event)"
+        @drop="onDrop(i, $event)"
+      >
         <div class="field-head">
+          <span
+            class="drag-handle"
+            role="button"
+            draggable="true"
+            aria-label="Arrastar para reordenar"
+            title="Arrastar para reordenar"
+            data-testid="field-drag"
+            @dragstart="onDragStart(i, $event)"
+            @dragend="onDragEnd"
+            >⠿</span
+          >
           <span class="field-number">Campo {{ i + 1 }}</span>
           <label class="inline">
             <input
@@ -144,6 +253,10 @@ function otherErrors(f: FieldDraft): string[] {
             />
             Ativo
           </label>
+          <span v-if="hasDelay(f)" class="badge" data-testid="field-badge-delay"
+            >⏱ {{ f.delayMs }} ms</span
+          >
+          <span v-if="f.typing" class="badge" data-testid="field-badge-typing">⌨ digitação</span>
           <span class="spacer"></span>
           <button
             type="button"
@@ -251,6 +364,68 @@ function otherErrors(f: FieldDraft): string[] {
               tratá-lo como “vazio”.
             </p>
           </div>
+          <div class="grid">
+            <div class="control">
+              <label :for="`f${i}-delay`">Esperar antes de preencher (ms)</label>
+              <input
+                :id="`f${i}-delay`"
+                class="f-delay"
+                data-testid="field-delay"
+                type="number"
+                min="0"
+                max="60000"
+                step="1"
+                placeholder="0"
+                :value="f.delayMs ?? ''"
+                :aria-invalid="delayError(f) !== null"
+                :aria-describedby="delayError(f) !== null ? `f${i}-delay-err` : undefined"
+                @input="onDelay(i, $event)"
+              />
+              <p v-if="delayError(f)" :id="`f${i}-delay-err`" class="error-text" role="alert">
+                {{ delayError(f) }}
+              </p>
+            </div>
+            <div class="control">
+              <label class="inline">
+                <input
+                  type="checkbox"
+                  class="f-typing"
+                  data-testid="field-typing"
+                  :checked="f.typing"
+                  :disabled="!adapterSupportsTyping(f.adapter)"
+                  @change="onTyping(i, $event)"
+                />
+                Simular digitação (tecla por tecla)
+              </label>
+              <p v-if="!adapterSupportsTyping(f.adapter)" class="hint">
+                Disponível só para campos de texto e data.
+              </p>
+            </div>
+            <div v-if="f.typing" class="control">
+              <label :for="`f${i}-keydelay`">Intervalo entre teclas (ms)</label>
+              <input
+                :id="`f${i}-keydelay`"
+                class="f-key-delay"
+                data-testid="field-key-delay"
+                type="number"
+                min="0"
+                max="2000"
+                step="1"
+                :value="f.keyDelayMs ?? ''"
+                :aria-invalid="keyDelayError(f) !== null"
+                :aria-describedby="keyDelayError(f) !== null ? `f${i}-keydelay-err` : undefined"
+                @input="onKeyDelay(i, $event)"
+              />
+              <p v-if="keyDelayError(f)" :id="`f${i}-keydelay-err`" class="error-text" role="alert">
+                {{ keyDelayError(f) }}
+              </p>
+            </div>
+          </div>
+          <p class="hint">
+            Use a digitação simulada em campos com máscara ou busca automática (ex.: CPF/CNPJ que
+            consulta um cadastro). A espera é útil quando o campo só aparece ou habilita depois do
+            anterior: o campo é procurado só depois dela.
+          </p>
         </details>
         <p v-for="e in otherErrors(f)" :key="e" class="error-text">{{ e }}</p>
       </li>

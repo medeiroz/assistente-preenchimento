@@ -40,11 +40,13 @@ const dirty = computed(() => isDirty(props.initial, draft.value));
 defineExpose({ dirty });
 
 const shownErrors = computed<Record<string, string[]>>(() => {
-  if (!attempted.value) return {};
   const out: Record<string, string[]> = {};
   for (const [k, v] of Object.entries(live.value.byKey)) {
     // erros de sintaxe do valor já aparecem ao vivo dentro da tabela
     if (k.endsWith('.value')) continue;
+    // faixas de atraso/intervalo aparecem ao vivo; os demais só depois de tentar salvar
+    const liveKey = k.endsWith('.delay') || k.endsWith('.keyDelay');
+    if (!attempted.value && !liveKey) continue;
     out[k] = v;
   }
   return out;

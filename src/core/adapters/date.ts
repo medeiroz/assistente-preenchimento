@@ -1,5 +1,5 @@
 import { AdapterError, type FieldAdapter } from './types';
-import { dispatch, setNativeValue } from './dom';
+import { defaultSleep, dispatch, setNativeValue, typeText, valueMatches } from './dom';
 
 /** Controle de data (input[type=date], .eui-input-datepicker, máscara dd/mm/aaaa, data-date-format). */
 export function isDateControl(el: Element): el is HTMLInputElement {
@@ -82,7 +82,7 @@ export const dateAdapter: FieldAdapter = {
     if (current === null) return false;
     return current === normalized(defaultValue ?? '');
   },
-  async write(root, value) {
+  async write(root, value, options) {
     const el = findInput(root);
     if (!el) throw new AdapterError('Campo de data não encontrado', 'control-not-found');
     const parsed = parseDate(value);
@@ -94,6 +94,16 @@ export const dateAdapter: FieldAdapter = {
     }
     assertEnabled(el);
     const native = (el.getAttribute('type') ?? '').toLowerCase() === 'date';
+    if (options?.typing && !native && !el.readOnly) {
+      await typeText(
+        el,
+        toBr(parsed),
+        options.typing.keyDelayMs,
+        options.sleep ?? defaultSleep,
+        options.aborted,
+      );
+      return;
+    }
     el.focus();
     setNativeValue(el, native ? toIso(parsed) : toBr(parsed));
     dispatch(el, 'input');
@@ -110,8 +120,10 @@ export const dateAdapter: FieldAdapter = {
     dispatch(el, 'change');
     el.blur();
   },
-  verify(root, value) {
+  verify(root, value, options) {
     const parsed = parseDate(value);
-    return parsed !== null && this.read(root) === toBr(parsed);
+    return (
+      parsed !== null && valueMatches(this.read(root), toBr(parsed), options?.typing !== undefined)
+    );
   },
 };

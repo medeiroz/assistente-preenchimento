@@ -11,6 +11,8 @@ export interface SessionDeps {
   resolveValue(template: string): ResolveResult;
   now(): Date;
   url(): string;
+  /** Espera injetável (testes). Padrão: setTimeout. A sessão a interrompe ao terminar. */
+  sleep?: (ms: number) => Promise<void>;
 }
 
 /**
@@ -67,12 +69,48 @@ export function createSession(rule: Rule, container: Element, deps: SessionDeps)
   const states = new Map<string, FieldState>();
   for (const f of rule.fields) states.set(f.id, { seen: false, previousValue: null });
   let ended = false;
+  const timers = new Set<{ timer: ReturnType<typeof setTimeout>; wake: () => void }>();
+  let wakeEnd: () => void = () => undefined;
+  const endSignal = new Promise<void>((resolve) => {
+    wakeEnd = resolve;
+  });
   let queue: Promise<unknown> = Promise.resolve();
 
   function enqueue<T>(task: () => Promise<T>): Promise<T> {
     const run = queue.then(task, task);
     queue = run.catch(() => undefined);
     return run;
+  }
+
+  /** Espera `ms`; volta antes se a sessão terminar (sem deixar timer pendente). */
+  function sleep(ms: number): Promise<void> {
+    if (ended || ms <= 0) return Promise.resolve();
+    if (deps.sleep) return Promise.race([deps.sleep(ms), endSignal]);
+    return new Promise<void>((resolve) => {
+      const entry = {
+        timer: setTimeout(() => {
+          timers.delete(entry);
+          resolve();
+        }, ms),
+        wake: resolve,
+      };
+      timers.add(entry);
+    });
+  }
+
+  /**
+   * Atraso por campo: espera ANTES de localizar (o campo pode só surgir depois do anterior
+   * disparar uma busca) e então localiza/avalia de novo, pois o nó pode ter mudado.
+   */
+  async function applyDelay(f: FieldRule, st: FieldState): Promise<void> {
+    if (!f.delayMs || !f.enabled) return;
+    await sleep(f.delayMs);
+    if (ended) return;
+    st.seen = false;
+    st.snapError = undefined;
+    st.adapter = undefined;
+    st.root = undefined;
+    snapshotField(f, st);
   }
 
   function stateOf(f: FieldRule): FieldState {
@@ -155,8 +193,10 @@ export function createSession(rule: Rule, container: Element, deps: SessionDeps)
     const adapter = st.adapter as FieldAdapter;
     const root = st.root as Element;
     try {
-      await adapter.write(root, value);
-      if (!adapter.verify(root, value)) {
+      const opts = f.typing ? { typing: f.typing, sleep, aborted: () => ended } : undefined;
+      await adapter.write(root, value, opts);
+      if (ended) return report(f, st, 'error', { message: 'sessão encerrada' });
+      if (!adapter.verify(root, value, opts)) {
         return mark(f, st, 'error', {
           message: 'verify-failed: o valor não foi aplicado ao campo',
         });
@@ -237,7 +277,12 @@ export function createSession(rule: Rule, container: Element, deps: SessionDeps)
     snapshotNow();
     for (const f of rule.fields) {
       const st = stateOf(f);
+      if (ended) break;
       try {
+        if (origin === 'manual' || !(st.outcome && HANDLED.has(st.outcome))) {
+          await applyDelay(f, st);
+          if (ended) break;
+        }
         fields.push(await fillField(f, st, origin));
       } catch (e) {
         fields.push(mark(f, st, 'error', { message: errMessage(e) }));
@@ -317,6 +362,12 @@ export function createSession(rule: Rule, container: Element, deps: SessionDeps)
     },
     end() {
       ended = true;
+      for (const t of timers) {
+        clearTimeout(t.timer);
+        t.wake();
+      }
+      timers.clear();
+      wakeEnd();
     },
   };
 }

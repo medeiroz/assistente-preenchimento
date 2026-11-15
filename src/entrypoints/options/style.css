@@ -465,6 +465,35 @@ summary {
   flex-wrap: wrap;
 }
 
+.drag-handle {
+  cursor: grab;
+  user-select: none;
+  padding: 0 4px;
+  font-size: 1.2em;
+  line-height: 1;
+  color: var(--muted);
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.field-card {
+  position: relative;
+}
+
+.field-card.dragging {
+  opacity: 0.5;
+}
+
+.field-card.drop-before {
+  box-shadow: 0 -3px 0 0 var(--primary);
+}
+
+.field-card.drop-after {
+  box-shadow: 0 3px 0 0 var(--primary);
+}
+
 .field-number {
   font-weight: 700;
 }

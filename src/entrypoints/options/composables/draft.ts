@@ -17,6 +17,19 @@ export interface FieldDraft {
   adapter: AdapterChoice;
   value: string;
   defaultValue: string;
+  /** Espera antes de preencher, em ms. null/0 = sem espera (campo vazio na tela). */
+  delayMs: number | null;
+  /** Simular digitação tecla por tecla. */
+  typing: boolean;
+  /** Intervalo entre teclas, em ms (usado só com `typing`). null = campo vazio na tela. */
+  keyDelayMs: number | null;
+}
+
+export const DEFAULT_KEY_DELAY_MS = 50;
+
+/** Adaptadores que sabem digitar tecla por tecla (os demais ignoram a opção). */
+export function adapterSupportsTyping(adapter: AdapterChoice): boolean {
+  return adapter === 'auto' || adapter === 'native-text' || adapter === 'date';
 }
 
 export interface RuleDraft {
@@ -170,6 +183,9 @@ export function newFieldDraft(fields: readonly { id: string }[]): FieldDraft {
     adapter: 'auto',
     value: '',
     defaultValue: '',
+    delayMs: null,
+    typing: false,
+    keyDelayMs: DEFAULT_KEY_DELAY_MS,
   };
 }
 
@@ -215,6 +231,9 @@ export function ruleToDraft(rule: Rule): RuleDraft {
         adapter: f.adapter,
         value: f.value,
         defaultValue: f.defaultValue ?? '',
+        delayMs: f.delayMs ?? null,
+        typing: f.typing !== undefined,
+        keyDelayMs: f.typing?.keyDelayMs ?? DEFAULT_KEY_DELAY_MS,
       };
       if (f.locator.by === 'label') {
         if (f.locator.exact !== undefined) fd.locatorExact = f.locator.exact;
@@ -282,12 +301,33 @@ export function draftToRuleInput(draft: RuleDraft, opts: BuildOptions = {}): Rul
       adapter: f.adapter,
       value: f.value,
       ...(f.defaultValue !== '' ? { defaultValue: f.defaultValue } : {}),
+      // Só entram quando definidos: o JSON de regras antigas não muda.
+      ...(f.delayMs !== null && f.delayMs !== 0 ? { delayMs: f.delayMs } : {}),
+      ...(f.typing ? { typing: { keyDelayMs: f.keyDelayMs ?? Number.NaN } } : {}),
     })),
     updatedAt: (opts.now ?? new Date()).toISOString(),
   } as RuleInput;
 }
 
 // ---------------------------------------------------------------- operações
+
+/** Move o item de `from` para a posição final `to` (arrastar e soltar). Não muta a entrada. */
+export function reorderFields<T>(items: readonly T[], from: number, to: number): T[] {
+  const out = [...items];
+  if (from < 0 || from >= out.length || to < 0 || to >= out.length || from === to) return out;
+  const [item] = out.splice(from, 1);
+  out.splice(to, 0, item as T);
+  return out;
+}
+
+/**
+ * Índice final ao soltar o item `from` sobre o card `over`, antes ou depois dele
+ * (a linha de inserção fica entre dois cards).
+ */
+export function dropTarget(from: number, over: number, where: 'before' | 'after'): number {
+  const insertAt = over + (where === 'after' ? 1 : 0);
+  return insertAt > from ? insertAt - 1 : insertAt;
+}
 
 export function moveField<T>(items: readonly T[], index: number, direction: -1 | 1): T[] {
   const target = index + direction;
@@ -376,7 +416,7 @@ export interface DraftValidation {
   rule?: Rule;
   /** Mensagens legíveis, na ordem do formulário. */
   messages: string[];
-  /** Erros por chave: `name`, `urlPatterns.N`, `container`, `settleMs`, `fields.<id>.locator|value`. */
+  /** Erros por chave: `name`, `urlPatterns.N`, `container`, `settleMs`, `fields.<id>.locator|value|delay|keyDelay`. */
   byKey: Record<string, string[]>;
 }
 
@@ -419,7 +459,16 @@ function placeIssue(draft: RuleDraft, issue: string): Placed {
     const i = Number(parts[1]);
     const f = draft.fields[i];
     if (Number.isInteger(i) && f) {
-      const sub = parts[2] === 'locator' ? 'locator' : parts[2] === 'value' ? 'value' : 'field';
+      const sub =
+        parts[2] === 'locator'
+          ? 'locator'
+          : parts[2] === 'value'
+            ? 'value'
+            : parts[2] === 'delayMs'
+              ? 'delay'
+              : parts[2] === 'typing'
+                ? 'keyDelay'
+                : 'field';
       return { key: `fields.${f.id}.${sub}`, where: `Campo ${i + 1}`, text };
     }
   }

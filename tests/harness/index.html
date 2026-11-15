@@ -265,6 +265,35 @@
                   />
                 </div>
               </div>
+              <div
+                class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-text-field"
+              >
+                <label for="doc-cpf" class="eui-label">CPF do tomador</label>
+                <div class="eui-control">
+                  <input
+                    id="doc-cpf"
+                    type="text"
+                    placeholder="000.000.000-00"
+                    autocomplete="off"
+                    class="eui-input eui-input-text"
+                  />
+                </div>
+              </div>
+              <div
+                class="eui-field is-medium is-basic is-fullwidth has-label-at-top eui-input-text-field"
+              >
+                <label for="doc-nome" class="eui-label">Nome do tomador</label>
+                <div class="eui-control">
+                  <input
+                    id="doc-nome"
+                    type="text"
+                    placeholder="Preenchido após a busca do CPF"
+                    autocomplete="off"
+                    disabled
+                    class="eui-input eui-input-text"
+                  />
+                </div>
+              </div>
             </div>
             <div v-if="late" id="mais-campos" class="eui-section">
               <h3>Mais campos</h3>
