@@ -2,6 +2,7 @@ import type { Settings } from '../core/model';
 import type { FrameEntry } from '../core/frames';
 import type { Message, TabStatusAggregate } from './messages';
 import { togglePausedHost } from './pause';
+import { t } from '../core/i18n';
 
 /**
  * Menu de contexto (botão direito). Os menus do Chrome são GLOBAIS: não há estado por aba. O
@@ -39,8 +40,8 @@ function titleSafe(s: string): string {
 export function buildMenuItems(tab: TabStatusAggregate | null): MenuItem[] {
   const paused = tab?.paused ?? false;
   const items: MenuItem[] = [
-    { id: MENU_CAPTURE, title: 'Capturar este campo', contexts: ['editable'] },
-    { id: MENU_FILL, title: 'Preencher com', contexts: FILL_CONTEXTS },
+    { id: MENU_CAPTURE, title: t('menuCapture'), contexts: ['editable'] },
+    { id: MENU_FILL, title: t('menuFillWith'), contexts: FILL_CONTEXTS },
   ];
 
   // Uma entrada por regra; o sufixo vale quando ela só existe em iframes. Pausado: nada roda.
@@ -59,7 +60,7 @@ export function buildMenuItems(tab: TabStatusAggregate | null): MenuItem[] {
   if (rules.size === 0) {
     items.push({
       id: MENU_FILL_NONE,
-      title: 'Nenhuma regra nesta página',
+      title: t('menuNoRules'),
       contexts: FILL_CONTEXTS,
       parentId: MENU_FILL,
       enabled: false,
@@ -68,7 +69,7 @@ export function buildMenuItems(tab: TabStatusAggregate | null): MenuItem[] {
     for (const [id, r] of rules) {
       items.push({
         id: MENU_FILL_RULE_PREFIX + id,
-        title: titleSafe(r.inTop ? r.name : `${r.name} (iframe)`),
+        title: titleSafe(r.inTop ? r.name : t('menuRuleInIframe', r.name)),
         contexts: FILL_CONTEXTS,
         parentId: MENU_FILL,
       });
@@ -77,7 +78,7 @@ export function buildMenuItems(tab: TabStatusAggregate | null): MenuItem[] {
 
   items.push({
     id: paused ? MENU_RESUME : MENU_PAUSE,
-    title: paused ? 'Retomar neste site' : 'Pausar neste site',
+    title: paused ? t('menuResume') : t('menuPause'),
     contexts: ['page', 'frame'],
   });
   return items;

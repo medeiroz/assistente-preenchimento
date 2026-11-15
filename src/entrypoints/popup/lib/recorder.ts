@@ -1,5 +1,6 @@
 import type { RecorderStatus } from '../../../core/recorder/types';
 import { isStaticallyCovered, toOriginPattern } from '../../../shared/permissions';
+import { t } from '../../../core/i18n';
 
 export interface StartRecordingDeps {
   requestPermission(origin: string): Promise<boolean>;
@@ -42,7 +43,7 @@ export async function startRecording(
   const starting = deps.sendStart(tabId);
   const [, started] = await Promise.allSettled([asking, starting]);
   if (started.status === 'rejected') {
-    throw new Error(`Não foi possível iniciar a gravação: ${reason(started.reason)}`);
+    throw new Error(t('popStartFailedWith', reason(started.reason)));
   }
 }
 

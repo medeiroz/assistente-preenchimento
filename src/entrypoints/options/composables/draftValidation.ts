@@ -2,6 +2,7 @@ import { parseRule, type Rule } from '../../../core/model';
 import { validateTemplate } from '../../../core/expressions';
 import { draftToRuleInput } from './draftConvert';
 import type { BuildOptions, RuleDraft } from './draftTypes';
+import { t } from '../../../core/i18n';
 
 export interface DraftValidation {
   ok: boolean;
@@ -33,20 +34,20 @@ function placeIssue(draft: RuleDraft, issue: string): Placed {
   const path = sep >= 0 ? issue.slice(0, sep) : '';
   const text = sep >= 0 ? issue.slice(sep + 2) : issue;
   const parts = path.split('.');
-  if (parts[0] === 'name') return { key: 'name', where: 'Nome da regra', text };
-  if (parts[0] === 'priority') return { key: 'priority', where: 'Prioridade', text };
+  if (parts[0] === 'name') return { key: 'name', where: t('valWhereName'), text };
+  if (parts[0] === 'priority') return { key: 'priority', where: t('valWherePriority'), text };
   if (parts[0] === 'trigger' && parts[1] === 'urlPatterns') {
     const i = Number(parts[2]);
     if (parts[2] !== undefined && Number.isInteger(i)) {
-      return { key: `urlPatterns.${i}`, where: `Padrão de URL ${i + 1}`, text };
+      return { key: `urlPatterns.${i}`, where: t('valWhereUrlPattern', i + 1), text };
     }
-    return { key: 'urlPatterns', where: 'Padrões de URL', text };
+    return { key: 'urlPatterns', where: t('valWhereUrlPatterns'), text };
   }
   if (parts[0] === 'trigger' && parts[1] === 'container') {
-    return { key: 'container', where: 'Contêiner', text };
+    return { key: 'container', where: t('valWhereContainer'), text };
   }
   if (parts[0] === 'trigger' && parts[1] === 'settleMs') {
-    return { key: 'settleMs', where: 'Espera (ms)', text };
+    return { key: 'settleMs', where: t('valWhereSettle'), text };
   }
   if (parts[0] === 'fields' && parts[1] !== undefined) {
     const i = Number(parts[1]);
@@ -62,10 +63,10 @@ function placeIssue(draft: RuleDraft, issue: string): Placed {
               : parts[2] === 'typing'
                 ? 'keyDelay'
                 : 'field';
-      return { key: `fields.${f.id}.${sub}`, where: `Campo ${i + 1}`, text };
+      return { key: `fields.${f.id}.${sub}`, where: t('valWhereField', i + 1), text };
     }
   }
-  if (parts[0] === 'fields') return { key: 'fields', where: 'Campos', text };
+  if (parts[0] === 'fields') return { key: 'fields', where: t('valWhereFields'), text };
   return { key: 'rule', where: '', text };
 }
 
@@ -85,7 +86,7 @@ export function validateDraft(draft: RuleDraft, opts: BuildOptions = {}): DraftV
     const err = fieldValueError(f.value);
     if (err) {
       add(byKey, `fields.${f.id}.value`, err);
-      messages.push(`Campo ${i + 1}, valor: ${err}`);
+      messages.push(t('valFieldValue', i + 1, err));
     }
   });
   if (parsed.ok && messages.length === 0) return { ok: true, rule: parsed.rule, messages, byKey };

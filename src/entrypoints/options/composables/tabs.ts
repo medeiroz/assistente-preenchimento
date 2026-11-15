@@ -1,9 +1,30 @@
+import { t } from '../../../core/i18n';
 // Para incluir uma aba nova (ex.: Variáveis), acrescente aqui e um painel no template.
 export const TABS = [
-  { id: 'rules', label: 'Regras' },
-  { id: 'variables', label: 'Variáveis' },
-  { id: 'history', label: 'Histórico' },
-  { id: 'import-export', label: 'Importar/Exportar' },
+  {
+    id: 'rules',
+    get label() {
+      return t('tabRules');
+    },
+  },
+  {
+    id: 'variables',
+    get label() {
+      return t('tabVariables');
+    },
+  },
+  {
+    id: 'history',
+    get label() {
+      return t('tabHistory');
+    },
+  },
+  {
+    id: 'import-export',
+    get label() {
+      return t('tabImportExport');
+    },
+  },
 ] as const;
 export type TabId = (typeof TABS)[number]['id'];
 

@@ -3,6 +3,7 @@ import { recorderStatus, startRecording } from '../lib/recorder';
 import { STATUS_TIMEOUT_MS } from '../lib/tab';
 import { withTimeout } from '../lib/timeout';
 import type { TabContext } from './useTabContext';
+import { t } from '../../../core/i18n';
 
 /** Gravação do preenchimento: estado, início e parada. */
 export function useRecording({ tab, busy, error }: TabContext) {
@@ -48,7 +49,7 @@ export function useRecording({ tab, busy, error }: TabContext) {
     })
       .then(() => window.close())
       .catch((e: unknown) => {
-        error.value = e instanceof Error ? e.message : 'Não foi possível iniciar a gravação.';
+        error.value = e instanceof Error ? e.message : t('popStartFailed');
       })
       .finally(() => {
         busy.value = false;
@@ -70,7 +71,7 @@ export function useRecording({ tab, busy, error }: TabContext) {
       if (discard) recording.value = { active: false, count: 0 };
       window.close();
     } catch {
-      error.value = 'Não foi possível encerrar a gravação. Tente novamente.';
+      error.value = t('popStopFailed');
     } finally {
       busy.value = false;
     }

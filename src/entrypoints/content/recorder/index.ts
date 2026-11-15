@@ -6,6 +6,7 @@ import { fieldKey } from '../../../core/recorder/session';
 import { ACTION_HOST_ATTR, TOAST_HOST_ATTR } from '../page-ui';
 import { PICKER_HOST_ATTR } from '../picker';
 import { createRecorderBar, RECORDER_HOST_ATTR, type RecorderBar } from './bar';
+import { t } from '../../../core/i18n';
 
 export { RECORDER_HOST_ATTR } from './bar';
 
@@ -168,7 +169,8 @@ export function createRecorder(deps: RecorderDeps): Recorder {
         if (!bar) return;
         if (!status.active) return stopLocal();
         setCount(status.count);
-        if (value.trim() !== '') bar.flash(`Gravado: ${capture.label ?? 'campo sem rótulo'}`);
+        if (value.trim() !== '')
+          bar.flash(t('barRecorded', capture.label ?? t('fieldNoLabelLower')));
       },
       () => {
         // Background indisponível: tenta de novo na próxima alteração.

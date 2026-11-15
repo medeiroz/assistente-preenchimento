@@ -8,6 +8,7 @@ import {
   type Segment,
   type SourceNode,
 } from './types';
+import { t } from '../i18n';
 
 class Cursor {
   private i = 0;
@@ -24,16 +25,16 @@ class Cursor {
   }
 }
 
-function describe(t: Token | undefined): string {
-  return t ? `"${t.value}"` : 'fim da expressão';
+function describe(tk: Token | undefined): string {
+  return tk ? `"${tk.value}"` : t('exEndOfExpression');
 }
 
 function expect(cur: Cursor, type: Token['type'], what: string): Token {
-  const t = cur.next();
-  if (!t || t.type !== type) {
-    throw new ExpressionError(`Esperado ${what}, encontrado ${describe(t)}`, t ? t.start : cur.eof);
+  const tk = cur.next();
+  if (!tk || tk.type !== type) {
+    throw new ExpressionError(t('exExpected', what, describe(tk)), tk ? tk.start : cur.eof);
   }
-  return t;
+  return tk;
 }
 
 function parseArgs(cur: Cursor): ArgNode[] {
@@ -44,23 +45,20 @@ function parseArgs(cur: Cursor): ArgNode[] {
     return args;
   }
   for (;;) {
-    const t = cur.next();
-    if (!t || (t.type !== 'string' && t.type !== 'number')) {
-      throw new ExpressionError(
-        `Argumento deve ser texto entre aspas ou número, encontrado ${describe(t)}`,
-        t ? t.start : cur.eof,
-      );
+    const tk = cur.next();
+    if (!tk || (tk.type !== 'string' && tk.type !== 'number')) {
+      throw new ExpressionError(t('exArgKind', describe(tk)), tk ? tk.start : cur.eof);
     }
     args.push(
-      t.type === 'string'
-        ? { kind: 'string', value: t.value, start: t.start, end: t.end }
-        : { kind: 'number', value: Number(t.value), start: t.start, end: t.end },
+      tk.type === 'string'
+        ? { kind: 'string', value: tk.value, start: tk.start, end: tk.end }
+        : { kind: 'number', value: Number(tk.value), start: tk.start, end: tk.end },
     );
     const sep = cur.next();
     if (sep?.type === 'rparen') return args;
     if (sep?.type !== 'comma') {
       throw new ExpressionError(
-        `Esperado "," ou ")", encontrado ${describe(sep)}`,
+        t('exExpectedCommaParen', describe(sep)),
         sep ? sep.start : cur.eof,
       );
     }
@@ -68,17 +66,17 @@ function parseArgs(cur: Cursor): ArgNode[] {
 }
 
 function parseSource(cur: Cursor): SourceNode {
-  const t = cur.next();
-  if (!t) throw new ExpressionError('Expressão vazia', cur.eof);
-  if (t.type === 'string') return { kind: 'literal', value: t.value };
-  if (t.type !== 'ident') {
-    throw new ExpressionError(`Fonte inválida: ${describe(t)}`, t.start);
+  const tk = cur.next();
+  if (!tk) throw new ExpressionError(t('exEmpty'), cur.eof);
+  if (tk.type === 'string') return { kind: 'literal', value: tk.value };
+  if (tk.type !== 'ident') {
+    throw new ExpressionError(t('exInvalidSource', describe(tk)), tk.start);
   }
   const readPath = (): string[] => {
     const parts: string[] = [];
     while (cur.peek()?.type === 'dot') {
       cur.next();
-      parts.push(expect(cur, 'ident', 'nome após "."').value);
+      parts.push(expect(cur, 'ident', t('exNameAfterDot')).value);
     }
     return parts;
   };
@@ -86,34 +84,34 @@ function parseSource(cur: Cursor): SourceNode {
     const args = parseArgs(cur);
     const a = args[0];
     if (args.length !== 1 || !a || a.kind !== 'string') {
-      throw new ExpressionError(`${fn}() requer exatamente um argumento de texto`, t.start);
+      throw new ExpressionError(t('exFnNeedsText', fn), tk.start);
     }
     return String(a.value);
   };
-  switch (t.value) {
+  switch (tk.value) {
     case 'var': {
       const path = readPath();
-      if (path.length === 0) throw new ExpressionError('Use var.<chave>', t.start);
+      if (path.length === 0) throw new ExpressionError(t('exUseVar'), tk.start);
       return { kind: 'var', key: path.join('.') };
     }
     case 'url': {
       const path = readPath();
       const [first, ...rest] = path;
       if (first === 'query') {
-        if (rest.length === 0) throw new ExpressionError('Use url.query.<nome>', t.start);
+        if (rest.length === 0) throw new ExpressionError(t('exUseUrlQuery'), tk.start);
         return { kind: 'urlQuery', name: rest.join('.') };
       }
       if (rest.length === 0 && first === 'path') return { kind: 'urlPath' };
       if (rest.length === 0 && first === 'host') return { kind: 'urlHost' };
       if (rest.length === 0 && first === 'href') return { kind: 'urlHref' };
       throw new ExpressionError(
-        `Fonte desconhecida: "url${path.map((p) => '.' + p).join('')}" (use url.query.<nome>, url.path, url.host ou url.href)`,
-        t.start,
+        t('exUnknownUrlSource', `url${path.map((p) => '.' + p).join('')}`),
+        tk.start,
       );
     }
     case 'now':
       if (cur.peek()?.type === 'dot') {
-        throw new ExpressionError('"now" não tem propriedades', t.start);
+        throw new ExpressionError(t('exNowNoProps'), tk.start);
       }
       return { kind: 'now' };
     case 'field':
@@ -121,18 +119,15 @@ function parseSource(cur: Cursor): SourceNode {
     case 'text':
       return { kind: 'text', selector: oneStringArg('text') };
     default:
-      throw new ExpressionError(
-        `Fonte desconhecida: "${t.value}" (use var, url, now, field, text ou um texto entre aspas)`,
-        t.start,
-      );
+      throw new ExpressionError(t('exUnknownSource', tk.value), tk.start);
   }
 }
 
 function parseFilter(cur: Cursor): FilterCall {
-  const nameTok = expect(cur, 'ident', 'nome de filtro após "|"');
+  const nameTok = expect(cur, 'ident', t('exFilterName'));
   const def = getFilterDef(nameTok.value);
   if (!def) {
-    throw new ExpressionError(`Filtro desconhecido: "${nameTok.value}"`, nameTok.start);
+    throw new ExpressionError(t('exUnknownFilter', nameTok.value), nameTok.start);
   }
   const args = cur.peek()?.type === 'lparen' ? parseArgs(cur) : [];
   const last = args[args.length - 1];
@@ -141,31 +136,19 @@ function parseFilter(cur: Cursor): FilterCall {
     const exp =
       def.minArgs === def.args.length
         ? String(def.args.length)
-        : `${def.minArgs} a ${def.args.length}`;
-    throw new ExpressionError(
-      `O filtro "${nameTok.value}" espera ${exp} argumento(s), recebeu ${args.length}`,
-      nameTok.start,
-    );
+        : t('exArityRange', def.minArgs, def.args.length);
+    throw new ExpressionError(t('exFilterArity', nameTok.value, exp, args.length), nameTok.start);
   }
   args.forEach((a, idx) => {
     const type = def.args[idx];
     if (type === 'string' && a.kind !== 'string') {
-      throw new ExpressionError(
-        `Argumento ${idx + 1} de "${nameTok.value}" deve ser texto entre aspas`,
-        a.start,
-      );
+      throw new ExpressionError(t('exArgString', idx + 1, nameTok.value), a.start);
     }
     if (type === 'int' && (a.kind !== 'number' || !Number.isInteger(a.value))) {
-      throw new ExpressionError(
-        `Argumento ${idx + 1} de "${nameTok.value}" deve ser um número inteiro`,
-        a.start,
-      );
+      throw new ExpressionError(t('exArgInt', idx + 1, nameTok.value), a.start);
     }
     if (type === 'decimal' && (a.kind !== 'number' || !Number.isFinite(a.value))) {
-      throw new ExpressionError(
-        `Argumento ${idx + 1} de "${nameTok.value}" deve ser um número`,
-        a.start,
-      );
+      throw new ExpressionError(t('exArgNumber', idx + 1, nameTok.value), a.start);
     }
   });
   return { name: nameTok.value, args, start: nameTok.start, end };
@@ -178,12 +161,9 @@ function parseBlock(template: string, blockStart: number): { node: ExprNode; end
   const source = parseSource(cur);
   const filters: FilterCall[] = [];
   while (cur.peek()) {
-    const t = cur.next();
-    if (t?.type !== 'pipe') {
-      throw new ExpressionError(
-        `Esperado "|" ou fim da expressão, encontrado ${describe(t)}`,
-        t ? t.start : cur.eof,
-      );
+    const tk = cur.next();
+    if (tk?.type !== 'pipe') {
+      throw new ExpressionError(t('exExpectedPipe', describe(tk)), tk ? tk.start : cur.eof);
     }
     filters.push(parseFilter(cur));
   }

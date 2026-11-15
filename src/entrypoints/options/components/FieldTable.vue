@@ -189,30 +189,30 @@ function otherErrors(f: FieldDraft): string[] {
 
 <template>
   <fieldset ref="root" class="panel">
-    <legend>Campos a preencher</legend>
+    <legend>{{ $t('ftLegend') }}</legend>
 
     <details class="help">
-      <summary>Como escrever valores com <span v-pre>{{}}</span></summary>
+      <summary>{{ $t('ftHelpSummary') }} <span v-pre>{{}}</span></summary>
       <p>
-        Escreva o texto que será digitado no campo. Para valores que mudam, use blocos
+        {{ $t('ftHelpIntro') }}
         <code v-pre>{{ fonte | filtro }}</code>:
       </p>
       <ul>
         <li>
-          <code v-pre>{{ var.nome }}</code> — variável cadastrada
+          <code v-pre>{{ var.nome }}</code> {{ $t('ftHelpVar') }}
         </li>
         <li>
-          <code v-pre>{{ url.query.ref }}</code> — parâmetro da URL
+          <code v-pre>{{ url.query.ref }}</code> {{ $t('ftHelpUrl') }}
         </li>
         <li>
-          <code v-pre>{{ now | date('DD/MM/YYYY') }}</code> — data de hoje
+          <code v-pre>{{ now | date('DD/MM/YYYY') }}</code> {{ $t('ftHelpNow') }}
         </li>
         <li>
-          <code v-pre>{{ url.query.ref | default("sem-ref") }}</code> — com valor reserva
+          <code v-pre>{{ url.query.ref | default("sem-ref") }}</code> {{ $t('ftHelpDefault') }}
         </li>
       </ul>
       <p>
-        Filtros disponíveis: <code>{{ filters }}</code>
+        {{ $t('ftFilters') }} <code>{{ filters }}</code>
       </p>
     </details>
 
@@ -221,7 +221,7 @@ function otherErrors(f: FieldDraft): string[] {
     </datalist>
 
     <p v-if="fields.length === 0" class="muted">
-      Nenhum campo ainda. Use “Adicionar campo” para dizer o que preencher.
+      {{ $t('ftEmpty') }}
     </p>
 
     <ol class="fields">
@@ -239,14 +239,14 @@ function otherErrors(f: FieldDraft): string[] {
             class="drag-handle"
             role="button"
             draggable="true"
-            aria-label="Arrastar para reordenar"
-            title="Arrastar para reordenar"
+            :aria-label="$t('ftDrag')"
+            :title="$t('ftDrag')"
             data-testid="field-drag"
             @dragstart="onDragStart(i, $event)"
             @dragend="onDragEnd"
             >⠿</span
           >
-          <span class="field-number">Campo {{ i + 1 }}</span>
+          <span class="field-number">{{ $t('valWhereField', i + 1) }}</span>
           <label class="inline">
             <input
               type="checkbox"
@@ -254,18 +254,20 @@ function otherErrors(f: FieldDraft): string[] {
               :checked="f.enabled"
               @change="patch(i, { enabled: ($event.target as HTMLInputElement).checked })"
             />
-            Ativo
+            {{ $t('ftEnabled') }}
           </label>
           <span v-if="hasDelay(f)" class="badge" data-testid="field-badge-delay"
             >⏱ {{ f.delayMs }} ms</span
           >
-          <span v-if="f.typing" class="badge" data-testid="field-badge-typing">⌨ digitação</span>
+          <span v-if="f.typing" class="badge" data-testid="field-badge-typing"
+            >⌨ {{ $t('ftBadgeTyping') }}</span
+          >
           <span class="spacer"></span>
           <button
             type="button"
             class="btn small"
             :disabled="i === 0"
-            :aria-label="`Mover campo ${i + 1} para cima`"
+            :aria-label="$t('ftMoveUp', i + 1)"
             @click="move(i, -1)"
           >
             ↑
@@ -274,7 +276,7 @@ function otherErrors(f: FieldDraft): string[] {
             type="button"
             class="btn small"
             :disabled="i === fields.length - 1"
-            :aria-label="`Mover campo ${i + 1} para baixo`"
+            :aria-label="$t('ftMoveDown', i + 1)"
             @click="move(i, 1)"
           >
             ↓
@@ -282,16 +284,16 @@ function otherErrors(f: FieldDraft): string[] {
           <button
             type="button"
             class="btn small danger f-remove"
-            :aria-label="`Remover campo ${i + 1}`"
+            :aria-label="$t('ftRemoveAria', i + 1)"
             @click="remove(i)"
           >
-            Remover
+            {{ $t('remove') }}
           </button>
         </div>
 
         <div class="grid">
           <div class="control">
-            <label :for="`f${i}-by`">Como encontrar</label>
+            <label :for="`f${i}-by`">{{ $t('ftHowToFind') }}</label>
             <select
               :id="`f${i}-by`"
               class="f-by"
@@ -303,7 +305,12 @@ function otherErrors(f: FieldDraft): string[] {
           </div>
           <div class="control">
             <label :for="`f${i}-loc`">
-              {{ LOCATOR_OPTIONS.find((o) => o.id === f.locatorBy)?.label }} do campo
+              {{
+                $t(
+                  'ftLocatorOfField',
+                  LOCATOR_OPTIONS.find((o) => o.id === f.locatorBy)?.label ?? '',
+                )
+              }}
             </label>
             <input
               :id="`f${i}-loc`"
@@ -320,7 +327,7 @@ function otherErrors(f: FieldDraft): string[] {
             </p>
           </div>
           <div class="control">
-            <label :for="`f${i}-type`">Tipo</label>
+            <label :for="`f${i}-type`">{{ $t('ftType') }}</label>
             <select
               :id="`f${i}-type`"
               class="f-type"
@@ -334,7 +341,7 @@ function otherErrors(f: FieldDraft): string[] {
             </select>
           </div>
           <div class="control wide">
-            <label :for="`f${i}-value`">Valor</label>
+            <label :for="`f${i}-value`">{{ $t('ftValue') }}</label>
             <input
               :id="`f${i}-value`"
               class="f-value"
@@ -355,9 +362,9 @@ function otherErrors(f: FieldDraft): string[] {
         </div>
 
         <details class="advanced">
-          <summary>Avançado</summary>
+          <summary>{{ $t('ftAdvanced') }}</summary>
           <div class="control">
-            <label :for="`f${i}-default`">Valor padrão (opcional)</label>
+            <label :for="`f${i}-default`">{{ $t('ftDefaultLabel') }}</label>
             <input
               :id="`f${i}-default`"
               class="f-default"
@@ -366,13 +373,12 @@ function otherErrors(f: FieldDraft): string[] {
               @input="onText(i, 'defaultValue', $event)"
             />
             <p class="hint">
-              Se o sistema já preenche o campo com um valor fixo, informe-o aqui para a regra
-              tratá-lo como “vazio”.
+              {{ $t('ftDefaultHint') }}
             </p>
           </div>
           <div class="grid">
             <div class="control">
-              <label :for="`f${i}-delay`">Esperar antes de preencher (ms)</label>
+              <label :for="`f${i}-delay`">{{ $t('ftDelayLabel') }}</label>
               <input
                 :id="`f${i}-delay`"
                 class="f-delay"
@@ -401,14 +407,14 @@ function otherErrors(f: FieldDraft): string[] {
                   :disabled="!adapterSupportsTyping(f.adapter)"
                   @change="onTyping(i, $event)"
                 />
-                Simular digitação (tecla por tecla)
+                {{ $t('ftTypingLabel') }}
               </label>
               <p v-if="!adapterSupportsTyping(f.adapter)" class="hint">
-                Disponível só para campos de texto e data.
+                {{ $t('ftTypingOnly') }}
               </p>
             </div>
             <div v-if="f.typing" class="control">
-              <label :for="`f${i}-keydelay`">Intervalo entre teclas (ms)</label>
+              <label :for="`f${i}-keydelay`">{{ $t('ftKeyDelayLabel') }}</label>
               <input
                 :id="`f${i}-keydelay`"
                 class="f-key-delay"
@@ -428,15 +434,15 @@ function otherErrors(f: FieldDraft): string[] {
             </div>
           </div>
           <p class="hint">
-            Use a digitação simulada em campos com máscara ou busca automática (ex.: CPF/CNPJ que
-            consulta um cadastro). A espera é útil quando o campo só aparece ou habilita depois do
-            anterior: o campo é procurado só depois dela.
+            {{ $t('ftAdvHint') }}
           </p>
         </details>
         <p v-for="e in otherErrors(f)" :key="e" class="error-text">{{ e }}</p>
       </li>
     </ol>
 
-    <button type="button" class="btn" data-testid="add-field" @click="add">Adicionar campo</button>
+    <button type="button" class="btn" data-testid="add-field" @click="add">
+      {{ $t('ftAdd') }}
+    </button>
   </fieldset>
 </template>

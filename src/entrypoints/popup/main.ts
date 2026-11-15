@@ -1,4 +1,10 @@
 import { createApp } from 'vue';
 import App from './App.vue';
+import { initI18n, localizeDocument } from '../../shared/i18n';
+import { t } from '../../core/i18n';
 
-createApp(App).mount('#app');
+initI18n();
+localizeDocument(t('extName'));
+const app = createApp(App);
+app.config.globalProperties.$t = t;
+app.mount('#app');

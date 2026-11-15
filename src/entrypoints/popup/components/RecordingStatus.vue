@@ -5,7 +5,7 @@ defineEmits<{ stop: []; discard: [] }>();
 
 <template>
   <section class="recording" data-testid="record-status">
-    <p class="summary">Gravando preenchimento · {{ count }} campo(s)</p>
+    <p class="summary">{{ $t('popRecording', count) }}</p>
     <div class="actions">
       <button
         type="button"
@@ -14,7 +14,7 @@ defineEmits<{ stop: []; discard: [] }>();
         :disabled="busy"
         @click="$emit('stop')"
       >
-        Parar e criar regras
+        {{ $t('barStop') }}
       </button>
       <button
         type="button"
@@ -23,7 +23,7 @@ defineEmits<{ stop: []; discard: [] }>();
         :disabled="busy"
         @click="$emit('discard')"
       >
-        Descartar
+        {{ $t('barDiscard') }}
       </button>
     </div>
   </section>

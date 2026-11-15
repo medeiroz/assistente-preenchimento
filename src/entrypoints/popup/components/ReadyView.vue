@@ -36,14 +36,18 @@ defineEmits<{
       :checked="active"
       @change="$emit('setActive', ($event.target as HTMLInputElement).checked)"
     />
-    <span>Ativo neste site</span>
+    <span>{{ $t('popActiveOnSite') }}</span>
   </label>
-  <p v-if="status.paused" class="paused" role="status" data-testid="paused">Pausado neste site</p>
+  <p v-if="status.paused" class="paused" role="status" data-testid="paused">
+    {{ $t('popPausedOnSite') }}
+  </p>
 
   <RuleList :rules="status.activeRules" />
 
   <ReportList v-if="report" :report="report" />
-  <p v-else class="muted" data-testid="no-report">Nenhum relatório ainda nesta página.</p>
+  <p v-else class="muted" data-testid="no-report">
+    {{ $t('popNoReport') }}
+  </p>
 
   <RecordingStatus
     v-if="recording.active"
@@ -62,10 +66,10 @@ defineEmits<{
       :disabled="busy || status.paused"
       @click="$emit('runNow')"
     >
-      Preencher agora
+      {{ $t('popFillNow') }}
     </button>
     <button type="button" class="btn" :disabled="busy || !canUndo" @click="$emit('undo')">
-      Desfazer
+      {{ $t('toastUndo') }}
     </button>
     <button
       type="button"
@@ -74,7 +78,7 @@ defineEmits<{
       :disabled="busy"
       @click="$emit('capture')"
     >
-      Capturar campo
+      {{ $t('popCaptureField') }}
     </button>
     <button
       v-if="!recording.active"
@@ -84,8 +88,10 @@ defineEmits<{
       :disabled="busy"
       @click="$emit('recordStart')"
     >
-      Gravar preenchimento
+      {{ $t('popRecordStart') }}
     </button>
-    <button type="button" class="btn" @click="$emit('openSettings')">Configurações</button>
+    <button type="button" class="btn" @click="$emit('openSettings')">
+      {{ $t('optionsTitle') }}
+    </button>
   </div>
 </template>

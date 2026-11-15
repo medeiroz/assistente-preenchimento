@@ -6,6 +6,7 @@ import { isMessage, type TabStatus } from '../../shared/messages';
 import { createFrameReporter, createRelayedUi, createTopRelay } from './frames';
 import { createPageUi } from './page-ui';
 import { claimPage } from './guard';
+import { initI18n } from '../../shared/i18n';
 import { createPicker, deliverCapture } from './picker';
 import { createRecorder } from './recorder';
 import { trackContextTarget } from './context-target';
@@ -33,6 +34,7 @@ export default defineContentScript({
   async main() {
     // Registro dinâmico + injeção sob demanda podem executar o script duas vezes na mesma página.
     if (!claimPage(globalThis)) return;
+    initI18n();
     // A gravação retoma antes do carregamento da configuração: picker, gravador e o ouvinte de
     // `recorder/state` não dependem dela, e o estado é pedido ao background logo em seguida.
     const isTop = window === window.top;

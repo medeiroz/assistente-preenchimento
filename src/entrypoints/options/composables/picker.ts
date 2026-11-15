@@ -15,11 +15,10 @@ import {
   type FieldDraft,
   type RuleDraft,
 } from './draft';
+import { t } from '../../../core/i18n';
 
 /** Rascunhos mais antigos que isto (ex.: sobra de uma abertura que falhou) são descartados. */
 export const PICKER_DRAFT_MAX_AGE_MS = 10 * 60 * 1000;
-
-export const EMPTY_VALUE_HINT = '(vazio)';
 
 /** Para onde o editor deve levar o foco depois de abrir a partir de uma captura. */
 export interface CaptureFocus {
@@ -58,7 +57,7 @@ export function findMatchingRules(rules: readonly Rule[], capture: Capture): Rul
 
 export function suggestRuleName(capture: Capture): string {
   return (
-    capture.container?.textContains?.trim() || hostOfPattern(capture.urlPattern) || 'Nova regra'
+    capture.container?.textContains?.trim() || hostOfPattern(capture.urlPattern) || t('newRule')
   );
 }
 
@@ -69,7 +68,7 @@ function locatorValueOf(capture: Capture): string {
 
 export function valueHint(capture: Capture): string {
   const v = (capture.currentValue ?? '').trim();
-  return `valor atual na página: ${v === '' ? EMPTY_VALUE_HINT : v}`;
+  return t('hintCurrentValue', v === '' ? t('emptyValue') : v);
 }
 
 /** Campo novo (valor vazio) a partir da captura. */

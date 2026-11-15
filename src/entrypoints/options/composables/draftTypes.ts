@@ -1,4 +1,5 @@
 import type { AdapterId, AdapterRef } from '../../../core/model';
+import { t } from '../../../core/i18n';
 
 export type LocatorBy = 'label' | 'selector' | 'name';
 export type Mode = 'auto' | 'button' | 'off';
@@ -84,76 +85,174 @@ export interface Option<T extends string> {
 export const MODE_OPTIONS: readonly Option<Mode>[] = [
   {
     id: 'auto',
-    label: 'Automático',
-    description: 'Preenche sozinho assim que o formulário aparece na página.',
+    get label() {
+      return t('modeAuto');
+    },
+    get description() {
+      return t('modeAutoDesc');
+    },
   },
   {
     id: 'button',
-    label: 'Com um clique',
-    description: 'Mostra um botão na página e só preenche quando você clicar nele.',
+    get label() {
+      return t('modeButton');
+    },
+    get description() {
+      return t('modeButtonDesc');
+    },
   },
   {
     id: 'off',
-    label: 'Desligado',
-    description: 'A regra fica guardada, mas não preenche nada.',
+    get label() {
+      return t('modeOff');
+    },
+    get description() {
+      return t('modeOffDesc');
+    },
   },
 ];
 
 export const OVERWRITE_OPTIONS: readonly Option<Overwrite>[] = [
   {
     id: 'onlyIfDefault',
-    label: 'Só se o campo estiver vazio/padrão',
-    description: 'Não mexe no que você ou o sistema já preencheram.',
+    get label() {
+      return t('overwriteIfEmpty');
+    },
+    get description() {
+      return t('overwriteIfEmptyDesc');
+    },
   },
   {
     id: 'always',
-    label: 'Sempre',
-    description: 'Troca o valor atual do campo pelo da regra.',
+    get label() {
+      return t('overwriteAlways');
+    },
+    get description() {
+      return t('overwriteAlwaysDesc');
+    },
   },
 ];
 
 export const LOCATOR_OPTIONS: readonly Option<LocatorBy>[] = [
-  { id: 'label', label: 'Rótulo', description: 'O texto que aparece ao lado do campo.' },
-  { id: 'selector', label: 'Seletor CSS', description: 'Para quem conhece CSS, ex.: #nbs' },
-  { id: 'name', label: 'Atributo name', description: 'O atributo name do campo, ex.: nbs' },
+  {
+    id: 'label',
+    get label() {
+      return t('locLabel');
+    },
+    get description() {
+      return t('locLabelDesc');
+    },
+  },
+  {
+    id: 'selector',
+    get label() {
+      return t('locSelector');
+    },
+    get description() {
+      return t('locSelectorDesc');
+    },
+  },
+  {
+    id: 'name',
+    get label() {
+      return t('locName');
+    },
+    get description() {
+      return t('locNameDesc');
+    },
+  },
 ];
 
 export const ADAPTER_OPTIONS: readonly Option<KnownAdapterChoice>[] = [
-  { id: 'auto', label: 'Automático', description: 'A extensão descobre o tipo do campo.' },
-  { id: 'native-text', label: 'Texto', description: 'Campo de texto comum.' },
-  { id: 'native-select', label: 'Select nativo', description: 'Lista de seleção do navegador.' },
+  {
+    id: 'auto',
+    get label() {
+      return t('modeAuto');
+    },
+    get description() {
+      return t('adAutoDesc');
+    },
+  },
+  {
+    id: 'native-text',
+    get label() {
+      return t('typeText');
+    },
+    get description() {
+      return t('adTextDesc');
+    },
+  },
+  {
+    id: 'native-select',
+    get label() {
+      return t('adSelectLabel');
+    },
+    get description() {
+      return t('adSelectDesc');
+    },
+  },
   {
     id: 'native-choice',
-    label: 'Escolha (radio/checkbox/botões)',
-    description: 'Opções para marcar ou botões de escolha.',
+    get label() {
+      return t('adChoiceLabel');
+    },
+    get description() {
+      return t('adChoiceDesc');
+    },
   },
   {
     id: 'vue-multiselect',
-    label: 'Select com busca (vue-multiselect)',
-    description: 'Lista com busca, comum em sistemas feitos em Vue.',
+    get label() {
+      return t('adVueLabel');
+    },
+    get description() {
+      return t('adVueDesc');
+    },
   },
-  { id: 'date', label: 'Data', description: 'Campo de data.' },
+  {
+    id: 'date',
+    get label() {
+      return t('typeDate');
+    },
+    get description() {
+      return t('adDateDesc');
+    },
+  },
   {
     id: 'contenteditable',
-    label: 'Texto editável (contenteditable)',
-    description: 'Editores de texto da própria página, sem campo de formulário.',
+    get label() {
+      return t('adEditableLabel');
+    },
+    get description() {
+      return t('adEditableDesc');
+    },
   },
   {
     id: 'react-select',
     label: 'React-Select',
-    description: 'Lista com busca, comum em sistemas feitos em React.',
+    get description() {
+      return t('adReactDesc');
+    },
   },
   {
     id: 'select2',
     label: 'Select2',
-    description: 'Lista com busca baseada em jQuery.',
+    get description() {
+      return t('adSelect2Desc');
+    },
   },
 ];
 
 export const LOCATOR_PLACEHOLDERS: Record<LocatorBy, string> = {
-  label: 'Ex.: Código NBS',
-  selector: 'Ex.: #nbs',
-  name: 'Ex.: nbs',
+  get label() {
+    return t('locLabelPlaceholder');
+  },
+  get selector() {
+    return t('locSelectorPlaceholder');
+  },
+  get name() {
+    return t('locNamePlaceholder');
+  },
 };
 
 export function modeLabel(mode: Mode): string {
@@ -161,7 +260,7 @@ export function modeLabel(mode: Mode): string {
 }
 
 export function adapterLabel(adapter: AdapterChoice): string {
-  return ADAPTER_OPTIONS.find((o) => o.id === adapter)?.label ?? `Desconhecido: ${adapter}`;
+  return ADAPTER_OPTIONS.find((o) => o.id === adapter)?.label ?? t('adUnknown', adapter);
 }
 
 export interface BuildOptions {

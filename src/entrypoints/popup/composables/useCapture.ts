@@ -3,6 +3,7 @@ import { contentScriptFile } from '../../../shared/content-script';
 import { injectAndStartPicker } from '../lib/inject';
 import { sendToTab } from '../lib/tab';
 import type { TabContext } from './useTabContext';
+import { t } from '../../../core/i18n';
 
 /** Captura de campo: com content script já presente ou injetando sob demanda. */
 export function useCapture({ tab, busy, error }: TabContext) {
@@ -14,7 +15,7 @@ export function useCapture({ tab, busy, error }: TabContext) {
       await sendToTab(tab.id, { type: 'picker/start' });
       window.close(); // o popup fecha para o usuário clicar no campo da página
     } catch {
-      error.value = 'A página não respondeu. Tente novamente.';
+      error.value = t('popPageNoResponse');
     } finally {
       busy.value = false;
     }
@@ -39,8 +40,7 @@ export function useCapture({ tab, busy, error }: TabContext) {
       });
       window.close();
     } catch {
-      error.value =
-        'Não foi possível capturar nesta página. Páginas internas do Chrome e a Chrome Web Store não permitem extensões.';
+      error.value = t('popCannotCapture');
     } finally {
       busy.value = false;
     }

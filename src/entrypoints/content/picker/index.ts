@@ -1,6 +1,7 @@
 import { frameUrlOf } from '../../../core/engine';
 import { buildCapture, resolveField, type Capture } from '../../../core/locator';
 import { createOverlay, type Overlay } from './overlay';
+import { t } from '../../../core/i18n';
 
 export { PICKER_HOST_ATTR } from './overlay';
 export { deliverCapture } from './deliver';
@@ -12,17 +13,26 @@ const POINTER_EVENTS = ['mousedown', 'mouseup', 'click', 'pointerdown', 'pointer
 /** Depois de um Escape que cancela, o `keyup` correspondente ainda precisa ser engolido. */
 const ESCAPE_RELEASE_GUARD_MS = 1500;
 
-const TYPE_LABEL: Record<string, string> = {
-  'native-text': 'Texto',
-  'native-select': 'Lista',
-  'native-choice': 'Escolha',
-  'vue-multiselect': 'Lista com busca',
-  date: 'Data',
-  contenteditable: 'Texto editável',
-  'react-select': 'Lista com busca',
-  select2: 'Lista com busca',
-  auto: 'Campo',
-};
+function typeLabel(adapter: string): string {
+  switch (adapter) {
+    case 'native-text':
+      return t('typeText');
+    case 'native-select':
+      return t('typeList');
+    case 'native-choice':
+      return t('typeChoice');
+    case 'vue-multiselect':
+    case 'react-select':
+    case 'select2':
+      return t('typeSearchList');
+    case 'date':
+      return t('typeDate');
+    case 'contenteditable':
+      return t('typeEditableText');
+    default:
+      return t('typeField');
+  }
+}
 
 export interface PickerDeps {
   win?: Window;
@@ -97,7 +107,7 @@ export function createPicker(deps: PickerDeps): Picker {
     hovered = hit.root;
     overlay.highlight(
       hit.root.getBoundingClientRect(),
-      `${hit.label ?? 'Campo sem rótulo'} · ${TYPE_LABEL[hit.adapter] ?? 'Campo'}`,
+      `${hit.label ?? t('fieldNoLabel')} · ${typeLabel(hit.adapter)}`,
     );
   }
 
@@ -119,7 +129,7 @@ export function createPicker(deps: PickerDeps): Picker {
     if (ev.type !== 'click' || !target) return;
     const capture = buildCapture(target, doc, frameUrlOf(win));
     if (!capture) {
-      overlay.notify('Isso não parece ser um campo. Tente outro.');
+      overlay.notify(t('pickerNotField'));
       clearTimeout(noteTimer);
       noteTimer = setTimeout(() => overlay?.notify(null), 3000);
       return;

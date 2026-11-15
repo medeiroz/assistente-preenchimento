@@ -1,4 +1,5 @@
 import { isolateEvents } from '../page-ui/shared';
+import { t } from '../../../core/i18n';
 
 export const RECORDER_HOST_ATTR = 'data-assistente-gravacao';
 
@@ -38,7 +39,7 @@ export interface RecorderBar {
 }
 
 function countText(n: number): string {
-  return `Gravando preenchimento · ${n} ${n === 1 ? 'campo' : 'campos'}`;
+  return n === 1 ? t('barRecordingOne') : t('barRecordingMany', n);
 }
 
 export function createRecorderBar(
@@ -56,7 +57,7 @@ export function createRecorderBar(
   const bar = doc.createElement('div');
   bar.className = 'bar';
   bar.setAttribute('role', 'region');
-  bar.setAttribute('aria-label', 'Gravação de preenchimento');
+  bar.setAttribute('aria-label', t('barAria'));
   const dot = doc.createElement('span');
   dot.className = 'dot';
   dot.setAttribute('aria-hidden', 'true');
@@ -69,12 +70,12 @@ export function createRecorderBar(
   const stop = doc.createElement('button');
   stop.type = 'button';
   stop.className = 'stop';
-  stop.textContent = 'Parar e criar regras';
+  stop.textContent = t('barStop');
   stop.addEventListener('click', handlers.onStop);
   const discard = doc.createElement('button');
   discard.type = 'button';
   discard.className = 'discard';
-  discard.textContent = 'Descartar';
+  discard.textContent = t('barDiscard');
   discard.addEventListener('click', handlers.onDiscard);
   bar.append(dot, msg, flashEl, stop, discard);
 

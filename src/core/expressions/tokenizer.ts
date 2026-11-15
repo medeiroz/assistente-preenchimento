@@ -1,4 +1,5 @@
 import { ExpressionError } from './types';
+import { t } from '../i18n';
 
 export type TokenType =
   'ident' | 'dot' | 'pipe' | 'lparen' | 'rparen' | 'comma' | 'string' | 'number';
@@ -51,7 +52,7 @@ function readString(src: string, start: number): Token {
       j++;
     }
   }
-  throw new ExpressionError('String sem aspas de fechamento', start);
+  throw new ExpressionError(t('exUnterminatedString'), start);
 }
 
 /**
@@ -94,8 +95,8 @@ export function tokenizeBlock(src: string, from: number, blockStart: number): To
       tokens.push({ type: 'ident', value: src.slice(i, j), start: i, end: j });
       i = j;
     } else {
-      throw new ExpressionError(`Caractere inesperado "${c}"`, i);
+      throw new ExpressionError(t('exUnexpectedChar', c), i);
     }
   }
-  throw new ExpressionError('Bloco "{{" sem fechamento "}}"', blockStart);
+  throw new ExpressionError(t('exUnclosedBlock'), blockStart);
 }

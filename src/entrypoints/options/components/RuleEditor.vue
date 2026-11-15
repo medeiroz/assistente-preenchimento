@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '../../../core/i18n';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import type { Rule, Variable } from '../../../core/model';
 import { MAX_ITEM_BYTES, StorageQuotaError, measureRule } from '../../../core/storage';
@@ -139,7 +140,7 @@ async function submit(): Promise<void> {
     saveError.value =
       e instanceof StorageQuotaError
         ? e.message
-        : `Não foi possível salvar: ${e instanceof Error ? e.message : String(e)}`;
+        : t('saveFailed', e instanceof Error ? e.message : String(e));
     focusErrors();
   } finally {
     saving.value = false;
@@ -147,7 +148,7 @@ async function submit(): Promise<void> {
 }
 
 function cancel(): void {
-  if (dirty.value && !window.confirm('Há alterações não salvas. Descartar e sair?')) return;
+  if (dirty.value && !window.confirm(t('confirmUnsaved'))) return;
   emit('cancel');
 }
 
@@ -161,20 +162,16 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
 <template>
   <form class="editor" novalidate @submit.prevent="submit">
     <div class="section-head">
-      <h2>{{ initial.isNew ? 'Nova regra' : 'Editar regra' }}</h2>
+      <h2>{{ initial.isNew ? $t('newRule') : $t('editRule') }}</h2>
     </div>
 
     <div v-if="externalChange" class="notice warn" role="status" data-testid="external-change">
       <p>
-        <strong>Esta regra foi alterada em outro lugar.</strong>
-        {{
-          externalChange === 'removed'
-            ? 'Ela foi excluída; se você salvar, ela será criada de novo.'
-            : 'Se você salvar, suas alterações substituem a versão salva.'
-        }}
+        <strong>{{ $t('edChangedElsewhere') }}</strong>
+        {{ externalChange === 'removed' ? $t('edRemovedExternally') : $t('edChangedExternally') }}
       </p>
       <button v-if="externalChange === 'changed'" type="button" class="btn" @click="emit('reload')">
-        Descartar minhas alterações e recarregar
+        {{ $t('edDiscardReload') }}
       </button>
     </div>
 
@@ -185,8 +182,8 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
       data-testid="capture-duplicate"
     >
       <p>
-        <strong>Este campo já está nesta regra.</strong>
-        Nada foi adicionado; o campo existente está em foco abaixo.
+        <strong>{{ $t('edDuplicateField') }}</strong>
+        {{ $t('edDuplicateFieldNote') }}
       </p>
     </div>
 
@@ -203,7 +200,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
       </p>
       <template v-if="summaryMessages.length > 0">
         <p>
-          <strong>Corrija os itens abaixo para salvar:</strong>
+          <strong>{{ $t('edFixItems') }}</strong>
         </p>
         <ul>
           <li v-for="m in summaryMessages" :key="m">{{ m }}</li>
@@ -212,7 +209,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
     </div>
 
     <div class="control example-url">
-      <label for="example-url">URL de exemplo (só para a pré-visualização dos valores)</label>
+      <label for="example-url">{{ $t('edExampleUrl') }}</label>
       <input
         id="example-url"
         v-model="exampleUrl"
@@ -222,14 +219,14 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
         :aria-invalid="exampleUrlInvalid"
       />
       <p v-if="exampleUrlInvalid" class="error-text">
-        URL inválida; a pré-visualização usa https://exemplo.com/.
+        {{ $t('edExampleUrlInvalid') }}
       </p>
     </div>
 
     <fieldset class="panel">
-      <legend>Identificação</legend>
+      <legend>{{ $t('edIdentification') }}</legend>
       <div class="control">
-        <label for="rule-name">Nome da regra</label>
+        <label for="rule-name">{{ $t('valWhereName') }}</label>
         <input
           id="rule-name"
           v-model="draft.name"
@@ -237,20 +234,20 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
           autocomplete="off"
           :aria-invalid="err('name') !== null"
           :aria-describedby="err('name') ? 'rule-name-err' : undefined"
-          placeholder="Ex.: NFS-e: NBS e consumo pessoal"
+          :placeholder="$t('edNamePlaceholder')"
         />
         <p v-if="err('name')" id="rule-name-err" class="error-text">{{ err('name') }}</p>
       </div>
     </fieldset>
 
     <fieldset class="panel">
-      <legend>Onde a regra vale</legend>
+      <legend>{{ $t('edWhere') }}</legend>
       <p class="hint">
-        Endereços das páginas, no formato <code>https://site.com/*</code> (o <code>*</code> vale
-        para qualquer final).
+        {{ $t('edUrlHintA') }} <code>https://site.com/*</code> {{ $t('edUrlHintB') }} <code>*</code>
+        {{ $t('edUrlHintC') }}
       </p>
       <div v-for="(_, i) in draft.urlPatterns" :key="i" class="control pattern-row">
-        <label :for="`url-${i}`">Padrão de URL {{ i + 1 }}</label>
+        <label :for="`url-${i}`">{{ $t('valWhereUrlPattern', i + 1) }}</label>
         <div class="row">
           <input
             :id="`url-${i}`"
@@ -265,49 +262,46 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
           <button
             type="button"
             class="btn small danger"
-            :aria-label="`Remover padrão de URL ${i + 1}`"
+            :aria-label="$t('edRemovePatternAria', i + 1)"
             @click="removePattern(i)"
           >
-            Remover
+            {{ $t('remove') }}
           </button>
         </div>
         <p v-if="patternError(i)" :id="`url-${i}-err`" class="error-text">{{ patternError(i) }}</p>
       </div>
       <p v-if="err('urlPatterns')" class="error-text">{{ err('urlPatterns') }}</p>
       <p v-if="originClasses.insecure.length > 0" class="hint warn-text" data-testid="warn-http">
-        Conexão não segura ({{ originClasses.insecure.map(hostOfOrigin).join(', ') }}). Este site
-        usa http: os valores preenchidos trafegam sem criptografia.
+        {{ $t('edInsecure', originClasses.insecure.map(hostOfOrigin).join(', ')) }}
       </p>
       <p v-if="originClasses.broad.length > 0" class="hint warn-text" data-testid="warn-broad">
-        Esse padrão vale para qualquer site. Informe um site específico (por exemplo
-        https://site.com/*): a extensão não pede permissão para todos os sites.
+        {{ $t('edBroad') }}
       </p>
       <p v-if="originClasses.needed.length > 0" class="hint" data-testid="info-permission">
-        Ao salvar, o navegador vai pedir permissão para acessar
-        {{ originClasses.needed.map(hostOfOrigin).join(', ') }}.
+        {{ $t('edNeedsPermission', originClasses.needed.map(hostOfOrigin).join(', ')) }}
       </p>
       <p v-if="overlaps.length > 0" class="hint warn-text" data-testid="warn-overlap">
-        Outra regra também pode atuar nestas páginas: {{ overlaps.map((r) => r.name).join(', ') }}.
-        Se forem para o mesmo formulário, a de maior prioridade preenche primeiro.
+        {{ $t('edOverlap', overlaps.map((r) => r.name).join(', ')) }}
       </p>
-      <button type="button" class="btn" @click="addPattern">Adicionar padrão de URL</button>
+      <button type="button" class="btn" @click="addPattern">
+        {{ $t('edAddPattern') }}
+      </button>
 
       <div class="control">
         <label class="inline" for="all-frames">
           <input id="all-frames" v-model="draft.allFrames" type="checkbox" />
-          <span>Atuar também em iframes</span>
+          <span>{{ $t('edAllFrames') }}</span>
         </label>
         <p v-if="draft.allFrames" class="hint" data-testid="info-frames">
-          Esta regra atua em iframes: cada iframe cuja própria URL case com o padrão acima é
-          preenchido. Iframes de outro site precisam de permissão para o endereço deles.
+          {{ $t('edFramesOn') }}
         </p>
         <p v-else class="hint">
-          Sem isto, a regra só preenche a página principal, não os formulários dentro de iframes.
+          {{ $t('edFramesOff') }}
         </p>
       </div>
 
       <div class="control">
-        <label for="container-selector">Contêiner: seletor CSS (opcional)</label>
+        <label for="container-selector">{{ $t('edContainerSelector') }}</label>
         <input
           id="container-selector"
           v-model="draft.containerSelector"
@@ -318,25 +312,24 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
         />
       </div>
       <div class="control">
-        <label for="container-text">Contêiner: texto que deve conter (opcional)</label>
+        <label for="container-text">{{ $t('edContainerText') }}</label>
         <input
           id="container-text"
           v-model="draft.containerText"
           type="text"
           autocomplete="off"
-          placeholder="Emitir Nota Fiscal"
+          :placeholder="$t('edContainerTextPlaceholder')"
         />
         <p class="hint">
-          Use para a regra só valer dentro de uma parte da página, por exemplo um modal. Ex.: o
-          título do modal.
+          {{ $t('edContainerHint') }}
         </p>
         <p v-if="err('container')" class="error-text">{{ err('container') }}</p>
       </div>
 
       <details class="advanced">
-        <summary>Avançado: tempo de espera</summary>
+        <summary>{{ $t('edAdvWait') }}</summary>
         <div class="control">
-          <label for="settle">Espera antes de preencher (milissegundos)</label>
+          <label for="settle">{{ $t('edSettleLabel') }}</label>
           <input
             id="settle"
             v-model.number="draft.settleMs"
@@ -347,7 +340,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
             :aria-invalid="err('settleMs') !== null"
           />
           <p class="hint">
-            Tempo que a extensão aguarda a página parar de mudar antes de preencher. Padrão: 300.
+            {{ $t('edSettleHint') }}
           </p>
           <p v-if="err('settleMs')" class="error-text">{{ err('settleMs') }}</p>
         </div>
@@ -355,9 +348,9 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
     </fieldset>
 
     <fieldset class="panel">
-      <legend>Comportamento</legend>
+      <legend>{{ $t('edBehavior') }}</legend>
       <div class="radio-group" role="radiogroup" aria-labelledby="mode-label">
-        <p id="mode-label" class="group-label">Quando preencher</p>
+        <p id="mode-label" class="group-label">{{ $t('edWhen') }}</p>
         <label v-for="o in MODE_OPTIONS" :key="o.id" class="radio">
           <input v-model="draft.mode" type="radio" name="mode" :value="o.id" />
           <span>
@@ -367,7 +360,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
         </label>
       </div>
       <div class="radio-group" role="radiogroup" aria-labelledby="overwrite-label">
-        <p id="overwrite-label" class="group-label">Sobrescrever valores existentes</p>
+        <p id="overwrite-label" class="group-label">{{ $t('edOverwrite') }}</p>
         <label v-for="o in OVERWRITE_OPTIONS" :key="o.id" class="radio">
           <input v-model="draft.overwrite" type="radio" name="overwrite" :value="o.id" />
           <span>
@@ -377,9 +370,9 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
         </label>
       </div>
       <details class="advanced">
-        <summary>Avançado: prioridade</summary>
+        <summary>{{ $t('edAdvPriority') }}</summary>
         <div class="control">
-          <label for="priority">Prioridade (0 a 100)</label>
+          <label for="priority">{{ $t('edPriorityLabel') }}</label>
           <input
             id="priority"
             v-model="priorityModel"
@@ -391,9 +384,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
             :aria-invalid="err('priority') !== null"
           />
           <p class="hint">
-            Quando várias regras atuam no mesmo formulário, a de maior prioridade preenche primeiro
-            e as outras pulam os campos que ela já preencheu. Vazio = padrão (50). Em empate, vale a
-            ordem das regras.
+            {{ $t('edPriorityHint') }}
           </p>
           <p v-if="err('priority')" class="error-text">{{ err('priority') }}</p>
         </div>
@@ -414,7 +405,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
       v-if="ruleBytes !== null"
       :bytes="ruleBytes"
       :limit="MAX_ITEM_BYTES"
-      over-message="reduza o número de campos"
+      :over-message="$t('sizeOverFields')"
     />
 
     <div class="actions-bar">
@@ -424,10 +415,12 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
         :disabled="saving || readOnly"
         data-testid="save-rule"
       >
-        {{ saving ? 'Salvando…' : 'Salvar' }}
+        {{ saving ? $t('saving') : $t('save') }}
       </button>
-      <button type="button" class="btn" data-testid="cancel-edit" @click="cancel">Cancelar</button>
-      <span v-if="dirty" class="muted">Alterações não salvas</span>
+      <button type="button" class="btn" data-testid="cancel-edit" @click="cancel">
+        {{ $t('cancel') }}
+      </button>
+      <span v-if="dirty" class="muted">{{ $t('unsavedChanges') }}</span>
     </div>
   </form>
 </template>

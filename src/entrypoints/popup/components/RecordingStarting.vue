@@ -4,9 +4,9 @@ defineProps<{ awaitingPermission: boolean }>();
 
 <template>
   <div class="starting" role="status" data-testid="record-starting">
-    <p class="summary">Iniciando gravação…</p>
+    <p class="summary">{{ $t('popStarting') }}</p>
     <p v-if="awaitingPermission" class="muted">
-      Autorize o acesso ao site na janela do Chrome para gravar todas as etapas.
+      {{ $t('popAuthorize') }}
     </p>
   </div>
 </template>

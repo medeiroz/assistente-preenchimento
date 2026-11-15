@@ -1,4 +1,5 @@
 import { isolateEvents } from '../page-ui/shared';
+import { t } from '../../../core/i18n';
 
 export const PICKER_HOST_ATTR = 'data-assistente-captura';
 
@@ -61,17 +62,17 @@ export function createOverlay(doc: Document, onCancel: () => void, compact = fal
   const bar = doc.createElement('div');
   bar.className = 'bar';
   bar.setAttribute('role', 'region');
-  bar.setAttribute('aria-label', 'Capturar campo');
+  bar.setAttribute('aria-label', t('pickerAria'));
   const msg = doc.createElement('p');
   msg.className = 'msg';
-  msg.textContent = 'Clique no campo que deseja preencher automaticamente';
+  msg.textContent = t('pickerPrompt');
   const note = doc.createElement('p');
   note.className = 'note';
   note.setAttribute('role', 'status');
   const cancel = doc.createElement('button');
   cancel.type = 'button';
   cancel.className = 'cancel';
-  cancel.textContent = 'Cancelar';
+  cancel.textContent = t('cancel');
   cancel.addEventListener('click', onCancel);
   bar.append(msg, note, cancel);
 

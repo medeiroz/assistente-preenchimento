@@ -7,7 +7,7 @@ defineProps<{ report: RunReport }>();
 
 <template>
   <section aria-labelledby="rep-h">
-    <h2 id="rep-h">Último relatório</h2>
+    <h2 id="rep-h">{{ $t('popLastReport') }}</h2>
     <p class="muted" data-testid="report-rule">{{ report.ruleName }}</p>
     <p class="summary" data-testid="report-summary">{{ formatSummary(report) }}</p>
     <ul class="fields" data-testid="report-fields">

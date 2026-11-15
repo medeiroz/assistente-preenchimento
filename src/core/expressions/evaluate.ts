@@ -10,6 +10,7 @@ import {
   type SourceNode,
   type Value,
 } from './types';
+import { t } from '../i18n';
 
 function fromString(s: string | null | undefined): Value {
   return s === null || s === undefined || s === '' ? null : { kind: 'text', text: s };
@@ -54,12 +55,12 @@ function evaluateNode(node: ExprNode, ctx: ExpressionContext): string {
     }
   } catch (e) {
     if (e instanceof ExpressionError) {
-      throw new ExpressionError(`${e.message} em "{{ ${node.raw} }}"`, node.start);
+      throw new ExpressionError(t('exInExpression', e.message, node.raw), node.start);
     }
     throw e;
   }
   if (value === null) {
-    throw new ExpressionError(`Valor ausente: ${node.raw}`, node.start);
+    throw new ExpressionError(t('exMissingValue', node.raw), node.start);
   }
   return valueToText(value);
 }
@@ -70,7 +71,7 @@ export function resolveTemplate(template: string, ctx: ExpressionContext): Resol
     segments = parseTemplate(template);
   } catch (e) {
     if (e instanceof ExpressionError) {
-      return { ok: false, error: `${e.message} (posição ${e.position})` };
+      return { ok: false, error: t('exWithPosition', e.message, e.position) };
     }
     throw e;
   }
