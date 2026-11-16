@@ -60,6 +60,13 @@ interface Batch {
 
 const NOTABLE = new Set(['filled', 'error', 'not-found', 'undone']);
 
+/**
+ * Janela de agrupamento das aparições automáticas do mesmo contêiner. Cada regra espera o
+ * próprio settleMs; em máquinas lentas os timers de regras iguais disparam alguns ms
+ * separados e, sem essa folga, a primeira a acordar preencheria antes de a outra entrar na fila.
+ */
+const BATCH_WINDOW_MS = 50;
+
 export function createController(o: ControllerOptions): Controller {
   const win = o.window;
   const isTop = o.isTopFrame ?? true;
@@ -76,7 +83,10 @@ export function createController(o: ControllerOptions): Controller {
   /** Aparições automáticas do mesmo contêiner agrupadas para ordenar por prioridade. */
   const batches = new Map<Element, Batch>();
   /** Raízes de campo preenchidas, por contêiner: raiz -> regra que a reivindicou. */
-  const claims = new Map<Element, Map<Element, { ruleId: string; name: string }>>();
+  const claims = new Map<
+    Element,
+    Map<Element, { ruleId: string; name: string; priority: number }>
+  >();
 
   function enqueue<T>(el: Element, task: () => Promise<T>): Promise<T> {
     const run = (chains.get(el) ?? Promise.resolve()).then(task);
@@ -121,7 +131,7 @@ export function createController(o: ControllerOptions): Controller {
   function scheduleAuto(a: Active, el: Element, entry: Entry): void {
     let batch = batches.get(el);
     if (!batch) {
-      batch = { items: [], timer: setTimeout(() => flushBatch(el), 0) };
+      batch = { items: [], timer: setTimeout(() => flushBatch(el), BATCH_WINDOW_MS) };
       batches.set(el, batch);
     }
     batch.items.push({ a, entry });
@@ -211,12 +221,13 @@ export function createController(o: ControllerOptions): Controller {
       url: currentUrl,
       claimedBy: (root) => {
         const c = claims.get(el)?.get(root);
-        return c && c.ruleId !== rule.id ? c.name : null;
+        // Uma regra de prioridade maior que chegou depois ainda pode assumir o campo.
+        return c && c.ruleId !== rule.id && c.priority >= rulePriority(rule) ? c.name : null;
       },
       claim: (root) => {
         let map = claims.get(el);
         if (!map) claims.set(el, (map = new Map()));
-        map.set(root, { ruleId: rule.id, name: rule.name });
+        map.set(root, { ruleId: rule.id, name: rule.name, priority: rulePriority(rule) });
       },
     });
   }

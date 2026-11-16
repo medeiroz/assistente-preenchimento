@@ -9,6 +9,7 @@ function makeRule(o: {
   id: string;
   value: string;
   priority?: number;
+  settleMs?: number;
   enabled?: boolean;
   mode?: 'auto' | 'button';
   selector?: string;
@@ -23,7 +24,7 @@ function makeRule(o: {
     trigger: {
       urlPatterns: ['https://exemplo.com/p/*'],
       container: { selector: o.selector ?? '.modal' },
-      settleMs: SETTLE,
+      settleMs: o.settleMs ?? SETTLE,
     },
     behavior: { mode: o.mode ?? 'auto', overwrite: 'always' },
     fields: (o.fields ?? [{ id: 'a', label: o.label ?? 'Campo A', value: o.value }]).map((f) => ({
@@ -100,6 +101,30 @@ describe('várias regras no mesmo contêiner', () => {
     expect(skipped?.message).toBe('preenchido pela regra Regra alta');
     // A ordem de execução foi por prioridade.
     expect(reports.map((r) => r.ruleId)).toEqual(['alta', 'baixa']);
+  });
+
+  it('timers de espera alguns ms separados ainda respeitam a prioridade', async () => {
+    make([
+      makeRule({ id: 'baixa', value: 'baixa', priority: 10, settleMs: SETTLE }),
+      makeRule({ id: 'alta', value: 'alta', priority: 90, settleMs: SETTLE + 20 }),
+    ]);
+    addModal();
+    await tick(SETTLE + 200);
+    expect(input('m-a').value).toBe('alta');
+    expect(reportOf('baixa')?.fields[0]?.outcome).toBe('skipped-already-handled');
+  });
+
+  it('regra de prioridade maior que chega bem depois assume o campo', async () => {
+    make([
+      makeRule({ id: 'baixa', value: 'baixa', priority: 10, settleMs: SETTLE }),
+      makeRule({ id: 'alta', value: 'alta', priority: 90, settleMs: SETTLE + 500 }),
+    ]);
+    addModal();
+    await tick(SETTLE + 100);
+    expect(input('m-a').value).toBe('baixa');
+    await tick(600);
+    expect(input('m-a').value).toBe('alta');
+    expect(reportOf('alta')?.fields[0]?.outcome).toBe('filled');
   });
 
   it('empate segue a ordem das regras na configuração', async () => {
