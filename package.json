@@ -1,7 +1,7 @@
 {
   "name": "assistente-preenchimento",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Extensão do Chrome que preenche campos de formulários automaticamente nos sites escolhidos, a partir de regras criadas pelo próprio usuário.",
   "license": "MIT",
   "repository": {
