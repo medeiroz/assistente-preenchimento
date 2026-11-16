@@ -1,4 +1,8 @@
 import { z } from 'zod';
+import { t } from '../i18n';
+
+/** Mensagem preguiçosa do Zod: o idioma vale no momento da validação, não no carregamento. */
+const tl = (key: string) => ({ error: () => t(key) });
 
 export const CURRENT_SCHEMA_VERSION = 1;
 
@@ -8,6 +12,9 @@ export const AdapterIdSchema = z.enum([
   'native-choice',
   'vue-multiselect',
   'date',
+  'contenteditable',
+  'react-select',
+  'select2',
 ]);
 
 // Todos os objetos aceitam chaves desconhecidas (z.looseObject) e as devolvem intactas:
@@ -15,17 +22,24 @@ export const AdapterIdSchema = z.enum([
 export const LocatorSchema = z.discriminatedUnion('by', [
   z.looseObject({
     by: z.literal('label'),
-    text: z.string().min(1, 'o texto do rótulo não pode ser vazio'),
+    text: z.string().min(1, tl('vLabelTextEmpty')),
     exact: z.boolean().optional(),
     index: z.number().int().min(0).optional(),
   }),
   z.looseObject({
     by: z.literal('selector'),
-    css: z.string().min(1, 'o seletor CSS não pode ser vazio'),
+    // Aceita a cadeia `a >>> b >>> c` (atravessa shadow roots abertos). Equivalente local de
+    // splitDeepSelector (core/locator), para o modelo não depender do locator.
+    css: z
+      .string()
+      .min(1, tl('vCssEmpty'))
+      .refine((css) => css.split('>>>').every((seg) => seg.trim() !== ''), {
+        error: () => t('vCssDeepInvalid'),
+      }),
   }),
   z.looseObject({
     by: z.literal('name'),
-    name: z.string().min(1, 'o atributo name não pode ser vazio'),
+    name: z.string().min(1, tl('vNameAttrEmpty')),
   }),
 ]);
 
@@ -33,20 +47,18 @@ const MATCH_PATTERN = /^(https?|\*):\/\/[^/]+\/.*$/;
 
 export const TriggerSchema = z.looseObject({
   urlPatterns: z
-    .array(
-      z
-        .string()
-        .regex(MATCH_PATTERN, 'padrão de URL inválido (use o formato https://host/caminho/*)'),
-    )
-    .min(1, 'informe ao menos um padrão de URL'),
+    .array(z.string().regex(MATCH_PATTERN, tl('vUrlPatternInvalid')))
+    .min(1, tl('vUrlPatternRequired')),
   queryParams: z.record(z.string(), z.string()).optional(),
   container: z
     .looseObject({
-      selector: z.string().min(1, 'o seletor do contêiner não pode ser vazio'),
+      selector: z.string().min(1, tl('vContainerEmpty')),
       textContains: z.string().optional(),
     })
     .optional(),
   settleMs: z.number().int().min(0).max(10000).default(300),
+  /** Em quais frames a regra roda. Ausente = 'top' (ver triggerFrames). */
+  frames: z.enum(['top', 'all'], tl('vFramesEnum')).optional(),
 });
 
 export const BehaviorSchema = z.looseObject({
@@ -56,33 +68,33 @@ export const BehaviorSchema = z.looseObject({
 });
 
 export const FieldRuleSchema = z.looseObject({
-  id: z.string().min(1, 'o id do campo não pode ser vazio'),
+  id: z.string().min(1, tl('vFieldIdEmpty')),
   enabled: z.boolean().default(true),
   locator: LocatorSchema,
   // Qualquer id não vazio: um adaptador criado por versão futura não descarta a regra.
   // Em tempo de execução, id desconhecido vale como 'auto' (ver adapters/registry.ts).
   adapter: z
     .string()
-    .min(1, 'o adaptador não pode ser vazio')
+    .min(1, tl('vAdapterEmpty'))
     .default('auto')
     .transform((id): AdapterRef => id),
   value: z.string(),
   defaultValue: z.string().optional(),
   /** Espera (ms) ANTES de localizar e preencher este campo. Ausente = sem espera. */
   delayMs: z
-    .number('o atraso deve ser um número')
-    .int('o atraso deve ser um número inteiro de milissegundos')
-    .min(0, 'o atraso não pode ser negativo')
-    .max(60000, 'o atraso máximo é 60000 ms (60 s)')
+    .number(tl('vDelayNumber'))
+    .int(tl('vDelayInt'))
+    .min(0, tl('vDelayNegative'))
+    .max(60000, tl('vDelayMax'))
     .optional(),
   /** Presença = simular digitação tecla por tecla, com este intervalo entre as teclas. */
   typing: z
     .looseObject({
       keyDelayMs: z
-        .number('o intervalo entre teclas deve ser um número')
-        .int('o intervalo entre teclas deve ser um número inteiro de milissegundos')
-        .min(0, 'o intervalo entre teclas não pode ser negativo')
-        .max(2000, 'o intervalo máximo entre teclas é 2000 ms'),
+        .number(tl('vKeyDelayNumber'))
+        .int(tl('vKeyDelayInt'))
+        .min(0, tl('vKeyDelayNegative'))
+        .max(2000, tl('vKeyDelayMax')),
     })
     .optional(),
 });
@@ -99,13 +111,20 @@ function findDuplicates(values: string[]): string[] {
 
 export const RuleSchema = z
   .looseObject({
-    id: z.string().min(1, 'o id da regra não pode ser vazio'),
-    name: z.string().min(1, 'o nome da regra não pode ser vazio'),
+    id: z.string().min(1, tl('vRuleIdEmpty')),
+    name: z.string().min(1, tl('vRuleNameEmpty')),
     enabled: z.boolean().default(true),
+    /** Inteiro 0-100; maior vence. Ausente = 50 (ver rulePriority). */
+    priority: z
+      .number(tl('vPriorityNumber'))
+      .int(tl('vPriorityInt'))
+      .min(0, tl('vPriorityMin'))
+      .max(100, tl('vPriorityMax'))
+      .optional(),
     trigger: TriggerSchema,
     behavior: BehaviorSchema.prefault({}),
     fields: z.array(FieldRuleSchema),
-    updatedAt: z.iso.datetime({ message: 'data inválida (use o formato ISO 8601)' }),
+    updatedAt: z.iso.datetime(tl('vDateInvalid')),
   })
   .superRefine((rule, ctx) => {
     const dups = findDuplicates(rule.fields.map((f) => f.id));
@@ -113,20 +132,20 @@ export const RuleSchema = z
       ctx.addIssue({
         code: 'custom',
         path: ['fields'],
-        message: `ids de campo duplicados: ${dups.join(', ')}`,
+        message: t('vDupFieldIds', dups.join(', ')),
       });
     }
   });
 
 export const VariableSchema = z.looseObject({
-  key: z
-    .string()
-    .regex(
-      /^[a-z][a-z0-9_]*$/,
-      'chave inválida (use minúsculas, números e _, começando por letra)',
-    ),
+  key: z.string().regex(/^[a-z][a-z0-9_]*$/, tl('vVarKeyInvalid')),
   label: z.string(),
   value: z.string(),
+  /**
+   * Ausente = 'sync' (ver variableScope). Variável 'local' grava no sync só key, label, scope e
+   * `value: ''`; o valor real fica em storage.local (implementado no WP-C3).
+   */
+  scope: z.enum(['sync', 'local'], tl('vScopeEnum')).optional(),
 });
 
 export const SettingsSchema = z.looseObject({
@@ -146,7 +165,7 @@ export const ConfigSchema = z
       ctx.addIssue({
         code: 'custom',
         path: ['variables'],
-        message: `chaves de variável duplicadas: ${dupKeys.join(', ')}`,
+        message: t('vDupVarKeys', dupKeys.join(', ')),
       });
     }
     const dupIds = findDuplicates(cfg.rules.map((r) => r.id));
@@ -154,7 +173,7 @@ export const ConfigSchema = z
       ctx.addIssue({
         code: 'custom',
         path: ['rules'],
-        message: `ids de regra duplicados: ${dupIds.join(', ')}`,
+        message: t('vDupRuleIds', dupIds.join(', ')),
       });
     }
   });
@@ -171,6 +190,23 @@ export type Variable = z.output<typeof VariableSchema>;
 export type Settings = z.output<typeof SettingsSchema>;
 export type Config = z.output<typeof ConfigSchema>;
 export type RuleInput = z.input<typeof RuleSchema>;
+
+export const DEFAULT_RULE_PRIORITY = 50;
+
+/** Prioridade efetiva da regra (ausente = 50). */
+export function rulePriority(rule: Pick<Rule, 'priority'>): number {
+  return rule.priority ?? DEFAULT_RULE_PRIORITY;
+}
+
+/** Escopo efetivo da variável (ausente = 'sync'). */
+export function variableScope(v: Pick<Variable, 'scope'>): 'sync' | 'local' {
+  return v.scope ?? 'sync';
+}
+
+/** Frames em que o gatilho vale (ausente = 'top'). */
+export function triggerFrames(t: Pick<Trigger, 'frames'>): 'top' | 'all' {
+  return t.frames ?? 'top';
+}
 
 /** Converte os issues do Zod em mensagens "caminho: motivo". */
 export function formatZodIssues(error: z.ZodError): string[] {

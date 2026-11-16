@@ -8,10 +8,13 @@ import {
   computeDynamicMatches,
   isBroadOrigin,
   isStaticallyCovered,
+  needsAllFrames,
   missingPermissions,
   originsForRule,
   requestForRule,
   syncDynamicScripts,
+  toOriginPattern,
+  toOriginPatterns,
   type PermissionsApi,
   type ScriptRegistration,
   type ScriptingApi,
@@ -90,16 +93,32 @@ describe('originsForRule', () => {
   it('remove a porta e normaliza o host para minúsculas', () => {
     expect(originsForRule(rule(['https://Exemplo.COM:8443/*']))).toEqual(['https://exemplo.com/*']);
   });
-  it('*:// vira https; http é devolvido mas classificado como não suportado', () => {
+  it('*:// gera https e http; http entra em needed e em insecure', () => {
     expect(originsForRule(rule(['*://a.com/*', 'http://b.com/*']))).toEqual([
       'https://a.com/*',
+      'http://a.com/*',
       'http://b.com/*',
     ]);
+    expect(toOriginPattern('*://a.com/*')).toBe('https://a.com/*');
+    expect(toOriginPatterns('*://a.com/*')).toEqual(['https://a.com/*', 'http://a.com/*']);
+    expect(toOriginPatterns('http://a.com/x')).toEqual(['http://a.com/*']);
+    expect(toOriginPatterns('lixo')).toEqual([]);
     expect(classifyOrigins(['http://b.com/*', 'https://a.com/*'])).toEqual({
-      needed: ['https://a.com/*'],
-      unsupported: ['http://b.com/*'],
+      needed: ['http://b.com/*', 'https://a.com/*'],
+      insecure: ['http://b.com/*'],
+      unsupported: [],
       broad: [],
     });
+  });
+  it('http com porta perde a porta; loopback não é marcado como inseguro', () => {
+    expect(originsForRule(rule(['http://localhost:8080/*']))).toEqual(['http://localhost/*']);
+    const c = classifyOrigins(['http://localhost:8080/*', 'http://10.0.0.5:3000/x']);
+    expect(c.needed).toEqual(['http://localhost/*', 'http://10.0.0.5/*']);
+    expect(c.insecure).toEqual(['http://10.0.0.5/*']);
+  });
+  it('host curinga amplo em http também é amplo', () => {
+    expect(classifyOrigins(['http://*/*']).broad).toEqual(['http://*/*']);
+    expect(classifyOrigins(['*://*/*']).broad).toEqual(['https://*/*', 'http://*/*']);
   });
   it('detecta hosts amplos demais', () => {
     expect(isBroadOrigin('https://*/*')).toBe(true);
@@ -126,7 +145,9 @@ describe('isStaticallyCovered', () => {
       'http://127.0.0.1/*',
     ]);
     expect(mod.isStaticallyCovered('https://app.clinicaexperts.com.br/nfse/1', e2e)).toBe(true);
-    expect(mod.isStaticallyCovered('*://app.clinicaexperts.com.br/*', e2e)).toBe(true);
+    // `*://` gera https e http: o manifest e2e só cobre o https desse host.
+    expect(mod.isStaticallyCovered('*://app.clinicaexperts.com.br/*', e2e)).toBe(false);
+    expect(mod.isStaticallyCovered('*://localhost/*', e2e)).toBe(false);
     expect(mod.isStaticallyCovered('https://*.clinicaexperts.com.br/*', e2e)).toBe(false);
     expect(mod.isStaticallyCovered('https://outro.com/*', e2e)).toBe(false);
   });
@@ -137,6 +158,13 @@ describe('isStaticallyCovered', () => {
 });
 
 describe('computeDynamicMatches', () => {
+  it('inclui origens http concedidas (inclusive as de *://)', () => {
+    const rules = [rule(['http://a.com/*', '*://b.com/*'])];
+    expect(computeDynamicMatches(rules, (o) => o !== 'https://b.com/*')).toEqual([
+      'http://a.com/*',
+      'http://b.com/*',
+    ]);
+  });
   const all = () => true;
   it('ignora regras desabilitadas', () => {
     expect(computeDynamicMatches([rule(['https://a.com/*'], { enabled: false })], all)).toEqual([]);
@@ -147,9 +175,10 @@ describe('computeDynamicMatches', () => {
       'https://b.com/*',
     ]);
   });
-  it('ignora http (não suportado)', () => {
+  it('http concedido entra nos matches; sem permissão fica de fora', () => {
     const rules = [rule(['http://a.com/*'])];
-    expect(computeDynamicMatches(rules, all)).toEqual([]);
+    expect(computeDynamicMatches(rules, all)).toEqual(['http://a.com/*']);
+    expect(computeDynamicMatches(rules, () => false)).toEqual([]);
   });
   it('em produção a regra da Clínica Experts também é dinâmica', () => {
     const rules = [rule(['https://app.clinicaexperts.com.br/*'])];
@@ -186,12 +215,14 @@ describe('missingPermissions', () => {
 });
 
 describe('requestForRule', () => {
-  it('pede só origens específicas, https e não estáticas', async () => {
+  it('pede só origens específicas (https e http) e não estáticas', async () => {
     const api = fakeApi();
     const r = rule(['https://a.com/x', 'http://h.com/*', 'https://*/*']);
     const res = await requestForRule(r, api);
-    expect(api.permissions.request).toHaveBeenCalledWith({ origins: ['https://a.com/*'] });
-    expect(res).toEqual({ granted: true, unsupported: ['http://h.com/*'] });
+    expect(api.permissions.request).toHaveBeenCalledWith({
+      origins: ['https://a.com/*', 'http://h.com/*'],
+    });
+    expect(res).toEqual({ granted: true, unsupported: [] });
   });
   it('omite origens já concedidas e não chama a API se nada falta', async () => {
     const api = fakeApi();
@@ -283,5 +314,76 @@ describe('syncDynamicScripts', () => {
       scriptFile: file,
     });
     expect(failing).toBe('error');
+  });
+});
+
+describe('registro dinâmico com iframes', () => {
+  const file = 'content-scripts/content.js';
+  const run = (api: FakeApi, rules: Rule[]) =>
+    syncDynamicScripts({ api, loadRules: () => Promise.resolve(rules), scriptFile: file });
+  const withFrames = (patterns: string[], over: Partial<Rule> = {}): Rule => {
+    const r = rule(patterns, over);
+    return { ...r, trigger: { ...r.trigger, frames: 'all' } };
+  };
+
+  it('needsAllFrames: só regra habilitada, com frames "all" e permissão concedida', () => {
+    const granted = (o: string) => o === 'https://a.com/*';
+    expect(needsAllFrames([rule(['https://a.com/*'])], granted)).toBe(false);
+    expect(needsAllFrames([withFrames(['https://a.com/*'])], granted)).toBe(true);
+    expect(needsAllFrames([withFrames(['https://b.com/*'])], granted)).toBe(false);
+    expect(needsAllFrames([withFrames(['https://a.com/*'], { enabled: false })], granted)).toBe(
+      false,
+    );
+  });
+
+  it('computeDynamicMatches não muda com frames (continua um único script)', () => {
+    const granted = () => true;
+    expect(computeDynamicMatches([withFrames(['https://a.com/p/*'])], granted)).toEqual(
+      computeDynamicMatches([rule(['https://a.com/p/*'])], granted),
+    );
+  });
+
+  it('com frames "all": allFrames e matchOriginAsFallback', async () => {
+    const api = fakeApi(['https://a.com/*']);
+    expect(await run(api, [withFrames(['https://a.com/*'])])).toBe('registered');
+    expect(api.registered.get(DYNAMIC_SCRIPT_ID)).toEqual({
+      id: DYNAMIC_SCRIPT_ID,
+      matches: ['https://a.com/*'],
+      js: [file],
+      runAt: 'document_idle',
+      allFrames: true,
+      matchOriginAsFallback: true,
+      persistAcrossSessions: true,
+    });
+  });
+
+  it('sem frames "all": allFrames false e sem matchOriginAsFallback', async () => {
+    const api = fakeApi(['https://a.com/*']);
+    await run(api, [rule(['https://a.com/*'])]);
+    const reg = api.registered.get(DYNAMIC_SCRIPT_ID);
+    expect(reg?.allFrames).toBe(false);
+    expect(reg).not.toHaveProperty('matchOriginAsFallback');
+  });
+
+  it('re-registra quando só allFrames muda (mesmos matches) e fica quieto depois', async () => {
+    const api = fakeApi(['https://a.com/*']);
+    await run(api, [rule(['https://a.com/*'])]);
+    expect(await run(api, [withFrames(['https://a.com/*'])])).toBe('updated');
+    expect(api.registered.get(DYNAMIC_SCRIPT_ID)?.allFrames).toBe(true);
+    expect(await run(api, [withFrames(['https://a.com/*'])])).toBe('unchanged');
+    expect(await run(api, [rule(['https://a.com/*'])])).toBe('updated');
+    expect(api.registered.get(DYNAMIC_SCRIPT_ID)?.allFrames).toBe(false);
+  });
+
+  it('registro antigo (sem allFrames) com regra sem iframes continua igual', async () => {
+    const api = fakeApi(['https://a.com/*']);
+    api.registered.set(DYNAMIC_SCRIPT_ID, {
+      id: DYNAMIC_SCRIPT_ID,
+      matches: ['https://a.com/*'],
+      js: [file],
+      runAt: 'document_idle',
+      persistAcrossSessions: true,
+    } as unknown as ScriptRegistration);
+    expect(await run(api, [rule(['https://a.com/*'])])).toBe('unchanged');
   });
 });

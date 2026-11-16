@@ -5,7 +5,9 @@ import { start, stop } from './harness-server';
 interface ChromeArea {
   get(keys?: string | string[] | null): Promise<Record<string, unknown>>;
 }
-declare const chrome: { storage: { sync: ChromeArea } };
+declare const chrome: {
+  storage: { sync: ChromeArea; local: ChromeArea & { clear(): Promise<void> } };
+};
 type HarnessWindow = Window & {
   __harness: { getState(): Record<string, unknown>; close(): void };
 };
@@ -89,9 +91,8 @@ async function reopenModal(page: Page) {
 test('a) criar variável grava no storage', async ({ context, extensionId }) => {
   const page = await openOptions(context, extensionId);
   await goVariables(page);
-  await expect(page.getByTestId('vars-warning')).toHaveText(
-    'Variáveis sincronizam pela sua conta Google — não guarde senhas aqui.',
-  );
+  await expect(page.getByTestId('vars-warning')).toContainText('Só neste navegador');
+  await expect(page.getByTestId('vars-warning')).toContainText('não é criptografado');
   await expect(page.getByText('Use em qualquer campo como {{ var.sua_chave }}')).toBeVisible();
 
   await addVariable(page, 'codigo_teste', 'ABC123', 'Código de teste');
@@ -196,6 +197,57 @@ test('c-f) variável no valor do campo: preview, preenchimento, edição e exclu
   });
 
   await test.step('f) restaura o valor original do NBS', async () => {
+    await setNbsValue(page, '126029000');
+    await harness.waitForTimeout(500);
+    await reopenModal(harness);
+    await expect.poll(() => nbs(harness), { timeout: 4000 }).toBe('126029000');
+  });
+});
+
+test('g) variável "Só neste navegador": valor só no storage.local, preenche e vira ausente em outro navegador', async ({
+  context,
+  extensionId,
+  page: harness,
+}) => {
+  const page = await openOptions(context, extensionId);
+  await goVariables(page);
+  await addVariable(page, 'segredo_teste', 'LOCAL42', 'Segredo');
+  await varRow(page, 'segredo_teste').getByTestId('var-scope').selectOption('local');
+  await saveVariables(page);
+
+  await test.step('sync só tem a chave; o valor está no local', async () => {
+    expect(await storedVariables(page)).toEqual([
+      { key: 'segredo_teste', label: 'Segredo', value: '', scope: 'local' },
+    ]);
+    const local = await page.evaluate(() => chrome.storage.local.get('vars:local'));
+    expect(local['vars:local']).toEqual({ segredo_teste: 'LOCAL42' });
+    expect(JSON.stringify(await readSync(page))).not.toContain('LOCAL42');
+    await expect(varRow(page, 'segredo_teste').getByTestId('var-no-value')).toHaveCount(0);
+  });
+
+  await test.step('o preenchimento usa o valor local', async () => {
+    await editE2eRule(page);
+    const card = page.locator('[data-field-id="nbs"]');
+    await card.locator('.f-value').fill('{{ var.segredo_teste | default("padrao") }}');
+    await page.getByTestId('save-rule').click();
+    await expect(page.getByTestId('notice')).toHaveText('Regra salva');
+    await harness.goto(`${baseURL}/`);
+    await openModal(harness);
+    await expect.poll(() => nbs(harness), { timeout: 4000 }).toBe('LOCAL42');
+  });
+
+  await test.step('"outro navegador": sem valor local, aparece como sem valor e default() assume', async () => {
+    await page.evaluate(() => chrome.storage.local.clear());
+    await goVariables(page);
+    await expect(varRow(page, 'segredo_teste').getByTestId('var-no-value')).toHaveText(
+      'sem valor neste navegador',
+    );
+    await harness.waitForTimeout(500);
+    await reopenModal(harness);
+    await expect.poll(() => nbs(harness), { timeout: 4000 }).toBe('padrao');
+  });
+
+  await test.step('restaura o valor original do NBS', async () => {
     await setNbsValue(page, '126029000');
     await harness.waitForTimeout(500);
     await reopenModal(harness);

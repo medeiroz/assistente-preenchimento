@@ -1,16 +1,6 @@
 import type { FieldOutcome, RunReport } from '../../../core/model';
 import { summarize } from '../../../core/model';
-
-const LABELS: Record<FieldOutcome, string> = {
-  filled: 'Preenchido',
-  'skipped-not-default': 'Ignorado: já tinha valor',
-  'skipped-already-handled': 'Já tratado nesta abertura',
-  'skipped-disabled': 'Desativado',
-  'skipped-unresolved-value': 'Valor não resolvido',
-  'not-found': 'Não encontrado',
-  undone: 'Desfeito',
-  error: 'Erro',
-};
+import { t } from '../../../core/i18n';
 
 export type OutcomeTone = 'ok' | 'neutral' | 'warn' | 'error';
 
@@ -37,7 +27,24 @@ const ICONS: Record<FieldOutcome, string> = {
 };
 
 export function outcomeLabel(o: FieldOutcome): string {
-  return LABELS[o];
+  switch (o) {
+    case 'filled':
+      return t('popOutFilled');
+    case 'skipped-not-default':
+      return t('popOutNotDefault');
+    case 'skipped-already-handled':
+      return t('popOutHandled');
+    case 'skipped-disabled':
+      return t('popOutDisabled');
+    case 'skipped-unresolved-value':
+      return t('popOutUnresolved');
+    case 'not-found':
+      return t('popOutNotFound');
+    case 'undone':
+      return t('popOutUndone');
+    case 'error':
+      return t('popOutError');
+  }
 }
 export function outcomeTone(o: FieldOutcome): OutcomeTone {
   return TONES[o];
@@ -49,12 +56,12 @@ export function outcomeIcon(o: FieldOutcome): string {
 /** "2 preenchidos · 1 ignorados · 0 não encontrados · 0 erros" */
 export function formatSummary(r: RunReport): string {
   const s = summarize(r);
-  const base = `${s.filled} preenchidos · ${s.skipped} ignorados · ${s.notFound} não encontrados · ${s.errors} erros`;
-  return s.undone > 0 ? `${base} · ${s.undone} desfeitos` : base;
+  const base = t('toastSummary', s.filled, s.skipped, s.notFound, s.errors);
+  return s.undone > 0 ? `${base} · ${t('popSummaryUndone', s.undone)}` : base;
 }
 
 export function modeLabel(mode: 'auto' | 'button' | 'off'): string {
-  return mode === 'auto' ? 'Automático' : mode === 'button' ? 'Com um clique' : 'Desligado';
+  return mode === 'auto' ? t('modeAuto') : mode === 'button' ? t('modeButton') : t('modeOff');
 }
 
 export function hasFilled(r: RunReport | null): boolean {

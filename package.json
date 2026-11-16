@@ -1,7 +1,7 @@
 {
   "name": "assistente-preenchimento",
   "private": true,
-  "version": "1.0.3",
+  "version": "1.1.0",
   "description": "Extensão do Chrome que preenche campos de formulários automaticamente nos sites escolhidos, a partir de regras criadas pelo próprio usuário.",
   "license": "MIT",
   "repository": {
@@ -29,9 +29,13 @@
     "postinstall": "wxt prepare",
     "zip": "wxt zip",
     "icons": "node scripts/generate-icons.mjs",
-    "screenshots": "npm run build:e2e && node scripts/generate-screenshots.mjs"
+    "screenshots": "npm run build:e2e && node scripts/generate-screenshots.mjs",
+    "build:firefox": "wxt build -b firefox --mv3",
+    "zip:firefox": "wxt zip -b firefox --mv3",
+    "lint:firefox": "web-ext lint --source-dir .output/firefox-mv3"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@playwright/test": "^1.65.0",
     "@wxt-dev/module-vue": "^1.0.3",
     "esbuild": "0.28.2",
@@ -39,13 +43,19 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-vue": "^10.12.1",
     "happy-dom": "^21.0.4",
+    "jquery": "^3.7.1",
     "prettier": "^3.10.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-select": "^5.10.2",
+    "select2": "^4.1.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.72.2",
     "vitest": "^5.1.0",
     "vue-multiselect-v2": "npm:vue-multiselect@2.1.9",
     "vue-tsc": "^3.3.14",
     "vue2": "npm:vue@2.7.16",
+    "web-ext": "^10.8.0",
     "wxt": "^0.21.5"
   },
   "dependencies": {

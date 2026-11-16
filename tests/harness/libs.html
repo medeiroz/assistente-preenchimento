@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <title>Harness — bibliotecas (contenteditable, React-Select, Select2)</title>
+    <link rel="stylesheet" href="/vendor/select2.css" />
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 16px;
+        max-width: 480px;
+      }
+      .eui-field {
+        margin-bottom: 12px;
+      }
+      .eui-label {
+        display: block;
+        font-weight: bold;
+      }
+      #nota {
+        border: 1px solid #888;
+        min-height: 24px;
+        padding: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Mesmo contêiner do preset e2e: a regra "e2e-harness" casa esta página. -->
+    <div class="eui-modal-wrapper is-active">
+      <h2 class="eui-modal-title">Emitir Nota Fiscal de Serviços Eletrônica</h2>
+
+      <div class="eui-field">
+        <label class="eui-label" id="nota-label">Observação clínica</label>
+        <div id="nota" contenteditable="true" role="textbox" aria-labelledby="nota-label"></div>
+      </div>
+
+      <div class="eui-field">
+        <label class="eui-label" for="tipo-atendimento">Tipo de atendimento</label>
+        <div id="react-root"></div>
+      </div>
+
+      <div class="eui-field">
+        <label class="eui-label" for="pagamento">Forma de pagamento</label>
+        <select id="pagamento" style="width: 100%">
+          <option value=""></option>
+          <option value="pix">Pix</option>
+          <option value="cartao">Cartão</option>
+          <option value="boleto">Boleto</option>
+        </select>
+      </div>
+
+      <div class="eui-field">
+        <label class="eui-label" for="comum">Campo comum</label>
+        <input id="comum" type="text" class="eui-input-text" />
+      </div>
+    </div>
+
+    <script src="/vendor/libs.js"></script>
+  </body>
+</html>

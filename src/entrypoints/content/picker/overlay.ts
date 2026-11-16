@@ -1,4 +1,5 @@
 import { isolateEvents } from '../page-ui/shared';
+import { t } from '../../../core/i18n';
 
 export const PICKER_HOST_ATTR = 'data-assistente-captura';
 
@@ -45,7 +46,11 @@ export interface Overlay {
   destroy(): void;
 }
 
-export function createOverlay(doc: Document, onCancel: () => void): Overlay {
+/**
+ * `compact`: sem a faixa de instruções (frame filho: a faixa fica no frame de topo e cobriria o
+ * conteúdo de um iframe pequeno). Os avisos passam a aparecer na etiqueta.
+ */
+export function createOverlay(doc: Document, onCancel: () => void, compact = false): Overlay {
   const host = doc.createElement('div');
   host.setAttribute(PICKER_HOST_ATTR, '');
   isolateEvents(host);
@@ -57,17 +62,17 @@ export function createOverlay(doc: Document, onCancel: () => void): Overlay {
   const bar = doc.createElement('div');
   bar.className = 'bar';
   bar.setAttribute('role', 'region');
-  bar.setAttribute('aria-label', 'Capturar campo');
+  bar.setAttribute('aria-label', t('pickerAria'));
   const msg = doc.createElement('p');
   msg.className = 'msg';
-  msg.textContent = 'Clique no campo que deseja preencher automaticamente';
+  msg.textContent = t('pickerPrompt');
   const note = doc.createElement('p');
   note.className = 'note';
   note.setAttribute('role', 'status');
   const cancel = doc.createElement('button');
   cancel.type = 'button';
   cancel.className = 'cancel';
-  cancel.textContent = 'Cancelar';
+  cancel.textContent = t('cancel');
   cancel.addEventListener('click', onCancel);
   bar.append(msg, note, cancel);
 
@@ -76,7 +81,8 @@ export function createOverlay(doc: Document, onCancel: () => void): Overlay {
   const tag = doc.createElement('div');
   tag.className = 'tag';
 
-  shadow.append(style, box, tag, bar);
+  shadow.append(style, box, tag);
+  if (!compact) shadow.append(bar);
   (doc.body ?? doc.documentElement).append(host);
 
   return {
@@ -96,10 +102,18 @@ export function createOverlay(doc: Document, onCancel: () => void): Overlay {
       tag.style.display = 'block';
       tag.style.left = `${Math.max(4, rect.left)}px`;
       const above = rect.top - 26;
-      tag.style.top = `${above >= BAR_HEIGHT ? above : rect.bottom + 4}px`;
+      tag.style.top = `${above >= (compact ? 0 : BAR_HEIGHT) ? above : rect.bottom + 4}px`;
     },
     notify(text) {
-      note.textContent = text ?? '';
+      if (!compact) {
+        note.textContent = text ?? '';
+        return;
+      }
+      if (text === null) return void (tag.style.display = 'none');
+      tag.textContent = text;
+      tag.style.display = 'block';
+      tag.style.left = '4px';
+      tag.style.top = '4px';
     },
     destroy() {
       cancel.removeEventListener('click', onCancel);

@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <title>Harness — iframes</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 16px;
+      }
+      iframe {
+        display: block;
+        width: 420px;
+        height: 90px;
+        margin: 8px 0;
+        border: 1px solid #999;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Página com iframes</h1>
+    <!-- (a) mesma origem -->
+    <iframe id="same" title="mesma origem" src="/frame-form.html"></iframe>
+    <!-- (b) srcdoc (herda a origem do pai) -->
+    <iframe
+      id="srcdoc"
+      title="srcdoc"
+      srcdoc='<!doctype html><html lang="pt-BR"><body><form class="alvo"><label for="nome">Nome do iframe</label><input id="nome" name="nome" type="text" /></form></body></html>'
+    ></iframe>
+    <!-- (c) outra origem: mesmo servidor, host localhost em vez de 127.0.0.1 -->
+    <iframe id="cross" title="outra origem"></iframe>
+    <script src="/frames.js"></script>
+  </body>
+</html>

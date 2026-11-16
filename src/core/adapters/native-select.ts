@@ -1,9 +1,11 @@
 import { AdapterError, type FieldAdapter } from './types';
 import { dispatch, normalizeSpaces } from './dom';
+import { deepQuery } from '../locator/deep-query';
+import { t } from '../i18n';
 
 function findSelect(root: Element): HTMLSelectElement | null {
-  if (root.querySelector('.multiselect')) return null;
-  const selects = root.matches('select') ? [root] : Array.from(root.querySelectorAll('select'));
+  if (deepQuery.querySelector(root, '.multiselect')) return null;
+  const selects = root.matches('select') ? [root] : deepQuery.querySelectorAll(root, 'select');
   const only = selects[0];
   if (selects.length !== 1 || !only) return null;
   const select = only as HTMLSelectElement;
@@ -44,14 +46,14 @@ export const nativeSelectAdapter: FieldAdapter = {
   },
   async write(root, value) {
     const select = findSelect(root);
-    if (!select) throw new AdapterError('select nativo não encontrado', 'control-not-found');
-    if (select.disabled) throw new AdapterError('select desabilitado', 'write-failed');
+    if (!select) throw new AdapterError(t('adSelectNotFound'), 'control-not-found');
+    if (select.disabled) throw new AdapterError(t('adSelectDisabled'), 'write-failed');
     const wanted = normalizeSpaces(value);
     const options = Array.from(select.options);
     const byText = options.findIndex((o) => optionText(o) === wanted);
     const index = byText >= 0 ? byText : options.findIndex((o) => o.value === value);
     if (index < 0) {
-      throw new AdapterError(`Opção "${value}" não encontrada`, 'option-not-found');
+      throw new AdapterError(t('adOptionNotFound', value), 'option-not-found');
     }
     setNativeSelectedIndex(select, index);
     dispatch(select, 'input');
@@ -59,10 +61,10 @@ export const nativeSelectAdapter: FieldAdapter = {
   },
   async clear(root) {
     const select = findSelect(root);
-    if (!select) throw new AdapterError('select nativo não encontrado', 'control-not-found');
-    if (select.disabled) throw new AdapterError('select desabilitado', 'write-failed');
+    if (!select) throw new AdapterError(t('adSelectNotFound'), 'control-not-found');
+    if (select.disabled) throw new AdapterError(t('adSelectDisabled'), 'write-failed');
     const index = Array.from(select.options).findIndex((o) => o.value === '');
-    if (index < 0) throw new AdapterError('não é possível limpar', 'write-failed');
+    if (index < 0) throw new AdapterError(t('adCannotClear'), 'write-failed');
     setNativeSelectedIndex(select, index);
     dispatch(select, 'input');
     dispatch(select, 'change');

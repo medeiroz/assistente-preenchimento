@@ -90,6 +90,7 @@ function repoWith(initial: Record<string, unknown>) {
   const st = makeStorage(initial);
   const repo = createChromeSyncRepository({
     sync: st.sync,
+    local: makeStorage({}).sync,
     onChanged: () => () => undefined,
   });
   return { st, repo };
@@ -168,7 +169,9 @@ describe('chaves desconhecidas', () => {
 
   it('variáveis e mesclagem preservam extras', () => {
     expect(
-      rowsToVariables([{ uid: 1, key: 'a', label: 'A', value: '1', extra: { futureVar: 1 } }]),
+      rowsToVariables([
+        { uid: 1, key: 'a', label: 'A', value: '1', scope: 'sync', extra: { futureVar: 1 } },
+      ]),
     ).toEqual([{ key: 'a', label: 'A', value: '1', futureVar: 1 }]);
     const plan = planMerge(
       { rules: [], variables: [] },

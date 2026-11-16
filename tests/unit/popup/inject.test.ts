@@ -32,9 +32,23 @@ describe('injectAndStartPicker', () => {
     await injectAndStartPicker(7, d);
     expect(order).toEqual(['inject', 'start']);
     expect(d.executeScript).toHaveBeenCalledWith({
+      target: { tabId: 7, allFrames: true },
+      files: ['content-scripts/content.js'],
+    });
+  });
+
+  it('se a injeção em todos os frames falha, tenta só o frame de topo', async () => {
+    const executeScript = vi
+      .fn<InjectDeps['executeScript']>()
+      .mockRejectedValueOnce(new Error('iframe sem permissão'))
+      .mockResolvedValue([]);
+    const d = deps({ executeScript });
+    await injectAndStartPicker(7, d);
+    expect(executeScript).toHaveBeenNthCalledWith(2, {
       target: { tabId: 7 },
       files: ['content-scripts/content.js'],
     });
+    expect(d.startPicker).toHaveBeenCalled();
   });
 
   it('tenta de novo enquanto o content script ainda não ouve', async () => {

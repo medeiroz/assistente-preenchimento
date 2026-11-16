@@ -64,18 +64,39 @@ test('a) regra de site novo: salva, avisa que falta permissão e mostra o selo',
   await expect(page.getByTestId('perm-denied')).toBeVisible();
 });
 
-test('avisos do editor: http não suportado e padrão amplo demais', async ({
+test('avisos do editor: http pede permissão com selo de conexão não segura e padrão amplo demais', async ({
   page,
   extensionId,
 }) => {
   await openOptions(page, extensionId);
   await page.getByTestId('new-rule').click();
   await page.locator('.url-pattern').first().fill('http://site-http.test/*');
-  await expect(page.getByTestId('warn-http')).toContainText('Sites sem HTTPS não são suportados');
+  await expect(page.getByTestId('warn-http')).toContainText('trafegam sem criptografia');
+  await expect(page.getByTestId('info-permission')).toContainText('site-http.test');
   await page.locator('.url-pattern').first().fill('https://*/*');
   await expect(page.getByTestId('warn-broad')).toContainText('site específico');
   await expect(page.getByTestId('warn-http')).toHaveCount(0);
   await expect(page.getByTestId('info-permission')).toHaveCount(0);
+});
+
+test('regra http: vai para "precisa de permissão" e mostra o selo de conexão não segura', async ({
+  page,
+  extensionId,
+}) => {
+  await openOptions(page, extensionId);
+  await createRule(page, 'Site http', 'http://exemplo-sem-permissao.test/*');
+  await page.getByTestId('save-rule').click();
+  await expect(page.getByTestId('notice')).toHaveText('Regra salva');
+  await expect(page.getByTestId('perm-denied')).toContainText(
+    'Sem permissão para exemplo-sem-permissao.test',
+  );
+  const item = page.locator('.rule-item', { hasText: 'Site http' });
+  await expect(item.getByTestId('no-permission')).toBeVisible();
+  await expect(item.getByTestId('insecure-badge')).toContainText('conexão não segura');
+  // localhost (coberto e loopback) não ganha o selo
+  await expect(
+    page.locator('[data-rule-id="e2e-harness"] [data-testid="insecure-badge"]'),
+  ).toHaveCount(0);
 });
 
 test('b) regra e2e (localhost) é coberta estaticamente: sem selo e sem registro dinâmico', async ({

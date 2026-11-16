@@ -9,20 +9,24 @@ import HistoryView from './components/HistoryView.vue';
 import VariablesView from './components/VariablesView.vue';
 import ImportExport from './components/ImportExport.vue';
 import RecordingReview from './components/RecordingReview.vue';
-import type { RecordingDraft, RecordingGroup } from '../../core/recorder/types';
-import cePreset from '../../../presets/ce-nfse.json';
-import { parseAddition, planMerge, type Addition } from './composables/merge';
+import OptionsTabs from './components/OptionsTabs.vue';
+import PermissionNotice from './components/PermissionNotice.vue';
+import CaptureChoice from './components/CaptureChoice.vue';
+import type { RecordingDraft } from '../../core/recorder/types';
+import { exampleAddition } from './composables/example';
+import { useNotice } from './composables/useNotice';
+import { useRuleActions } from './composables/useRuleActions';
+import { useRuleEditor, type RecordingReviewState } from './composables/useRuleEditor';
+import { untilLoaded } from './composables/untilLoaded';
 import { useConfig } from './composables/useConfig';
-import { decideTabChange } from './composables/tabs';
+import { decideTabChange, type TabId } from './composables/tabs';
 import { usePermissions } from './composables/permissions';
-import { duplicateRule, newRuleDraft, ruleToDraft, type RuleDraft } from './composables/draft';
 import {
   addCaptureToRule,
   findMatchingRules,
   newRuleFromCapture,
   usePickerDraft,
   type CaptureEditor,
-  type CaptureFocus,
 } from './composables/picker';
 import {
   findMatchingRulesForGroup,
@@ -30,76 +34,20 @@ import {
   groupToNewRule,
   useRecordingDraft,
 } from './composables/recording';
-
-// Para incluir uma aba nova (ex.: Variáveis), acrescente aqui e um painel no template.
-const TABS = [
-  { id: 'rules', label: 'Regras' },
-  { id: 'variables', label: 'Variáveis' },
-  { id: 'history', label: 'Histórico' },
-  { id: 'import-export', label: 'Importar/Exportar' },
-] as const;
-type TabId = (typeof TABS)[number]['id'];
+import { t } from '../../core/i18n';
 
 const tab = ref<TabId>('rules');
 const { repo, config, loaded, loadError, readOnly, reload } = useConfig();
 const historyRepo = chromeHistoryRepository();
 const permissions = usePermissions(computed(() => config.value.rules));
 
-const notice = ref<{ kind: 'ok' | 'error'; text: string } | null>(null);
-let noticeTimer: ReturnType<typeof setTimeout> | undefined;
-function showNotice(kind: 'ok' | 'error', text: string): void {
-  notice.value = { kind, text };
-  clearTimeout(noticeTimer);
-  noticeTimer = setTimeout(() => (notice.value = null), 6000);
-}
+const { notice, showNotice } = useNotice();
 
 // ------------------------------------------------------------ editor
-interface Editing {
-  draft: RuleDraft;
-  /** `updatedAt` da regra quando o editor abriu (null em regra nova). */
-  baseUpdatedAt: string | null;
-  /** Muda a cada abertura para recriar o componente. */
-  token: number;
-  /** Presente quando o editor veio do "Capturar campo". */
-  focus: CaptureFocus | null;
-  /** Índice do grupo da gravação que originou o editor (volta ao painel ao fechar). */
-  group: number | null;
-}
-const editing = ref<Editing | null>(null);
+const recording = ref<RecordingReviewState | null>(null);
+const { editing, open, createRule, editRule, externalChange, reloadEditor, closeEditor } =
+  useRuleEditor(config, loaded, recording);
 const editorRef = ref<InstanceType<typeof RuleEditor> | null>(null);
-let token = 0;
-
-function open(
-  draft: RuleDraft,
-  baseUpdatedAt: string | null,
-  focus: CaptureFocus | null = null,
-  group: number | null = null,
-): void {
-  editing.value = { draft, baseUpdatedAt, token: ++token, focus, group };
-}
-
-function createRule(): void {
-  open(newRuleDraft(), null);
-}
-
-function editRule(rule: Rule): void {
-  open(ruleToDraft(rule), rule.updatedAt);
-}
-
-const externalChange = computed<'changed' | 'removed' | null>(() => {
-  const e = editing.value;
-  if (!e || e.draft.isNew) return null;
-  const current = config.value.rules.find((r) => r.id === e.draft.id);
-  if (!current) return loaded.value ? 'removed' : null;
-  return current.updatedAt !== e.baseUpdatedAt ? 'changed' : null;
-});
-
-function reloadEditor(): void {
-  const e = editing.value;
-  if (!e) return;
-  const current = config.value.rules.find((r) => r.id === e.draft.id);
-  if (current) editRule(current);
-}
 
 const existingIds = computed(() => config.value.rules.map((r) => r.id));
 
@@ -110,60 +58,25 @@ async function saveRule(rule: Rule): Promise<void> {
   await repo.saveRule(rule);
   await reload();
   closeEditor();
-  showNotice('ok', 'Regra salva');
+  showNotice('ok', t('noticeRuleSaved'));
   await asking;
 }
 
 async function saveVariables(variables: Variable[]): Promise<void> {
   await repo.saveVariables(variables);
   await reload();
-  showNotice('ok', 'Variáveis salvas');
-}
-
-/** Fecha o editor; se veio de uma gravação, marca o grupo como tratado (o painel reaparece). */
-function closeEditor(): void {
-  const g = editing.value?.group ?? null;
-  if (g !== null && recording.value) {
-    if (recording.value.direct) recording.value = null;
-    else if (!recording.value.handled.includes(g)) recording.value.handled.push(g);
-  }
-  editing.value = null;
+  showNotice('ok', t('noticeVariablesSaved'));
 }
 
 // ------------------------------------------------------------ ações da lista
-async function guard(action: () => Promise<void>, failure: string): Promise<void> {
-  try {
-    await action();
-  } catch (e) {
-    showNotice('error', `${failure}: ${e instanceof Error ? e.message : String(e)}`);
-  }
-}
-
-function toggleRule(rule: Rule, enabled: boolean): Promise<void> {
-  return guard(async () => {
-    await repo.saveRule({ ...rule, enabled });
-    await reload();
-  }, 'Não foi possível alterar a regra');
-}
-
-function copyRule(rule: Rule): Promise<void> {
-  return guard(async () => {
-    await repo.saveRule(duplicateRule(rule, config.value.rules));
-    await reload();
-    showNotice('ok', 'Regra duplicada');
-  }, 'Não foi possível duplicar a regra');
-}
-
-function removeRule(rule: Rule): Promise<void> {
-  if (!window.confirm(`Excluir a regra “${rule.name}”? Esta ação não pode ser desfeita.`)) {
-    return Promise.resolve();
-  }
-  return guard(async () => {
-    await repo.deleteRule(rule.id);
-    await reload();
-    showNotice('ok', 'Regra excluída');
-  }, 'Não foi possível excluir a regra');
-}
+const { toggleRule, copyRule, removeRule, addRules } = useRuleActions({
+  repo,
+  config,
+  reload,
+  permissions,
+  showNotice,
+  onAdded: () => (editing.value = null),
+});
 
 // ------------------------------------------------------------ captura de campo
 interface CapturePrompt {
@@ -185,21 +98,10 @@ function captureToRule(rule: Rule, capture: Capture): void {
   openCaptureEditor(addCaptureToRule(rule, capture), rule.updatedAt);
 }
 
-function untilLoaded(): Promise<void> {
-  if (loaded.value) return Promise.resolve();
-  return new Promise((resolve) => {
-    const stop = watch(loaded, (v) => {
-      if (!v) return;
-      stop();
-      resolve();
-    });
-  });
-}
-
 /** Chega um rascunho do "Capturar campo" (já apagado do storage: consumo único). */
 async function onPicked(picked: PickerDraft): Promise<void> {
-  await untilLoaded();
-  if (editing.value && !window.confirm('Descartar a edição aberta e usar o campo capturado?')) {
+  await untilLoaded(loaded);
+  if (editing.value && !window.confirm(t('confirmUseCapture'))) {
     return;
   }
   tab.value = 'rules';
@@ -211,14 +113,6 @@ async function onPicked(picked: PickerDraft): Promise<void> {
 usePickerDraft(onPicked);
 
 // ------------------------------------------------------------ gravação de preenchimento
-interface RecordingReviewState {
-  groups: RecordingGroup[];
-  handled: number[];
-  /** Grupo único aberto direto no editor: ao fechar, não sobra painel. */
-  direct: boolean;
-}
-const recording = ref<RecordingReviewState | null>(null);
-
 function recordingNewRule(index: number): void {
   const group = recording.value?.groups[index];
   if (group) open(groupToNewRule(group), null, null, index);
@@ -231,8 +125,8 @@ function recordingAddToRule(index: number, rule: Rule): void {
 
 /** Chega uma gravação (já apagada do storage: consumo único). */
 async function onRecorded(rec: RecordingDraft): Promise<void> {
-  await untilLoaded();
-  if (editing.value && !window.confirm('Descartar a edição aberta e usar a gravação?')) return;
+  await untilLoaded(loaded);
+  if (editing.value && !window.confirm(t('confirmUseRecording'))) return;
   tab.value = 'rules';
   editing.value = null;
   capturePrompt.value = null;
@@ -245,33 +139,9 @@ async function onRecorded(rec: RecordingDraft): Promise<void> {
 }
 useRecordingDraft(onRecorded);
 
-/**
- * Adiciona regras (de um arquivo ou do exemplo) sem apagar nada. Síncrono até o pedido de
- * permissão: ele precisa começar dentro do clique do usuário.
- */
-async function addRules(addition: Addition): Promise<void> {
-  const asking = permissions.requestAll(addition.rules);
-  await guard(async () => {
-    // Recalcula contra a configuração atual: os ids podem ter mudado desde a prévia.
-    const current = await repo.load();
-    const plan = planMerge(current, addition);
-    for (const rule of plan.rules) await repo.saveRule(rule);
-    if (plan.newVariables.length > 0) {
-      await repo.saveVariables([...current.variables, ...plan.newVariables]);
-    }
-    await reload();
-    editing.value = null;
-    showNotice(
-      'ok',
-      plan.rules.length === 1 ? 'Regra adicionada' : `${plan.rules.length} regras adicionadas`,
-    );
-  }, 'Não foi possível adicionar as regras');
-  await asking;
-}
-
 function importExample(): void {
-  const parsed = parseAddition(JSON.stringify(cePreset));
-  if (parsed.ok) void addRules(parsed.addition);
+  const addition = exampleAddition();
+  if (addition) void addRules(addition);
 }
 
 function onImported(): void {
@@ -285,10 +155,7 @@ function selectTab(next: TabId): void {
     editorOpen: editing.value !== null,
     dirty: editorRef.value?.dirty ?? false,
   });
-  if (
-    decision === 'confirm' &&
-    !window.confirm('Você tem alterações não salvas nesta regra. Descartar e sair?')
-  ) {
+  if (decision === 'confirm' && !window.confirm(t('confirmUnsavedRule'))) {
     return;
   }
   if (decision !== 'switch') closeEditor();
@@ -301,7 +168,7 @@ watch(tab, () => (notice.value = null));
 <template>
   <div class="page">
     <header class="page-header">
-      <h1>Assistente de Preenchimento — Configurações</h1>
+      <h1>{{ $t('optionsHeading') }}</h1>
     </header>
 
     <p
@@ -310,106 +177,34 @@ watch(tab, () => (notice.value = null));
       role="alert"
       data-testid="read-only-warning"
     >
-      Esta configuração foi salva por uma versão mais nova da extensão. Atualize a extensão para
-      editar.
+      {{ $t('errReadOnlyConfig') }}
     </p>
 
-    <div role="tablist" aria-label="Seções" class="tabs">
-      <button
-        v-for="t in TABS"
-        :id="`tab-${t.id}`"
-        :key="t.id"
-        type="button"
-        role="tab"
-        class="tab"
-        :aria-selected="tab === t.id"
-        :aria-controls="`panel-${t.id}`"
-        :tabindex="tab === t.id ? 0 : -1"
-        @click="selectTab(t.id)"
-      >
-        {{ t.label }}
-      </button>
-    </div>
+    <OptionsTabs :active="tab" @select="selectTab" />
 
     <p v-if="notice" class="notice toast" :class="notice.kind" role="status" data-testid="notice">
       {{ notice.text }}
     </p>
     <p v-if="loadError" class="notice error" role="alert">
-      Não foi possível carregar a configuração: {{ loadError }}
+      {{ $t('loadFailed', loadError) }}
     </p>
 
-    <div
-      v-if="permissions.notice.value?.kind === 'denied'"
-      class="notice warn"
-      role="status"
-      data-testid="perm-denied"
-    >
-      <p>
-        <strong>Sem permissão para {{ permissions.notice.value.hosts.join(', ') }}:</strong>
-        a regra fica salva, mas só funciona depois que você permitir o acesso.
-      </p>
-      <button
-        type="button"
-        class="btn"
-        data-testid="perm-allow"
-        @click="permissions.notice.value.rule && permissions.request(permissions.notice.value.rule)"
-      >
-        Permitir acesso
-      </button>
-    </div>
-    <div
-      v-else-if="permissions.notice.value?.kind === 'granted'"
-      class="notice ok"
-      role="status"
-      data-testid="perm-granted"
-    >
-      <p>Recarregue as abas abertas desse site para a extensão começar a atuar.</p>
-      <button type="button" class="btn" @click="permissions.dismiss()">Entendi</button>
-    </div>
+    <PermissionNotice
+      :notice="permissions.notice.value"
+      @request="permissions.request"
+      @dismiss="permissions.dismiss()"
+    />
 
     <main>
       <div v-show="tab === 'rules'" id="panel-rules" role="tabpanel" aria-labelledby="tab-rules">
-        <section
+        <CaptureChoice
           v-if="capturePrompt"
-          class="notice"
-          role="group"
-          aria-label="Campo capturado"
-          data-testid="capture-choice"
-        >
-          <p>
-            <strong>Campo capturado:</strong>
-            {{ capturePrompt.capture.label ?? 'campo sem rótulo' }}. Já existe uma regra para esta
-            página e este contêiner. O que deseja fazer?
-          </p>
-          <div class="actions-bar">
-            <button
-              v-for="r in capturePrompt.rules"
-              :key="r.id"
-              type="button"
-              class="btn primary"
-              data-testid="capture-add-to-rule"
-              @click="captureToRule(r, capturePrompt.capture)"
-            >
-              Adicionar à regra “{{ r.name }}”
-            </button>
-            <button
-              type="button"
-              class="btn"
-              data-testid="capture-new-rule"
-              @click="captureToNewRule(capturePrompt.capture)"
-            >
-              Criar nova regra
-            </button>
-            <button
-              type="button"
-              class="btn"
-              data-testid="capture-dismiss"
-              @click="capturePrompt = null"
-            >
-              Descartar
-            </button>
-          </div>
-        </section>
+          :capture="capturePrompt.capture"
+          :rules="capturePrompt.rules"
+          @add-to-rule="(r) => captureToRule(r, capturePrompt!.capture)"
+          @new-rule="captureToNewRule(capturePrompt.capture)"
+          @dismiss="capturePrompt = null"
+        />
         <RecordingReview
           v-if="recording && !editing"
           :groups="recording.groups"
@@ -425,6 +220,7 @@ watch(tab, () => (notice.value = null));
           :key="editing.token"
           :initial="editing.draft"
           :existing-ids="existingIds"
+          :other-rules="config.rules"
           :variables="config.variables"
           :external-change="externalChange"
           :save="saveRule"

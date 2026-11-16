@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseRule, type Rule } from '../../../src/core/model';
 import {
-  ANY_SITE,
+  anySite,
   cloneDraft,
   draftToRuleInput,
   duplicateRule,
@@ -242,7 +242,7 @@ describe('sites', () => {
   });
 
   it('"*" vira "qualquer site"', () => {
-    expect(siteLabel('*://*/*')).toBe(ANY_SITE);
+    expect(siteLabel('*://*/*')).toBe(anySite());
     expect(siteLabel('https://a.com/*')).toBe('a.com');
   });
 
@@ -260,7 +260,7 @@ describe('sites', () => {
       trigger: { ...a.trigger, urlPatterns: ['https://a.com/*'] },
     });
     const groups = groupRulesBySite([a, any, other, b]);
-    expect(groups.map((g) => g.site)).toEqual(['a.com', 'app.site.com', ANY_SITE]);
+    expect(groups.map((g) => g.site)).toEqual(['a.com', 'app.site.com', anySite()]);
     expect(groups[1]?.rules.map((r) => r.name)).toEqual(['Alfa', 'Zeta']);
   });
 
@@ -268,5 +268,65 @@ describe('sites', () => {
     expect(fieldCountLabel(1)).toBe('1 campo');
     expect(fieldCountLabel(0)).toBe('0 campos');
     expect(fieldCountLabel(3)).toBe('3 campos');
+  });
+});
+
+describe('prioridade da regra', () => {
+  it('ausente: não grava a chave e o rascunho fica null', () => {
+    const d = ruleToDraft(makeRule());
+    expect(d.priority).toBeNull();
+    expect('priority' in (draftToRuleInput(d, { now: NOW }) as object)).toBe(false);
+  });
+
+  it('preenchida: vai e volta; vazio volta a omitir', () => {
+    const d = ruleToDraft(makeRule({ priority: 80 }));
+    expect(d.priority).toBe(80);
+    expect(d.extra?.priority).toBeUndefined();
+    const input = draftToRuleInput(d, { now: NOW }) as { priority?: number };
+    expect(input.priority).toBe(80);
+    d.priority = null;
+    expect('priority' in (draftToRuleInput(d, { now: NOW }) as object)).toBe(false);
+  });
+
+  it('preserva chaves extras e valida a faixa', () => {
+    const d = ruleToDraft(makeRule({ priority: 5, ...({ futuro: 1 } as object) }));
+    expect(d.extra).toEqual({ futuro: 1 });
+    expect(validateDraft({ ...d, priority: 101 }).byKey.priority).toBeDefined();
+    expect(validateDraft({ ...d, priority: 1.5 }).byKey.priority).toBeDefined();
+    expect(validateDraft({ ...d, priority: 0 }).ok).toBe(true);
+  });
+});
+
+describe('atuar também em iframes', () => {
+  const withFrames = (frames: 'top' | 'all' | undefined): Rule => {
+    const r = makeRule();
+    return { ...r, trigger: { ...r.trigger, ...(frames ? { frames } : {}) } };
+  };
+  const triggerOf = (d: ReturnType<typeof ruleToDraft>) =>
+    (draftToRuleInput(d, { now: NOW }) as unknown as { trigger: { frames?: string } }).trigger;
+
+  it('"all" vai e volta e grava a chave', () => {
+    const d = ruleToDraft(withFrames('all'));
+    expect(d.allFrames).toBe(true);
+    expect(d.triggerExtra).toBeUndefined();
+    expect(triggerOf(d).frames).toBe('all');
+  });
+
+  it('ausente ou "top": não marca e não grava; desmarcar remove a chave', () => {
+    for (const f of [undefined, 'top' as const]) {
+      const d = ruleToDraft(withFrames(f));
+      expect(d.allFrames).toBeUndefined();
+      expect(triggerOf(d)).not.toHaveProperty('frames');
+    }
+    const d = ruleToDraft(withFrames('all'));
+    d.allFrames = false;
+    expect(triggerOf(d)).not.toHaveProperty('frames');
+  });
+
+  it('chaves extras do gatilho continuam preservadas', () => {
+    const r = withFrames('all');
+    const d = ruleToDraft({ ...r, trigger: { ...r.trigger, futuro: 1 } } as Rule);
+    expect(d.triggerExtra).toEqual({ futuro: 1 });
+    expect(triggerOf(d)).toMatchObject({ frames: 'all', futuro: 1 });
   });
 });

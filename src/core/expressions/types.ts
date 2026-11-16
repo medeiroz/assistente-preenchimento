@@ -59,8 +59,15 @@ export interface LocalDateTime {
   mi: number;
 }
 
-/** Valor em avaliação. `null` = ausente. */
-export type Value = null | { kind: 'text'; text: string } | { kind: 'date'; date: LocalDateTime };
+/**
+ * Valor em avaliação. `null` = ausente. `number` é o resultado de filtros aritméticos: encadeia
+ * sem reinterpretar o texto (evita a ambiguidade de milhar de `1.005`).
+ */
+export type Value =
+  | null
+  | { kind: 'text'; text: string }
+  | { kind: 'date'; date: LocalDateTime }
+  | { kind: 'number'; n: number };
 
 export class ExpressionError extends Error {
   readonly position: number;

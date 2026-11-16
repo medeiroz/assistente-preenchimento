@@ -33,20 +33,22 @@ const cards = computed(() =>
   <section
     class="notice"
     role="group"
-    aria-label="Gravação concluída"
+    :aria-label="$t('recReviewAria')"
     data-testid="recording-review"
   >
     <p>
-      <strong>Gravação concluída: {{ groups.length }} regra(s) sugerida(s)</strong>
+      <strong>{{ $t('recReviewTitle', groups.length) }}</strong>
     </p>
     <div v-for="c in cards" :key="c.index" class="recording-card" :class="{ done: c.done }">
       <h3>
         {{ c.name }}
-        <span v-if="c.done" class="muted" data-testid="recording-done">(tratada)</span>
+        <span v-if="c.done" class="muted" data-testid="recording-done">
+          {{ $t('recDone') }}
+        </span>
       </h3>
       <p class="muted">{{ c.group.urlPattern }}</p>
       <p v-if="c.group.container?.textContains" class="muted">
-        Contêiner: {{ c.group.container.textContains }}
+        {{ $t('recContainer', c.group.container.textContains) }}
       </p>
       <ul class="recording-fields">
         <li v-for="(f, i) in c.group.fields" :key="i">
@@ -60,7 +62,7 @@ const cards = computed(() =>
           data-testid="recording-new-rule"
           @click="emit('create', c.index)"
         >
-          Criar regra
+          {{ $t('recCreateRule') }}
         </button>
         <button
           v-for="r in c.matches"
@@ -70,13 +72,13 @@ const cards = computed(() =>
           data-testid="recording-add-to-rule"
           @click="emit('addToRule', c.index, r)"
         >
-          Adicionar à regra “{{ r.name }}”
+          {{ $t('addToRule', r.name) }}
         </button>
       </div>
     </div>
     <div class="actions-bar">
       <button type="button" class="btn" data-testid="recording-dismiss" @click="emit('dismiss')">
-        Fechar
+        {{ $t('close') }}
       </button>
     </div>
   </section>

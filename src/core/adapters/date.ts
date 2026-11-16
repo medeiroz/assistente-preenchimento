@@ -1,5 +1,7 @@
 import { AdapterError, type FieldAdapter } from './types';
 import { defaultSleep, dispatch, setNativeValue, typeText, valueMatches } from './dom';
+import { deepQuery } from '../locator/deep-query';
+import { t } from '../i18n';
 
 /** Controle de data (input[type=date], .eui-input-datepicker, máscara dd/mm/aaaa, data-date-format). */
 export function isDateControl(el: Element): el is HTMLInputElement {
@@ -25,8 +27,8 @@ export function isDateControl(el: Element): el is HTMLInputElement {
 }
 
 function findInput(root: Element): HTMLInputElement | null {
-  if (root.querySelector('.multiselect')) return null;
-  const candidates = root.matches('input') ? [root] : Array.from(root.querySelectorAll('input'));
+  if (deepQuery.querySelector(root, '.multiselect')) return null;
+  const candidates = root.matches('input') ? [root] : deepQuery.querySelectorAll(root, 'input');
   return candidates.find(isDateControl) ?? null;
 }
 
@@ -67,7 +69,7 @@ function normalized(text: string): string {
  * datas (o valor é definido programaticamente). Só desabilitado é recusado.
  */
 function assertEnabled(el: HTMLInputElement): void {
-  if (el.disabled) throw new AdapterError('Controle desabilitado', 'write-failed');
+  if (el.disabled) throw new AdapterError(t('adControlDisabled'), 'write-failed');
 }
 
 export const dateAdapter: FieldAdapter = {
@@ -84,13 +86,10 @@ export const dateAdapter: FieldAdapter = {
   },
   async write(root, value, options) {
     const el = findInput(root);
-    if (!el) throw new AdapterError('Campo de data não encontrado', 'control-not-found');
+    if (!el) throw new AdapterError(t('adDateNotFound'), 'control-not-found');
     const parsed = parseDate(value);
     if (!parsed) {
-      throw new AdapterError(
-        `Data inválida: "${value}" (use DD/MM/YYYY ou YYYY-MM-DD)`,
-        'write-failed',
-      );
+      throw new AdapterError(t('adInvalidDate', value), 'write-failed');
     }
     assertEnabled(el);
     const native = (el.getAttribute('type') ?? '').toLowerCase() === 'date';
@@ -112,7 +111,7 @@ export const dateAdapter: FieldAdapter = {
   },
   async clear(root) {
     const el = findInput(root);
-    if (!el) throw new AdapterError('Campo de data não encontrado', 'control-not-found');
+    if (!el) throw new AdapterError(t('adDateNotFound'), 'control-not-found');
     assertEnabled(el);
     el.focus();
     setNativeValue(el, '');

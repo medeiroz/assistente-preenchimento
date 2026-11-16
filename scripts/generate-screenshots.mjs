@@ -10,7 +10,12 @@ import { start, stop } from '../tests/e2e/harness-server.ts';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const extensionPath = path.join(root, '.output/chrome-mv3-e2e');
-const outDir = path.join(root, 'store/screenshots');
+// `--lang en`: interface em inglês (Chromium com --lang=en-US), capturas em store/screenshots/en.
+// Os dados de exemplo (nomes de regras, rótulos) continuam em português.
+const langArgIndex = process.argv.indexOf('--lang');
+const lang = langArgIndex >= 0 ? (process.argv[langArgIndex + 1] ?? 'pt-BR') : 'pt-BR';
+const english = lang.toLowerCase().startsWith('en');
+const outDir = path.join(root, 'store/screenshots', english ? 'en' : '');
 const VIEWPORT = { width: 1280, height: 800 };
 const NOW = '2026-01-15T12:00:00.000Z';
 
@@ -128,7 +133,11 @@ const baseURL = await start();
 const context = await chromium.launchPersistentContext(userDataDir, {
   channel: 'chromium',
   viewport: VIEWPORT,
-  args: [`--disable-extensions-except=${extensionPath}`, `--load-extension=${extensionPath}`],
+  args: [
+    `--disable-extensions-except=${extensionPath}`,
+    `--load-extension=${extensionPath}`,
+    `--lang=${english ? 'en-US' : 'pt-BR'}`,
+  ],
 });
 
 try {
@@ -196,7 +205,7 @@ try {
   await shot(admin, '03-editor-de-regra.png');
   await admin.locator('[data-testid="cancel-edit"]').click();
 
-  await admin.getByRole('tab', { name: 'Variáveis' }).click();
+  await admin.getByRole('tab', { name: english ? 'Variables' : 'Variáveis' }).click();
   await admin.waitForSelector('.var-row');
   await admin.evaluate(() => window.scrollTo(0, 0));
   await admin.waitForTimeout(300);

@@ -1,5 +1,7 @@
 import { AdapterError, type FieldAdapter } from './types';
 import { normalizeSpaces, waitFor } from './dom';
+import { deepQuery } from '../locator/deep-query';
+import { t } from '../i18n';
 
 type Kind = 'toggle' | 'radio' | 'checkbox';
 
@@ -8,8 +10,10 @@ const TRUE_VALUES = new Set(['sim', 'true', '1', 'on']);
 const FALSE_VALUES = new Set(['não', 'nao', 'false', '0', 'off']);
 
 function toggleButtons(root: Element): HTMLButtonElement[] {
-  const group = root.matches('.eui-button-group') ? root : root.querySelector('.eui-button-group');
-  return group ? Array.from(group.querySelectorAll('button')) : [];
+  const group = root.matches('.eui-button-group')
+    ? root
+    : deepQuery.querySelector(root, '.eui-button-group');
+  return group ? (deepQuery.querySelectorAll(group, 'button') as HTMLButtonElement[]) : [];
 }
 
 function isActive(button: Element): boolean {
@@ -20,7 +24,7 @@ function isActive(button: Element): boolean {
 }
 
 function inputs(root: Element, type: string): HTMLInputElement[] {
-  return Array.from(root.querySelectorAll<HTMLInputElement>('input')).filter(
+  return (deepQuery.querySelectorAll(root, 'input') as HTMLInputElement[]).filter(
     (i) => (i.getAttribute('type') ?? '').toLowerCase() === type,
   );
 }
@@ -36,7 +40,7 @@ function radioGroup(root: Element): HTMLInputElement[] {
 }
 
 function kindOf(root: Element): Kind | null {
-  if (root.querySelector('.multiselect')) return null;
+  if (deepQuery.querySelector(root, '.multiselect')) return null;
   if (toggleButtons(root).length >= 2) return 'toggle';
   if (radioGroup(root).length >= 2) return 'radio';
   if (inputs(root, 'checkbox').length === 1) return 'checkbox';
@@ -45,9 +49,9 @@ function kindOf(root: Element): Kind | null {
 
 function labelOf(input: HTMLInputElement): string {
   if (input.id) {
-    const byFor = Array.from(input.ownerDocument.querySelectorAll('label')).find(
-      (l) => l.htmlFor === input.id,
-    );
+    const byFor = Array.from(
+      (input.getRootNode() as Document | ShadowRoot).querySelectorAll('label'),
+    ).find((l) => l.htmlFor === input.id);
     if (byFor) return normalizeSpaces(byFor.textContent);
   }
   const ancestor = input.closest('label');
@@ -113,11 +117,11 @@ export const nativeChoiceAdapter: FieldAdapter = {
   },
   async write(root, value) {
     const kind = kindOf(root);
-    if (!kind) throw new AdapterError('Controle de escolha não encontrado', 'control-not-found');
+    if (!kind) throw new AdapterError(t('adChoiceNotFound'), 'control-not-found');
     if (kind === 'toggle') {
       const button = findButton(root, value);
-      if (!button) throw new AdapterError(`Opção "${value}" não encontrada`, 'option-not-found');
-      if (button.disabled) throw new AdapterError('Botão desabilitado', 'write-failed');
+      if (!button) throw new AdapterError(t('adOptionNotFound', value), 'option-not-found');
+      if (button.disabled) throw new AdapterError(t('adButtonDisabled'), 'write-failed');
       if (!isActive(button)) {
         button.click();
         await waitFor(() => isActive(button), 500);
@@ -126,27 +130,27 @@ export const nativeChoiceAdapter: FieldAdapter = {
     }
     if (kind === 'radio') {
       const radio = findRadio(root, value);
-      if (!radio) throw new AdapterError(`Opção "${value}" não encontrada`, 'option-not-found');
-      if (radio.disabled) throw new AdapterError('Radio desabilitado', 'write-failed');
+      if (!radio) throw new AdapterError(t('adOptionNotFound', value), 'option-not-found');
+      if (radio.disabled) throw new AdapterError(t('adRadioDisabled'), 'write-failed');
       if (!radio.checked) radio.click();
       return;
     }
     const box = inputs(root, 'checkbox')[0];
     const wanted = parseBool(value);
     if (!box || wanted === null) {
-      throw new AdapterError(`Valor booleano inválido: "${value}"`, 'write-failed');
+      throw new AdapterError(t('adInvalidBoolean', value), 'write-failed');
     }
-    if (box.disabled) throw new AdapterError('Checkbox desabilitado', 'write-failed');
+    if (box.disabled) throw new AdapterError(t('adCheckboxDisabled'), 'write-failed');
     if (box.checked !== (wanted === 'Sim')) box.click();
   },
   /** Só checkbox: desmarca. Radios e toggles não têm estado "vazio" seguro, então falham. */
   async clear(root) {
     if (kindOf(root) !== 'checkbox') {
-      throw new AdapterError('não é possível limpar', 'write-failed');
+      throw new AdapterError(t('adCannotClear'), 'write-failed');
     }
     const box = inputs(root, 'checkbox')[0];
-    if (!box) throw new AdapterError('Checkbox não encontrado', 'control-not-found');
-    if (box.disabled) throw new AdapterError('Checkbox desabilitado', 'write-failed');
+    if (!box) throw new AdapterError(t('adCheckboxNotFound'), 'control-not-found');
+    if (box.disabled) throw new AdapterError(t('adCheckboxDisabled'), 'write-failed');
     if (box.checked) box.click();
   },
   verify(root, value) {

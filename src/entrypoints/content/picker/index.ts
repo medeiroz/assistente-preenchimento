@@ -1,5 +1,7 @@
+import { frameUrlOf } from '../../../core/engine';
 import { buildCapture, resolveField, type Capture } from '../../../core/locator';
 import { createOverlay, type Overlay } from './overlay';
+import { t } from '../../../core/i18n';
 
 export { PICKER_HOST_ATTR } from './overlay';
 export { deliverCapture } from './deliver';
@@ -11,14 +13,26 @@ const POINTER_EVENTS = ['mousedown', 'mouseup', 'click', 'pointerdown', 'pointer
 /** Depois de um Escape que cancela, o `keyup` correspondente ainda precisa ser engolido. */
 const ESCAPE_RELEASE_GUARD_MS = 1500;
 
-const TYPE_LABEL: Record<string, string> = {
-  'native-text': 'Texto',
-  'native-select': 'Lista',
-  'native-choice': 'Escolha',
-  'vue-multiselect': 'Lista com busca',
-  date: 'Data',
-  auto: 'Campo',
-};
+function typeLabel(adapter: string): string {
+  switch (adapter) {
+    case 'native-text':
+      return t('typeText');
+    case 'native-select':
+      return t('typeList');
+    case 'native-choice':
+      return t('typeChoice');
+    case 'vue-multiselect':
+    case 'react-select':
+    case 'select2':
+      return t('typeSearchList');
+    case 'date':
+      return t('typeDate');
+    case 'contenteditable':
+      return t('typeEditableText');
+    default:
+      return t('typeField');
+  }
+}
 
 export interface PickerDeps {
   win?: Window;
@@ -28,6 +42,8 @@ export interface PickerDeps {
    * engolidos. Sem isso, um preenchimento em andamento "clicaria" sozinho e encerraria a captura.
    */
   trustedOnly?: boolean;
+  /** Sem a faixa de instruções (iframes): só o destaque do campo. */
+  compact?: boolean;
   /** Chamado uma vez, depois que o modo captura já foi encerrado. */
   onCapture(capture: Capture): void;
   onCancel?(): void;
@@ -41,6 +57,12 @@ export interface Picker {
 
 function isElement(x: EventTarget | null): x is Element {
   return x !== null && (x as Node).nodeType === 1;
+}
+
+/** Alvo real do evento: dentro de shadow roots abertos `ev.target` é só o host (retargeting). */
+function realTarget(ev: Event): Element | null {
+  const first = ev.composedPath()[0] ?? ev.target;
+  return isElement(first) ? first : null;
 }
 
 function isEscape(ev: Event): boolean {
@@ -85,7 +107,7 @@ export function createPicker(deps: PickerDeps): Picker {
     hovered = hit.root;
     overlay.highlight(
       hit.root.getBoundingClientRect(),
-      `${hit.label ?? 'Campo sem rótulo'} · ${TYPE_LABEL[hit.adapter] ?? 'Campo'}`,
+      `${hit.label ?? t('fieldNoLabel')} · ${typeLabel(hit.adapter)}`,
     );
   }
 
@@ -96,17 +118,18 @@ export function createPicker(deps: PickerDeps): Picker {
 
   function onMove(ev: Event): void {
     if (!overlay || ignored(ev) || overlay.owns(ev)) return;
-    pendingTarget = isElement(ev.target) ? ev.target : null;
+    pendingTarget = realTarget(ev);
     schedule(paint);
   }
 
   function onPointer(ev: Event): void {
     if (!overlay || ignored(ev) || overlay.owns(ev)) return;
     swallow(ev);
-    if (ev.type !== 'click' || !isElement(ev.target)) return;
-    const capture = buildCapture(ev.target, doc, win.location.href);
+    const target = realTarget(ev);
+    if (ev.type !== 'click' || !target) return;
+    const capture = buildCapture(target, doc, frameUrlOf(win));
     if (!capture) {
-      overlay.notify('Isso não parece ser um campo. Tente outro.');
+      overlay.notify(t('pickerNotField'));
       clearTimeout(noteTimer);
       noteTimer = setTimeout(() => overlay?.notify(null), 3000);
       return;
@@ -171,7 +194,7 @@ export function createPicker(deps: PickerDeps): Picker {
     },
     start() {
       if (overlay) return;
-      overlay = createOverlay(doc, cancel);
+      overlay = createOverlay(doc, cancel, deps.compact === true);
       for (const type of POINTER_EVENTS) win.addEventListener(type, onPointer, true);
       win.addEventListener('keydown', onKey, true);
       win.addEventListener('keyup', onKey, true);

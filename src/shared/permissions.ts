@@ -1,10 +1,10 @@
-import type { Rule } from '../core/model';
+import { triggerFrames, type Rule } from '../core/model';
 
 /**
  * Permissões sob demanda (WP4.3).
  *
  * Em produção o manifest não cobre site nenhum: todo site depende de `optional_host_permissions`
- * (https) concedida pelo usuário, e o content script é registrado dinamicamente. Só o build de
+ * (https e http) concedida pelo usuário, e o content script é registrado dinamicamente. Só o build de
  * testes (`--mode e2e`) cobre estaticamente o site de exemplo e localhost/127.0.0.1.
  * Permissões são por origem: o caminho do padrão sempre vira `/*`.
  */
@@ -25,23 +25,26 @@ export const STATIC_MATCHES: readonly string[] = import.meta.env.MODE === 'e2e' 
 
 const PATTERN = /^(https?|\*):\/\/([^/]+)\/.*$/;
 
-/** Converte um match pattern em padrão de permissão (`scheme://host/*`); null se inválido. */
+/** Converte um match pattern em padrão de permissão (`scheme://host/*`); null se inválido. `*://` vira https. */
 export function toOriginPattern(pattern: string): string | null {
-  const m = PATTERN.exec(pattern);
-  if (!m) return null;
-  const [, scheme = '', rawHost = ''] = m;
-  const host = rawHost.replace(/:\d+$/, '').toLowerCase();
-  if (host === '') return null;
-  // `*://` cobre http e https, mas optional_host_permissions só cobre https.
-  return `${scheme === '*' ? 'https' : scheme}://${host}/*`;
+  return toOriginPatterns(pattern)[0] ?? null;
 }
 
-/** Origens (padrões de permissão) dos urlPatterns da regra; inclui as http (não suportadas). */
+/** Como `toOriginPattern`, mas `*://` gera as duas origens (https e http). Vazio se inválido. */
+export function toOriginPatterns(pattern: string): string[] {
+  const m = PATTERN.exec(pattern);
+  if (!m) return [];
+  const [, scheme = '', rawHost = ''] = m;
+  const host = rawHost.replace(/:\d+$/, '').toLowerCase();
+  if (host === '') return [];
+  return (scheme === '*' ? ['https', 'http'] : [scheme]).map((s) => `${s}://${host}/*`);
+}
+
+/** Origens (padrões de permissão) dos urlPatterns da regra, http e https. */
 export function originsForRule(rule: Pick<Rule, 'trigger'>): string[] {
   const out: string[] = [];
   for (const p of rule.trigger.urlPatterns) {
-    const o = toOriginPattern(p);
-    if (o !== null && !out.includes(o)) out.push(o);
+    for (const o of toOriginPatterns(p)) if (!out.includes(o)) out.push(o);
   }
   return out;
 }
@@ -50,13 +53,21 @@ export function isStaticallyCovered(
   pattern: string,
   statics: readonly string[] = STATIC_MATCHES,
 ): boolean {
-  const o = toOriginPattern(pattern);
-  return o !== null && statics.some((s) => toOriginPattern(s) === o);
+  const origins = toOriginPatterns(pattern);
+  const covered = new Set(statics.flatMap(toOriginPatterns));
+  return origins.length > 0 && origins.every((o) => covered.has(o));
 }
 
-/** Só https é coberto por optional_host_permissions. */
+/** optional_host_permissions cobre https e http. */
 export function isSupportedOrigin(origin: string): boolean {
-  return origin.startsWith('https://');
+  return origin.startsWith('https://') || origin.startsWith('http://');
+}
+
+/** Origem http que sai da máquina (fora de localhost/127.0.0.1/[::1]): tráfego sem criptografia. */
+export function isInsecureOrigin(origin: string): boolean {
+  if (!origin.startsWith('http://')) return false;
+  const host = hostOfOrigin(origin).replace(/:\d+$/, '');
+  return !['localhost', '127.0.0.1', '[::1]'].includes(host) && !host.endsWith('.localhost');
 }
 
 /** Host `*`, `*.*` ou similar: amplo demais para pedir permissão. */
@@ -66,9 +77,11 @@ export function isBroadOrigin(origin: string): boolean {
 }
 
 export interface OriginClassification {
-  /** https, específicos e não cobertos pelo manifest: dependem de permissão concedida. */
+  /** https/http específicos e não cobertos pelo manifest: dependem de permissão concedida. */
   needed: string[];
-  /** http fora do que o manifest cobre: não suportado. */
+  /** Origens http (exceto loopback) específicas: pedem permissão como as demais, só avisam. */
+  insecure: string[];
+  /** Legado: origens de esquema não suportado. Hoje fica sempre vazio (http é suportado). */
   unsupported: string[];
   /** Host curinga total: não se pede permissão ampla. */
   broad: string[];
@@ -78,16 +91,20 @@ export function classifyOrigins(
   patterns: readonly string[],
   statics: readonly string[] = STATIC_MATCHES,
 ): OriginClassification {
-  const res: OriginClassification = { needed: [], unsupported: [], broad: [] };
-  for (const p of patterns) {
-    const o = toOriginPattern(p);
-    if (o === null || isStaticallyCovered(o, statics)) continue;
-    const bucket = isBroadOrigin(o)
-      ? res.broad
-      : isSupportedOrigin(o)
-        ? res.needed
-        : res.unsupported;
+  const res: OriginClassification = { needed: [], insecure: [], unsupported: [], broad: [] };
+  const push = (bucket: string[], o: string): void => {
     if (!bucket.includes(o)) bucket.push(o);
+  };
+  for (const p of patterns) {
+    for (const o of toOriginPatterns(p)) {
+      if (isBroadOrigin(o)) {
+        push(res.broad, o);
+        continue;
+      }
+      if (isInsecureOrigin(o)) push(res.insecure, o);
+      if (isStaticallyCovered(o, statics)) continue;
+      push(isSupportedOrigin(o) ? res.needed : res.unsupported, o);
+    }
   }
   return res;
 }
@@ -119,6 +136,8 @@ export interface ScriptRegistration {
   js: string[];
   runAt: 'document_idle';
   allFrames: boolean;
+  /** Frames `about:blank`/`srcdoc` herdam a origem do pai. Só junto com `allFrames`. */
+  matchOriginAsFallback?: boolean;
   persistAcrossSessions: boolean;
 }
 
@@ -126,7 +145,9 @@ export interface ScriptingApi {
   scripting: {
     getRegisteredContentScripts(filter: {
       ids: string[];
-    }): Promise<{ id: string; matches?: string[] }[]>;
+    }): Promise<
+      { id: string; matches?: string[]; allFrames?: boolean; matchOriginAsFallback?: boolean }[]
+    >;
     registerContentScripts(scripts: ScriptRegistration[]): Promise<void>;
     updateContentScripts(scripts: ScriptRegistration[]): Promise<void>;
     unregisterContentScripts(filter: { ids: string[] }): Promise<void>;
@@ -186,6 +207,22 @@ export function computeDynamicMatches(
   return [...out].sort();
 }
 
+/**
+ * Algum padrão registrado vale para iframes? Sim quando uma regra habilitada com `frames: 'all'`
+ * tem ao menos uma origem registrada (permissão concedida).
+ */
+export function needsAllFrames(
+  rules: readonly Rule[],
+  grantedCheck: (origin: string) => boolean,
+): boolean {
+  return rules.some(
+    (r) =>
+      r.enabled &&
+      triggerFrames(r.trigger) === 'all' &&
+      classifyRule(r).needed.some((o) => grantedCheck(o)),
+  );
+}
+
 export interface DynamicSyncDeps {
   api: PermissionsApi & ScriptingApi;
   loadRules(): Promise<Rule[]>;
@@ -209,6 +246,7 @@ export async function syncDynamicScripts(deps: DynamicSyncDeps): Promise<Dynamic
       if (await api.permissions.contains({ origins: [o] })) granted.add(o);
     }
     const matches = computeDynamicMatches(rules, (o) => granted.has(o));
+    const allFrames = needsAllFrames(rules, (o) => granted.has(o));
     const [existing] = await api.scripting.getRegisteredContentScripts({
       ids: [DYNAMIC_SCRIPT_ID],
     });
@@ -223,7 +261,8 @@ export async function syncDynamicScripts(deps: DynamicSyncDeps): Promise<Dynamic
       matches,
       js: [deps.scriptFile],
       runAt: 'document_idle',
-      allFrames: false,
+      allFrames,
+      ...(allFrames ? { matchOriginAsFallback: true } : {}),
       persistAcrossSessions: true,
     };
     if (!existing) {
@@ -231,7 +270,14 @@ export async function syncDynamicScripts(deps: DynamicSyncDeps): Promise<Dynamic
       return 'registered';
     }
     const current = [...(existing.matches ?? [])].sort();
-    if (current.length === matches.length && current.every((m, i) => m === matches[i])) {
+    const sameFrames =
+      (existing.allFrames ?? false) === allFrames &&
+      (existing.matchOriginAsFallback ?? false) === allFrames;
+    if (
+      sameFrames &&
+      current.length === matches.length &&
+      current.every((m, i) => m === matches[i])
+    ) {
       return 'unchanged';
     }
     await api.scripting.updateContentScripts([script]);
@@ -240,4 +286,31 @@ export async function syncDynamicScripts(deps: DynamicSyncDeps): Promise<Dynamic
     console.warn('[assistente] falha ao sincronizar content script dinâmico', e);
     return 'error';
   }
+}
+
+type Listener<A extends unknown[]> = { addListener(cb: (...args: A) => void): void };
+
+export interface SyncTriggersApi {
+  runtime: {
+    onStartup: Listener<[]>;
+    onInstalled: Listener<[{ reason: string }]>;
+  };
+  permissions: { onAdded: Listener<[]>; onRemoved: Listener<[]> };
+}
+
+/**
+ * Quando re-sincronizar o registro dinâmico. Cobre os dois navegadores:
+ * - `permissions.onAdded/onRemoved`: o usuário concede ou revoga o acesso a qualquer momento
+ *   (no Firefox MV3 isso é feito em about:addons);
+ * - `runtime.onStartup`: não depende de `persistAcrossSessions` ser respeitado após reiniciar;
+ * - `runtime.onInstalled` com motivo `update`: atualizações limpam os scripts registrados.
+ * (`install` é tratado à parte, junto com a semeadura.)
+ */
+export function watchSyncTriggers(api: SyncTriggersApi, schedule: () => void): void {
+  api.runtime.onStartup.addListener(() => schedule());
+  api.runtime.onInstalled.addListener((d) => {
+    if (d.reason === 'update') schedule();
+  });
+  api.permissions.onAdded.addListener(() => schedule());
+  api.permissions.onRemoved.addListener(() => schedule());
 }

@@ -6,3 +6,6 @@ export { nativeChoiceAdapter } from './native-choice';
 export { dateAdapter } from './date';
 export { vueMultiselectAdapter } from './vue-multiselect';
 export { createAdapterRegistry, createDefaultRegistry } from './registry';
+export { contentEditableAdapter } from './contenteditable';
+export { reactSelectAdapter } from './react-select';
+export { select2Adapter } from './select2';

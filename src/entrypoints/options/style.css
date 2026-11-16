@@ -3,7 +3,7 @@
   --bg: #f5f6f8;
   --surface: #ffffff;
   --text: #1c2330;
-  --muted: #5b6575;
+  --muted: #4f5968;
   --border: #d5dae2;
   --primary: #1f5fd1;
   --primary-text: #ffffff;
@@ -607,6 +607,16 @@ summary {
   margin: 2px 0 6px;
 }
 
+.var-row .grid {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 720px) {
+  .var-row .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .preview {
   margin: 4px 0 0;
   font-size: 0.9rem;
@@ -705,4 +715,45 @@ summary {
   padding: 0;
   margin: 0;
   min-width: 0;
+}
+
+.size-meter {
+  margin: 8px 0;
+}
+
+.size-meter-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.size-meter-track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--border);
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.size-meter-bar {
+  height: 100%;
+  background: var(--primary);
+}
+
+.size-meter.level-warn .size-meter-bar {
+  background: #b7791f;
+}
+
+.size-meter.level-warn .size-meter-head strong {
+  color: var(--warn-text);
+}
+
+.size-meter.level-error .size-meter-bar {
+  background: var(--danger);
+}
+
+.size-meter.level-error .size-meter-head strong {
+  color: var(--danger);
 }

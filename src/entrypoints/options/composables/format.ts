@@ -1,6 +1,7 @@
 import { migrateConfig, type Config } from '../../../core/model';
 import type { FieldOutcome, RunReport } from '../../../core/model';
-import { summarize } from '../../../core/model';
+import { summarize, variableScope } from '../../../core/model';
+import { t, uiLocale } from '../../../core/i18n';
 
 const pad = (n: number): string => String(n).padStart(2, '0');
 
@@ -13,8 +14,21 @@ export function exportFileName(d: Date): string {
   return `assistente-config-${localDateStamp(d)}.json`;
 }
 
-export function exportJson(config: Config): string {
-  return `${JSON.stringify(config, null, 2)}\n`;
+export interface ExportOptions {
+  /** Inclui os valores das variáveis "só neste navegador". Padrão: não (saem com value ''). */
+  includeLocalValues?: boolean;
+}
+
+export function exportJson(config: Config, opts: ExportOptions = {}): string {
+  const out: Config = opts.includeLocalValues
+    ? config
+    : {
+        ...config,
+        variables: config.variables.map((v) =>
+          variableScope(v) === 'local' ? { ...v, value: '' } : v,
+        ),
+      };
+  return `${JSON.stringify(out, null, 2)}\n`;
 }
 
 export type ImportParse =
@@ -30,30 +44,29 @@ export function parseImport(text: string): ImportParse {
   try {
     raw = JSON.parse(text);
   } catch {
-    return { ok: false, error: 'O arquivo não é um JSON válido.' };
+    return { ok: false, error: t('impInvalidJson') };
   }
   if (!isRecord(raw) || typeof raw.schemaVersion !== 'number') {
     return {
       ok: false,
-      error: 'O arquivo não parece ser uma configuração exportada por este assistente.',
+      error: t('impNotConfig'),
     };
   }
   const { config, warnings, readOnly } = migrateConfig(raw);
   if (readOnly) {
     return {
       ok: false,
-      error:
-        'Este arquivo foi exportado por uma versão mais nova da extensão. Atualize a extensão para importá-lo.',
+      error: t('impNewerVersion'),
     };
   }
   const rawRules = Array.isArray(raw.rules) ? raw.rules.length : 0;
   if (rawRules > 0 && config.rules.length === 0) {
     return {
       ok: false,
-      error: `Nenhuma regra do arquivo é válida. ${warnings.join(' ')}`.trim(),
+      error: t('impNoValidRules', warnings.join(' ')).trim(),
     };
   }
-  if (warnings.some((w) => w.includes('usando configuração vazia'))) {
+  if (warnings.some((w) => w.includes(t('migEmptyMarker')))) {
     return { ok: false, error: warnings.join(' ') };
   }
   return { ok: true, config, warnings };
@@ -61,11 +74,12 @@ export function parseImport(text: string): ImportParse {
 
 // ---------------------------------------------------------------- histórico
 
-const DATE_TIME = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'medium' });
+const dateTime = () =>
+  new Intl.DateTimeFormat(uiLocale(), { dateStyle: 'short', timeStyle: 'medium' });
 
 export function formatDateTime(iso: string): string {
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? iso : DATE_TIME.format(d);
+  return Number.isNaN(d.getTime()) ? iso : dateTime().format(d);
 }
 
 /** Só host + caminho, sem query nem fragmento. */
@@ -78,28 +92,42 @@ export function urlHostPath(url: string): string {
   }
 }
 
+/** Rótulos por resultado; getters: o texto sai no idioma da hora da leitura. */
 export const OUTCOME_LABELS: Record<FieldOutcome, string> = {
-  filled: 'Preenchido',
-  'skipped-not-default': 'Pulado: o campo já tinha valor',
-  'skipped-already-handled': 'Pulado: já tratado antes',
-  'skipped-disabled': 'Pulado: campo desligado',
-  'skipped-unresolved-value': 'Pulado: valor não resolvido',
-  'not-found': 'Campo não encontrado',
-  undone: 'Desfeito',
-  error: 'Erro',
+  get filled() {
+    return t('histFilled');
+  },
+  get 'skipped-not-default'() {
+    return t('histSkippedNotDefault');
+  },
+  get 'skipped-already-handled'() {
+    return t('histSkippedHandled');
+  },
+  get 'skipped-disabled'() {
+    return t('histSkippedDisabled');
+  },
+  get 'skipped-unresolved-value'() {
+    return t('histSkippedUnresolved');
+  },
+  get 'not-found'() {
+    return t('histNotFound');
+  },
+  get undone() {
+    return t('popOutUndone');
+  },
+  get error() {
+    return t('popOutError');
+  },
 };
-
-function plural(n: number, one: string, many: string): string {
-  return `${n} ${n === 1 ? one : many}`;
-}
 
 export function summaryText(report: RunReport): string {
   const s = summarize(report);
   const parts: string[] = [];
-  if (s.filled) parts.push(plural(s.filled, 'preenchido', 'preenchidos'));
-  if (s.undone) parts.push(plural(s.undone, 'desfeito', 'desfeitos'));
-  if (s.skipped) parts.push(plural(s.skipped, 'pulado', 'pulados'));
-  if (s.notFound) parts.push(plural(s.notFound, 'não encontrado', 'não encontrados'));
-  if (s.errors) parts.push(plural(s.errors, 'erro', 'erros'));
-  return parts.length > 0 ? parts.join(', ') : 'nenhum campo';
+  if (s.filled) parts.push(s.filled === 1 ? t('sumFilledOne') : t('sumFilledMany', s.filled));
+  if (s.undone) parts.push(s.undone === 1 ? t('sumUndoneOne') : t('sumUndoneMany', s.undone));
+  if (s.skipped) parts.push(s.skipped === 1 ? t('sumSkippedOne') : t('sumSkippedMany', s.skipped));
+  if (s.notFound)
+    parts.push(s.notFound === 1 ? t('sumNotFoundOne') : t('sumNotFoundMany', s.notFound));
+  if (s.errors) parts.push(s.errors === 1 ? t('sumErrorOne') : t('sumErrorMany', s.errors));
+  return parts.length > 0 ? parts.join(', ') : t('sumNoField');
 }

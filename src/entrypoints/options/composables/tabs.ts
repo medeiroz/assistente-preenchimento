@@ -1,3 +1,33 @@
+import { t } from '../../../core/i18n';
+// Para incluir uma aba nova (ex.: Variáveis), acrescente aqui e um painel no template.
+export const TABS = [
+  {
+    id: 'rules',
+    get label() {
+      return t('tabRules');
+    },
+  },
+  {
+    id: 'variables',
+    get label() {
+      return t('tabVariables');
+    },
+  },
+  {
+    id: 'history',
+    get label() {
+      return t('tabHistory');
+    },
+  },
+  {
+    id: 'import-export',
+    get label() {
+      return t('tabImportExport');
+    },
+  },
+] as const;
+export type TabId = (typeof TABS)[number]['id'];
+
 export type TabChange = 'switch' | 'close-and-switch' | 'confirm';
 
 /**
@@ -8,4 +38,19 @@ export type TabChange = 'switch' | 'close-and-switch' | 'confirm';
 export function decideTabChange(state: { editorOpen: boolean; dirty: boolean }): TabChange {
   if (!state.editorOpen) return 'switch';
   return state.dirty ? 'confirm' : 'close-and-switch';
+}
+
+/**
+ * Navegação por teclado do padrão WAI-ARIA para abas: setas (circular), Home e End.
+ * Devolve a aba de destino, ou `null` para teclas que não navegam.
+ */
+export function tabForKey(current: TabId, key: string): TabId | null {
+  const i = TABS.findIndex((t) => t.id === current);
+  if (i < 0) return null;
+  const n = TABS.length;
+  if (key === 'ArrowRight') return TABS[(i + 1) % n]!.id;
+  if (key === 'ArrowLeft') return TABS[(i - 1 + n) % n]!.id;
+  if (key === 'Home') return TABS[0]!.id;
+  if (key === 'End') return TABS[n - 1]!.id;
+  return null;
 }

@@ -20,6 +20,7 @@ const CaptureSchema = z.object({
     .object({ selector: z.string().min(1), textContains: z.string().optional() })
     .optional(),
   urlPattern: z.string(),
+  frames: z.literal('all').optional(),
 });
 
 const PickerDraftSchema = z.object({ capture: CaptureSchema, createdAt: z.number() });
@@ -36,6 +37,7 @@ export function parsePickerDraft(raw: unknown): PickerDraft | null {
     label: capture.label,
     urlPattern: capture.urlPattern,
   };
+  if (capture.frames) out.frames = capture.frames;
   if (capture.container) {
     out.container = { selector: capture.container.selector };
     if (capture.container.textContains) out.container.textContains = capture.container.textContains;

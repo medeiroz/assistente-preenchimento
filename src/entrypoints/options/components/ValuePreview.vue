@@ -20,8 +20,8 @@ const result = computed<PreviewResult>(() =>
 
 <template>
   <p v-if="result.kind === 'ok'" class="preview ok" data-testid="value-preview" aria-live="polite">
-    Resultado:
-    <span class="preview-value">{{ result.value === '' ? '(vazio)' : result.value }}</span>
+    {{ $t('previewResult') }}
+    <span class="preview-value">{{ result.value === '' ? $t('emptyValue') : result.value }}</span>
   </p>
   <p
     v-else-if="result.kind === 'warn'"
@@ -29,6 +29,6 @@ const result = computed<PreviewResult>(() =>
     data-testid="value-preview"
     aria-live="polite"
   >
-    Resultado: não foi possível resolver — {{ result.message }}
+    {{ $t('previewUnresolved', result.message) }}
   </p>
 </template>

@@ -5,6 +5,9 @@ import { nativeSelectAdapter } from './native-select';
 import { nativeChoiceAdapter } from './native-choice';
 import { dateAdapter } from './date';
 import { vueMultiselectAdapter } from './vue-multiselect';
+import { contentEditableAdapter } from './contenteditable';
+import { reactSelectAdapter } from './react-select';
+import { select2Adapter } from './select2';
 
 export function createAdapterRegistry(): AdapterRegistry {
   const entries: { adapter: FieldAdapter; priority: number; order: number }[] = [];
@@ -29,9 +32,12 @@ export function createAdapterRegistry(): AdapterRegistry {
 export function createDefaultRegistry(): AdapterRegistry {
   const registry = createAdapterRegistry();
   registry.register(vueMultiselectAdapter, 100);
+  registry.register(reactSelectAdapter, 95);
   registry.register(dateAdapter, 90);
+  registry.register(select2Adapter, 85);
   registry.register(nativeSelectAdapter, 80);
   registry.register(nativeChoiceAdapter, 70);
+  registry.register(contentEditableAdapter, 20);
   registry.register(nativeTextAdapter, 10);
   return registry;
 }

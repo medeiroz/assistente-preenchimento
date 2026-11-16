@@ -1,5 +1,6 @@
 import type { RecorderStatus } from '../../../core/recorder/types';
 import { isStaticallyCovered, toOriginPattern } from '../../../shared/permissions';
+import { t } from '../../../core/i18n';
 
 export interface StartRecordingDeps {
   requestPermission(origin: string): Promise<boolean>;
@@ -8,12 +9,12 @@ export interface StartRecordingDeps {
   statics?: readonly string[];
 }
 
-/** Padrão de permissão (`https://host/*`) a pedir para a URL da aba; null se não se aplica. */
+/** Padrão de permissão (`https://host/*` ou `http://host/*`) a pedir para a URL da aba; null se não se aplica. */
 export function originToRequest(
   url: string | undefined,
   statics?: readonly string[],
 ): string | null {
-  if (!url?.startsWith('https://')) return null;
+  if (!url?.startsWith('https://') && !url?.startsWith('http://')) return null;
   let origin: string | null = null;
   try {
     origin = toOriginPattern(`${new URL(url).origin}/*`);
@@ -42,7 +43,7 @@ export async function startRecording(
   const starting = deps.sendStart(tabId);
   const [, started] = await Promise.allSettled([asking, starting]);
   if (started.status === 'rejected') {
-    throw new Error(`Não foi possível iniciar a gravação: ${reason(started.reason)}`);
+    throw new Error(t('popStartFailedWith', reason(started.reason)));
   }
 }
 

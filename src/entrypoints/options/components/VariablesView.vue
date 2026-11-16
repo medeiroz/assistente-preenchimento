@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { t } from '../../../core/i18n';
 import { computed, ref, watch } from 'vue';
 import type { Rule, Variable } from '../../../core/model';
-import { StorageQuotaError } from '../../../core/storage';
+import { MAX_ITEM_BYTES, StorageQuotaError, measureVariables } from '../../../core/storage';
+import SizeMeter from './SizeMeter.vue';
 import {
   rowsToVariables,
   validateVariableRows,
@@ -21,15 +23,16 @@ const props = defineProps<{
 let nextUid = 1;
 function toRows(vars: readonly Variable[]): VariableRow[] {
   return vars.map((v) => {
-    const { key, label, value, ...rest } = v;
-    const row: VariableRow = { uid: nextUid++, key, label, value };
+    const { key, label, value, scope, ...rest } = v;
+    const row: VariableRow = { uid: nextUid++, key, label, value, scope: scope ?? 'sync' };
     if (Object.keys(rest).length > 0) row.extra = rest;
     return row;
   });
 }
-type Triple = [string, string, string];
-const triples = (list: readonly { key: string; label: string; value: string }[]): Triple[] =>
-  list.map((r) => [r.key, r.label, r.value]);
+type Triple = [string, string, string, string];
+const triples = (
+  list: readonly { key: string; label: string; value: string; scope: string }[],
+): Triple[] => list.map((r) => [r.key, r.label, r.value, r.scope]);
 
 const rows = ref<VariableRow[]>(toRows(props.variables));
 let baseline: Triple[] = triples(rows.value);
@@ -53,6 +56,7 @@ const saving = ref(false);
 const saveError = ref<string | null>(null);
 
 const errors = computed(() => validateVariableRows(rows.value));
+const varsBytes = computed(() => measureVariables(rowsToVariables(rows.value)));
 
 /** Erro mostrado na linha: sempre que a chave foi digitada; chave vazia só após tentar salvar. */
 function rowError(r: VariableRow): string | null {
@@ -67,7 +71,7 @@ function usageOf(r: VariableRow) {
 }
 
 function add(): void {
-  rows.value.push({ uid: nextUid++, key: '', label: '', value: '' });
+  rows.value.push({ uid: nextUid++, key: '', label: '', value: '', scope: 'sync' });
 }
 
 // -------------------------------------------------------------- exclusão
@@ -88,7 +92,7 @@ async function persist(vars: Variable[]): Promise<boolean> {
     saveError.value =
       e instanceof StorageQuotaError
         ? e.message
-        : `Não foi possível salvar: ${e instanceof Error ? e.message : String(e)}`;
+        : t('saveFailed', e instanceof Error ? e.message : String(e));
     return false;
   } finally {
     saving.value = false;
@@ -108,7 +112,7 @@ async function removeNow(uid: number): Promise<void> {
   const ok = await persist(props.variables.filter((v) => v.key !== key));
   if (ok) {
     rows.value = rows.value.filter((r) => r.uid !== uid);
-    baseline = baseline.filter((t) => t[0] !== key);
+    baseline = baseline.filter((b) => b[0] !== key);
   }
 }
 
@@ -128,6 +132,10 @@ async function submit(): Promise<void> {
   }
 }
 
+function onScope(r: VariableRow, ev: Event): void {
+  r.scope = (ev.target as HTMLSelectElement).value === 'local' ? 'local' : 'sync';
+}
+
 function onField(r: VariableRow, key: 'key' | 'label' | 'value', ev: Event): void {
   r[key] = (ev.target as HTMLInputElement).value;
 }
@@ -137,14 +145,14 @@ function onField(r: VariableRow, key: 'key' | 'label' | 'value', ev: Event): voi
   <form class="variables" novalidate @submit.prevent="submit">
     <fieldset class="ro-fieldset" :disabled="readOnly">
       <div class="section-head">
-        <h2>Variáveis</h2>
+        <h2>{{ $t('tabVariables') }}</h2>
       </div>
 
       <p class="notice warn" data-testid="vars-warning">
-        Variáveis sincronizam pela sua conta Google — não guarde senhas aqui.
+        {{ $t('varWarning') }}
       </p>
       <p class="hint">
-        Use em qualquer campo como <code v-pre>{{ var.sua_chave }}</code>
+        {{ $t('varUseAs') }} <code>{{ $t('varUseExample') }}</code>
       </p>
 
       <p v-if="saveError" class="notice error" role="alert" data-testid="vars-error">
@@ -153,8 +161,8 @@ function onField(r: VariableRow, key: 'key' | 'label' | 'value', ev: Event): voi
 
       <div v-if="pendingRow" class="notice warn" role="alertdialog" data-testid="delete-warning">
         <p>
-          <strong>A variável “{{ pendingRow.key }}” está em uso.</strong> Se você excluí-la, estes
-          campos ficarão sem valor (o preenchimento deles será ignorado):
+          <strong>{{ $t('varInUse', pendingRow.key) }}</strong>
+          {{ $t('varInUseRest') }}
         </p>
         <ul>
           <li v-for="u in usageOf(pendingRow)" :key="u.ruleId">
@@ -168,7 +176,7 @@ function onField(r: VariableRow, key: 'key' | 'label' | 'value', ev: Event): voi
             data-testid="confirm-delete"
             @click="removeNow(pendingRow.uid)"
           >
-            Excluir mesmo assim
+            {{ $t('varDeleteAnyway') }}
           </button>
           <button
             type="button"
@@ -176,27 +184,27 @@ function onField(r: VariableRow, key: 'key' | 'label' | 'value', ev: Event): voi
             data-testid="cancel-delete"
             @click="pendingDelete = null"
           >
-            Cancelar
+            {{ $t('cancel') }}
           </button>
         </div>
       </div>
 
       <p v-if="loaded && rows.length === 0" class="muted">
-        Nenhuma variável ainda. Use “Adicionar variável” para criar uma.
+        {{ $t('varEmpty') }}
       </p>
 
       <ul class="var-list">
         <li v-for="r in rows" :key="r.uid" class="var-row field-card" :data-var-key="r.key">
           <div class="grid">
             <div class="control">
-              <label :for="`v${r.uid}-key`">Chave</label>
+              <label :for="`v${r.uid}-key`">{{ $t('varKey') }}</label>
               <input
                 :id="`v${r.uid}-key`"
                 class="v-key"
                 type="text"
                 autocomplete="off"
                 spellcheck="false"
-                placeholder="codigo_teste"
+                :placeholder="$t('varKeyPlaceholder')"
                 :value="r.key"
                 :aria-invalid="rowError(r) !== null"
                 :aria-describedby="rowError(r) ? `v${r.uid}-err` : undefined"
@@ -204,19 +212,19 @@ function onField(r: VariableRow, key: 'key' | 'label' | 'value', ev: Event): voi
               />
             </div>
             <div class="control">
-              <label :for="`v${r.uid}-label`">Nome amigável</label>
+              <label :for="`v${r.uid}-label`">{{ $t('varLabel') }}</label>
               <input
                 :id="`v${r.uid}-label`"
                 class="v-label"
                 type="text"
                 autocomplete="off"
-                placeholder="Código de teste"
+                :placeholder="$t('varLabelPlaceholder')"
                 :value="r.label"
                 @input="onField(r, 'label', $event)"
               />
             </div>
             <div class="control">
-              <label :for="`v${r.uid}-value`">Valor</label>
+              <label :for="`v${r.uid}-value`">{{ $t('ftValue') }}</label>
               <input
                 :id="`v${r.uid}-value`"
                 class="v-value"
@@ -226,33 +234,55 @@ function onField(r: VariableRow, key: 'key' | 'label' | 'value', ev: Event): voi
                 @input="onField(r, 'value', $event)"
               />
             </div>
+            <div class="control">
+              <label :for="`v${r.uid}-scope`">{{ $t('varScope') }}</label>
+              <select
+                :id="`v${r.uid}-scope`"
+                class="v-scope"
+                data-testid="var-scope"
+                :value="r.scope"
+                @change="onScope(r, $event)"
+              >
+                <option value="sync">{{ $t('varScopeSync') }}</option>
+                <option value="local">{{ $t('varScopeLocal') }}</option>
+              </select>
+            </div>
           </div>
+          <p
+            v-if="r.scope === 'local' && r.value === ''"
+            class="hint v-novalue"
+            data-testid="var-no-value"
+          >
+            {{ $t('varNoValue') }}
+          </p>
           <p v-if="rowError(r)" :id="`v${r.uid}-err`" class="error-text" role="alert">
             {{ rowError(r) }}
           </p>
           <p v-if="usageOf(r).length > 0" class="hint v-usage">
-            Usada em:
+            {{ $t('varUsedIn') }}
             <span v-for="(u, i) in usageOf(r)" :key="u.ruleId"
               >{{ i > 0 ? '; ' : '' }}{{ u.ruleName }} ({{ u.fields.join(', ') }})</span
             >
           </p>
-          <p v-else class="hint v-usage">Não usada em nenhuma regra.</p>
+          <p v-else class="hint v-usage">{{ $t('varUnused') }}</p>
           <div class="row">
             <button
               type="button"
               class="btn small danger v-remove"
-              :aria-label="`Excluir a variável ${r.key || 'sem chave'}`"
+              :aria-label="$t('varDeleteAria', r.key || $t('varNoKey'))"
               @click="askRemove(r)"
             >
-              Excluir
+              {{ $t('delete') }}
             </button>
           </div>
         </li>
       </ul>
 
+      <SizeMeter :bytes="varsBytes" :limit="MAX_ITEM_BYTES" :over-message="$t('sizeOverVars')" />
+
       <div class="actions-bar">
         <button type="button" class="btn" data-testid="add-variable" @click="add">
-          Adicionar variável
+          {{ $t('varAdd') }}
         </button>
         <button
           type="submit"
@@ -260,9 +290,9 @@ function onField(r: VariableRow, key: 'key' | 'label' | 'value', ev: Event): voi
           :disabled="saving || !dirty"
           data-testid="save-variables"
         >
-          {{ saving ? 'Salvando…' : 'Salvar variáveis' }}
+          {{ saving ? $t('saving') : $t('varSave') }}
         </button>
-        <span v-if="dirty" class="muted">Alterações não salvas</span>
+        <span v-if="dirty" class="muted">{{ $t('unsavedChanges') }}</span>
       </div>
     </fieldset>
   </form>

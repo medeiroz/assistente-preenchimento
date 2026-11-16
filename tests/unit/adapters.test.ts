@@ -3,12 +3,15 @@ import { resolve } from 'node:path';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   AdapterError,
+  contentEditableAdapter,
   createAdapterRegistry,
   createDefaultRegistry,
   dateAdapter,
   nativeChoiceAdapter,
   nativeSelectAdapter,
   nativeTextAdapter,
+  reactSelectAdapter,
+  select2Adapter,
   vueMultiselectAdapter,
   type FieldAdapter,
 } from '../../src/core/adapters';
@@ -138,13 +141,16 @@ describe('registry', () => {
     expect(registry.resolve(document.body, 'auto')).toBeNull();
   });
 
-  it('createDefaultRegistry registra vue-multiselect, date, native-select, native-choice e native-text', () => {
+  it('createDefaultRegistry registra as bibliotecas acima dos nativos, nesta ordem de prioridade', () => {
     const registry = createDefaultRegistry();
     expect(registry.list()).toEqual([
       vueMultiselectAdapter,
+      reactSelectAdapter,
       dateAdapter,
+      select2Adapter,
       nativeSelectAdapter,
       nativeChoiceAdapter,
+      contentEditableAdapter,
       nativeTextAdapter,
     ]);
     expect(registry.resolve(field('<input>'), 'auto')).toBe(nativeTextAdapter);

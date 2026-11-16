@@ -2,9 +2,42 @@
 
 > Complementa [arquitetura.md](arquitetura.md) e segue o modelo de trabalho de
 > [plano-de-execucao.md](plano-de-execucao.md) (papéis, ciclo do WP, template de brief, portões de
-> qualidade). Data: 2026-11-15. Base: v1.0.2. Status: aguardando aprovação.
+> qualidade). Data: 2026-11-15. Base: v1.0.2. Status: implementação concluída (ver §0).
 >
 > **Fora deste plano:** atalhos de teclado (`commands`).
+
+## 0. Status da execução (2026-11-15)
+
+Todos os WPs de implementação foram entregues, revisados e verificados (typecheck, lint, unit,
+Prettier, build, E2E e, no F1, build e `web-ext lint` do Firefox).
+
+| WP | Status | Onde |
+| --- | --- | --- |
+| A0 1.0.3 tolerante | Concluído | `main` |
+| A1 Contratos, A2 Refatoração, A3 Preset neutro | Concluídos | `next` |
+| B1 http, B2 Shadow DOM, B3 Filtros, B4 Adapters | Concluídos | `next` |
+| C1 Iframes, C2 Várias regras, C3 Variáveis locais | Concluídos | `next` |
+| D1 Menu de contexto, D2 Medidor, D3 Acessibilidade | Concluídos | `next` |
+| E1 Internacionalização | Concluído | `next` |
+| F1 Build Firefox | Concluído | `next` |
+| A4 / F2 Publicação nas lojas | **Pendente: dono do projeto** | ver `store/PUBLICAR.md` |
+| C4 Adapters II | Sob demanda | — |
+
+Ajustes feitos durante a execução:
+
+- Os ids dos novos adaptadores entraram no B4, junto com as implementações (não no A1).
+- Reivindicação de campo (C2) vale também para "Preencher agora".
+- O CI deixou de bloquear `localhost` puro no pacote (a exceção de loopback do aviso de http é
+  legítima) e passou a procurar os padrões do build de testes, também no job `verify`.
+- Os marcos 1.1/1.2/1.3 viraram uma versão só (1.1.0), porque nada foi publicado no meio.
+
+Validação manual pendente (não automatizável): concessão real de permissão http, menu de contexto
+nativo, iframe com topo sem motor e pausa sem `ancestorOrigins`, e o roteiro do Firefox em
+`store/PUBLICAR.md` §8.
+
+Melhorias futuras observadas: o catálogo pt-BR vai embutido em cada ponto de entrada (+~45 kB
+cada); `vue-multiselect` e contêiner do gatilho dentro de shadow DOM; captura pela gravação dentro
+de iframes; Select2 `multiple` e React-Select `isMulti`.
 
 ### Revisão 1 (2026-11-15)
 
