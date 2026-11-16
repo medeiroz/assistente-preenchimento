@@ -67,6 +67,8 @@ Na aba **Práticas de privacidade**:
    que a publicada.
 3. No painel, abra o item, **Pacote** › **Fazer upload da nova versão** e envie para revisão.
 
+Com os secrets da seção 9 configurados, os passos 2 e 3 são feitos pelo CI, nas três lojas.
+
 ## 7. Microsoft Edge Add-ons
 
 1. Crie a conta no [Partner Center](https://partner.microsoft.com/dashboard/microsoftedge) (gratuito).
@@ -90,6 +92,72 @@ Na aba **Práticas de privacidade**:
 7. Antes do primeiro envio, teste à mão no Firefox: carregar em `about:debugging`, conceder um
    site, reiniciar o navegador e conferir o preenchimento, revogar a permissão, menu de contexto,
    iframes e a gravação.
+
+## 9. Publicação automática pelo CI
+
+Depois de cada Release, o job **Publicar nas lojas** (`.github/workflows/ci.yml`) envia a nova
+versão para revisão em cada loja configurada. Uma loja sem todos os secrets é pulada, então dá para
+ligar uma de cada vez. O primeiro envio de cada loja continua manual (seções 3 a 8); a revisão das
+lojas continua existindo.
+
+Os secrets ficam no GitHub, em **Settings › Secrets and variables › Actions › New repository
+secret**. Nunca os coloque em arquivos do repositório.
+
+### Chrome Web Store (API v2, conta de serviço)
+
+1. No [Google Cloud Console](https://console.cloud.google.com/), crie um projeto (ou use um
+   existente) e ative a **Chrome Web Store API** em **APIs e serviços › Biblioteca**.
+2. Em **IAM e administrador › Contas de serviço**, crie uma conta de serviço. Na conta criada,
+   **Chaves › Adicionar chave › Criar nova chave › JSON**. Guarde o arquivo baixado em lugar seguro.
+3. No [painel da Chrome Web Store](https://chrome.google.com/webstore/devconsole), em **Conta**,
+   adicione o e-mail da conta de serviço (campo `client_email` do JSON) como conta de serviço e
+   copie o **ID do editor** (Publisher ID).
+4. Crie os secrets:
+
+| Secret                                | Valor                                                                  |
+| ------------------------------------- | ---------------------------------------------------------------------- |
+| `CHROME_EXTENSION_ID`                 | ID do item (32 letras, aparece na URL do item no painel)               |
+| `CHROME_PUBLISHER_ID`                 | ID do editor, da página **Conta**                                      |
+| `CHROME_SERVICE_ACCOUNT_CLIENT_EMAIL` | `client_email` do JSON                                                 |
+| `CHROME_SERVICE_ACCOUNT_PRIVATE_KEY`  | `private_key` do JSON, inteira, de `-----BEGIN` até `PRIVATE KEY-----` |
+
+Se uma versão anterior ainda estiver em revisão, a Chrome Web Store recusa o envio novo; espere a
+revisão terminar e reexecute o job.
+
+### Microsoft Edge Add-ons
+
+1. No [Partner Center](https://partner.microsoft.com/dashboard/microsoftedge), abra
+   **Microsoft Edge › Publish API** e clique em **Create API credentials**.
+2. Crie os secrets:
+
+| Secret            | Valor                                              |
+| ----------------- | -------------------------------------------------- |
+| `EDGE_PRODUCT_ID` | Product ID, na página de visão geral da extensão   |
+| `EDGE_CLIENT_ID`  | Client ID mostrado na página Publish API           |
+| `EDGE_API_KEY`    | API key gerada (aparece uma vez só; copie na hora) |
+
+A API key expira; a data aparece na página Publish API. Quando expirar, gere outra e atualize o
+secret.
+
+### Firefox (AMO)
+
+1. Em [Gerenciar chaves de API](https://addons.mozilla.org/developers/addon/api/key/), gere as
+   credenciais.
+2. Crie os secrets:
+
+| Secret               | Valor                 |
+| -------------------- | --------------------- |
+| `FIREFOX_JWT_ISSUER` | JWT issuer (`user:…`) |
+| `FIREFOX_JWT_SECRET` | JWT secret            |
+
+O id da extensão vem fixo do workflow (`assistente-preenchimento@medeiroz.github.io`). O envio vai
+para o canal público (listed), só para Firefox desktop, com o `-sources.zip` da Release.
+
+### Quando algo falhar
+
+O job aparece em vermelho na aba **Actions**, com a mensagem da loja. A Release já está publicada;
+corrija o problema (secret, revisão pendente, versão repetida) e use **Re-run failed jobs**: só o
+envio às lojas é refeito.
 
 ## Lembretes
 

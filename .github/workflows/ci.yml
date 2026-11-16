@@ -88,6 +88,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     # Nunca duas releases ao mesmo tempo (nem cancela a que está rodando).
     concurrency:
       group: release-main
@@ -174,3 +176,68 @@ jobs:
             .output/*-firefox.zip .output/*-firefox.zip.sha256 \
             .output/*-sources.zip .output/*-sources.zip.sha256 \
             --title "v$VERSION" --generate-notes --latest
+
+  publish:
+    name: Publicar nas lojas
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    # Separado da release: se uma loja falhar, dá para reexecutar só este job.
+    # Cada loja só é usada se todos os secrets dela estiverem configurados (store/PUBLICAR.md §9).
+    env:
+      VERSION: ${{ needs.release.outputs.version }}
+      CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
+      CHROME_PUBLISHER_ID: ${{ secrets.CHROME_PUBLISHER_ID }}
+      CHROME_SERVICE_ACCOUNT_CLIENT_EMAIL: ${{ secrets.CHROME_SERVICE_ACCOUNT_CLIENT_EMAIL }}
+      CHROME_SERVICE_ACCOUNT_PRIVATE_KEY: ${{ secrets.CHROME_SERVICE_ACCOUNT_PRIVATE_KEY }}
+      EDGE_PRODUCT_ID: ${{ secrets.EDGE_PRODUCT_ID }}
+      EDGE_CLIENT_ID: ${{ secrets.EDGE_CLIENT_ID }}
+      EDGE_API_KEY: ${{ secrets.EDGE_API_KEY }}
+      FIREFOX_JWT_ISSUER: ${{ secrets.FIREFOX_JWT_ISSUER }}
+      FIREFOX_JWT_SECRET: ${{ secrets.FIREFOX_JWT_SECRET }}
+      # Mesmo id de browser_specific_settings.gecko.id em wxt.config.ts.
+      FIREFOX_EXTENSION_ID: assistente-preenchimento@medeiroz.github.io
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+
+      - name: Baixar os pacotes da Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download "v$VERSION" --dir .output/release --pattern '*.zip'
+
+      - name: Enviar para as lojas configuradas
+        run: |
+          dir=.output/release
+          args=()
+          if [ -n "$CHROME_EXTENSION_ID" ] && [ -n "$CHROME_PUBLISHER_ID" ] &&
+            [ -n "$CHROME_SERVICE_ACCOUNT_CLIENT_EMAIL" ] && [ -n "$CHROME_SERVICE_ACCOUNT_PRIVATE_KEY" ]; then
+            echo "Chrome Web Store: sim"
+            args+=(--chrome-zip "$dir/assistente-preenchimento-$VERSION-chrome.zip" --chrome-api-version v2)
+          else
+            echo "Chrome Web Store: secrets ausentes, pulando."
+          fi
+          if [ -n "$EDGE_PRODUCT_ID" ] && [ -n "$EDGE_CLIENT_ID" ] && [ -n "$EDGE_API_KEY" ]; then
+            echo "Edge Add-ons: sim"
+            args+=(--edge-zip "$dir/assistente-preenchimento-$VERSION-chrome.zip")
+          else
+            echo "Edge Add-ons: secrets ausentes, pulando."
+          fi
+          if [ -n "$FIREFOX_JWT_ISSUER" ] && [ -n "$FIREFOX_JWT_SECRET" ]; then
+            echo "Firefox (AMO): sim"
+            args+=(--firefox-zip "$dir/assistente-preenchimento-$VERSION-firefox.zip"
+              --firefox-sources-zip "$dir/assistente-preenchimento-$VERSION-sources.zip"
+              --firefox-channel listed --firefox-compatibility firefox)
+          else
+            echo "Firefox (AMO): secrets ausentes, pulando."
+          fi
+          if [ "${#args[@]}" -eq 0 ]; then
+            echo "Nenhuma loja configurada; nada a publicar."
+            exit 0
+          fi
+          npx wxt submit "${args[@]}"
