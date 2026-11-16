@@ -15,13 +15,21 @@ const extensionPath = path.resolve(import.meta.dirname, '../../.output/chrome-mv
  * (getUILanguage muda, getMessage não). Em Linux/Windows os dois seguem o flag.
  */
 export function createExtensionTest(lang = 'pt-BR') {
+  const posix = lang.replace('-', '_');
   return base.extend<{ context: BrowserContext; extensionId: string }>({
     context: async ({}, use) => {
       const userDataDir = await mkdtemp(path.join(tmpdir(), 'pw-ext-'));
       const context = await chromium.launchPersistentContext(userDataDir, {
         channel: 'chromium',
         locale: lang,
-        args: [`--disable-extensions-except=${extensionPath}`, `--load-extension=${extensionPath}`],
+        // No Linux o Chromium escolhe o catálogo do chrome.i18n pelas variáveis de ambiente
+        // (LANGUAGE/LANG); só `locale` não basta e a interface sairia no idioma do runner.
+        env: { ...process.env, LANGUAGE: posix, LANG: `${posix}.UTF-8`, LC_ALL: `${posix}.UTF-8` },
+        args: [
+          `--lang=${lang}`,
+          `--disable-extensions-except=${extensionPath}`,
+          `--load-extension=${extensionPath}`,
+        ],
       });
       await use(context);
       await context.close();
