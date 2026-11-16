@@ -16,8 +16,8 @@ const FIREFOX_GECKO = {
     // A extensão não coleta nem transmite dados (exigência da AMO desde 03/11/2025).
     data_collection_permissions: { required: ['none'] },
   },
-  // No Android, data_collection_permissions só existe a partir da 142.
-  gecko_android: { strict_min_version: '142.0' },
+  // Sem gecko_android: a extensão ainda não foi testada no Firefox para Android (sem menu de
+  // contexto lá). Com ele, a AMO trava a compatibilidade com Android e recusa o envio só desktop.
 };
 
 export default defineConfig({

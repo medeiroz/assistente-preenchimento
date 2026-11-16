@@ -85,10 +85,12 @@ Com os secrets da seção 9 configurados, os passos 2 e 3 são feitos pelo CI, n
    `npm run lint:firefox` devem passar sem erros.
 4. **Enviar novo complemento** › "Neste site" e envie o `-firefox.zip`. Quando a AMO pedir o
    código-fonte, envie o `-sources.zip` com a instrução: `npm ci && npm run build:firefox`
-   (Node 22.18 ou superior). Os 4 avisos do `web-ext lint` vêm de bibliotecas (detecção de `eval`
-   do Zod e `innerHTML` do runtime do Vue) e não executam código remoto.
+   (Node 22.18 ou superior). Quatro avisos do `web-ext lint` vêm de bibliotecas (detecção de `eval`
+   do Zod e `innerHTML` do runtime do Vue) e não executam código remoto; o quinto fala do Firefox
+   para Android, que a extensão não declara.
 5. Em coleta de dados, a extensão declara `data_collection_permissions: none`.
-6. Versão mínima: Firefox 140 (desktop) e 142 (Android).
+6. Versão mínima: Firefox 140, só desktop (o Android ainda não foi testado; o CI envia com
+   compatibilidade só com Firefox desktop).
 7. Antes do primeiro envio, teste à mão no Firefox: carregar em `about:debugging`, conceder um
    site, reiniciar o navegador e conferir o preenchimento, revogar a permissão, menu de contexto,
    iframes e a gravação.
