@@ -3,9 +3,8 @@ name: CI/CD
 # como workflows).
 #  - Pull request: só os checks.
 #  - Push na main: checks, release automática e envio às três lojas (um nó por loja).
-#  - Agendado (a cada 6h) ou manual "pendentes": os mesmos nós de loja reenviam a última Release
+#  - Agendado (a cada 6h) ou manual (Run workflow): os mesmos nós de loja reenviam a última Release
 #    onde faltar (a Chrome Web Store recusa envios enquanto há uma revisão em andamento).
-#  - Manual "estado": mostra o que Chrome e Firefox dizem de cada versão.
 
 on:
   push:
@@ -14,12 +13,6 @@ on:
   schedule:
     - cron: '17 */6 * * *'
   workflow_dispatch:
-    inputs:
-      acao:
-        description: O que fazer
-        type: choice
-        default: pendentes
-        options: [pendentes, estado]
 
 permissions:
   contents: read
@@ -215,7 +208,7 @@ jobs:
   publicar-chrome:
     name: Publicar no Chrome
     needs: release
-    if: ${{ !cancelled() && (needs.release.result == 'success' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.acao == 'pendentes')) }}
+    if: ${{ !cancelled() && (needs.release.result == 'success' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -229,7 +222,7 @@ jobs:
   publicar-firefox:
     name: Publicar no Firefox
     needs: release
-    if: ${{ !cancelled() && (needs.release.result == 'success' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.acao == 'pendentes')) }}
+    if: ${{ !cancelled() && (needs.release.result == 'success' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -243,7 +236,7 @@ jobs:
   publicar-edge:
     name: Publicar no Edge
     needs: release
-    if: ${{ !cancelled() && (needs.release.result == 'success' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.acao == 'pendentes')) }}
+    if: ${{ !cancelled() && (needs.release.result == 'success' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -253,15 +246,3 @@ jobs:
         with:
           loja: edge
           versao: ${{ needs.release.outputs.version }}
-
-  # ---------------------------------------------------------------------- manual
-  estado:
-    name: Estado nas lojas
-    if: github.event_name == 'workflow_dispatch' && inputs.acao == 'estado'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .nvmrc
-      - run: node scripts/estado-lojas.mjs
