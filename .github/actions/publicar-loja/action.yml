@@ -1,0 +1,45 @@
+name: Publicar em uma loja
+description: Envia a versão de uma Release a UMA loja (chrome, firefox ou edge), pulando o que já foi enviado.
+inputs:
+  loja:
+    description: chrome, firefox ou edge
+    required: true
+  versao:
+    description: x.y.z (sem o v). Vazio = a última Release.
+    required: false
+    default: ''
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v7
+      with:
+        node-version-file: .nvmrc
+        cache: npm
+    - run: npm ci
+      shell: bash
+    - name: Definir a versão
+      id: v
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        VERSAO: ${{ inputs.versao }}
+      run: |
+        if [ -z "$VERSAO" ]; then
+          tag="$(gh release view --json tagName -q .tagName)"
+          VERSAO="${tag#v}"
+        fi
+        echo "Versão: $VERSAO"
+        echo "versao=$VERSAO" >> "$GITHUB_OUTPUT"
+    - name: Baixar os pacotes da Release
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        VERSAO: ${{ steps.v.outputs.versao }}
+      run: gh release download "v$VERSAO" --dir .output/release --pattern '*.zip'
+    - name: Publicar
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        LOJA: ${{ inputs.loja }}
+        VERSAO: ${{ steps.v.outputs.versao }}
+      run: node scripts/publicar-loja.mjs "$LOJA" "$VERSAO"
