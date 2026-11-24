@@ -22,7 +22,8 @@ const LOJAS = {
   firefox: { nome: 'Firefox (AMO)', env: ['FIREFOX_JWT_ISSUER', 'FIREFOX_JWT_SECRET'] },
   edge: { nome: 'Edge Add-ons', env: ['EDGE_PRODUCT_ID', 'EDGE_CLIENT_ID', 'EDGE_API_KEY'] },
 };
-const FIREFOX_ID = 'assistente-preenchimento@medeiroz.github.io';
+const FIREFOX_ID =
+  process.env.FIREFOX_EXTENSION_ID ?? 'assistente-preenchimento@medeiroz.github.io';
 
 /** 1 se a > b, -1 se a < b, 0 se iguais (só x.y.z numéricos). */
 export function compareVersions(a, b) {

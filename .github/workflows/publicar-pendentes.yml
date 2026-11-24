@@ -1,6 +1,7 @@
 name: Publicar pendentes
 # A Chrome Web Store recusa envios enquanto há uma revisão em andamento. A cada poucas horas
-# tenta de novo a última Release; se a loja já tem a versão (ou o marcador existe), não faz nada.
+# tenta de novo a última Release em cada loja; se a loja já tem a versão (ou o marcador existe),
+# não faz nada.
 on:
   schedule:
     - cron: '17 */6 * * *'
@@ -30,5 +31,27 @@ jobs:
     uses: ./.github/workflows/publicar-loja.yml
     with:
       loja: chrome
+      versao: ${{ needs.ultima.outputs.versao }}
+    secrets: inherit
+
+  firefox:
+    name: Firefox
+    needs: ultima
+    permissions:
+      contents: write
+    uses: ./.github/workflows/publicar-loja.yml
+    with:
+      loja: firefox
+      versao: ${{ needs.ultima.outputs.versao }}
+    secrets: inherit
+
+  edge:
+    name: Edge
+    needs: ultima
+    permissions:
+      contents: write
+    uses: ./.github/workflows/publicar-loja.yml
+    with:
+      loja: edge
       versao: ${{ needs.ultima.outputs.versao }}
     secrets: inherit
