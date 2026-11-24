@@ -36,8 +36,9 @@ describe('manifest por navegador', () => {
         strict_min_version: '140.0',
         data_collection_permissions: { required: ['none'] },
       },
-      gecko_android: { strict_min_version: '142.0' },
     });
+    // Só Firefox desktop: sem declaração para Android.
+    expect(bss).not.toHaveProperty('gecko_android');
   });
 
   it('build e2e do Chrome segue sem browser_specific_settings', () => {
