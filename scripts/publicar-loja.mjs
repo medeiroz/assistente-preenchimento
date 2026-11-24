@@ -62,7 +62,7 @@ export function decidirFirefox(lista, versao) {
 const sh = (cmd, args, opts = {}) => spawnSync(cmd, args, { encoding: 'utf8', ...opts });
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 
-async function statusChrome(env) {
+export async function statusChrome(env) {
   const now = Math.floor(Date.now() / 1000);
   const head = b64({ alg: 'RS256', typ: 'JWT' });
   const claim = b64({
@@ -92,7 +92,7 @@ async function statusChrome(env) {
   return r.json();
 }
 
-async function listaFirefox(env) {
+export async function listaFirefox(env) {
   const now = Math.floor(Date.now() / 1000);
   const head = b64({ alg: 'HS256', typ: 'JWT' });
   const claim = b64({ iss: env.FIREFOX_JWT_ISSUER, jti: randomUUID(), iat: now, exp: now + 60 });

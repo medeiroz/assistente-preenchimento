@@ -10,3 +10,9 @@ export function decidirFirefox(
   lista: { results?: { version: string }[] },
   versao: string,
 ): { acao: 'enviar' | 'ja-publicada'; motivo: string };
+export function statusChrome(
+  env: Record<string, string | undefined>,
+): Promise<Record<string, unknown>>;
+export function listaFirefox(
+  env: Record<string, string | undefined>,
+): Promise<{ results?: unknown[] }>;

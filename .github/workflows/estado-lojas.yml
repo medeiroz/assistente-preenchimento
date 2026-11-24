@@ -1,0 +1,23 @@
+name: Estado nas lojas
+# Consulta manual: o que Chrome e Firefox dizem sobre cada versão (aprovada, em revisão...).
+on: workflow_dispatch
+
+jobs:
+  estado:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
+      CHROME_PUBLISHER_ID: ${{ secrets.CHROME_PUBLISHER_ID }}
+      CHROME_SERVICE_ACCOUNT_CLIENT_EMAIL: ${{ secrets.CHROME_SERVICE_ACCOUNT_CLIENT_EMAIL }}
+      CHROME_SERVICE_ACCOUNT_PRIVATE_KEY: ${{ secrets.CHROME_SERVICE_ACCOUNT_PRIVATE_KEY }}
+      FIREFOX_JWT_ISSUER: ${{ secrets.FIREFOX_JWT_ISSUER }}
+      FIREFOX_JWT_SECRET: ${{ secrets.FIREFOX_JWT_SECRET }}
+      FIREFOX_EXTENSION_ID: assistente-preenchimento@medeiroz.github.io
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - run: node scripts/estado-lojas.mjs
