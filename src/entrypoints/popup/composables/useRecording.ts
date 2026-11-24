@@ -10,6 +10,26 @@ export function useRecording({ tab, busy, error }: TabContext) {
   const starting = ref(false);
   const awaitingPermission = ref(false);
   const recording = ref({ active: false, count: 0 });
+  /** URLs dos iframes da página, lidas ao abrir o popup (o clique em gravar não pode esperar). */
+  let frameUrls: string[] = [];
+
+  async function loadFrameUrls(id: number): Promise<void> {
+    try {
+      const [res] = await withTimeout(
+        browser.scripting.executeScript({
+          target: { tabId: id },
+          func: () =>
+            Array.from(document.querySelectorAll('iframe[src], frame[src]')).map(
+              (f) => (f as HTMLIFrameElement).src,
+            ),
+        }),
+        STATUS_TIMEOUT_MS,
+      );
+      frameUrls = Array.isArray(res?.result) ? (res.result as string[]) : [];
+    } catch {
+      frameUrls = [];
+    }
+  }
 
   async function loadRecording(id: number): Promise<void> {
     try {
@@ -17,6 +37,7 @@ export function useRecording({ tab, busy, error }: TabContext) {
     } catch {
       tab.url = undefined;
     }
+    void loadFrameUrls(id);
     recording.value = await recorderStatus(id, (t) =>
       withTimeout(
         browser.runtime.sendMessage({ type: 'recorder/status', payload: { tabId: t } }) as Promise<{
@@ -38,9 +59,10 @@ export function useRecording({ tab, busy, error }: TabContext) {
     // Chamado direto do clique: permissão e `recorder/start` saem juntos, antes de qualquer await.
     // O popup só fecha quando as duas terminam: fechar antes cancelaria o pedido de permissão.
     startRecording(id, tab.url, {
-      requestPermission: (origin) => {
+      frameUrls,
+      requestPermission: (origins) => {
         awaitingPermission.value = true;
-        return browser.permissions.request({ origins: [origin] }).finally(() => {
+        return browser.permissions.request({ origins }).finally(() => {
           awaitingPermission.value = false;
         });
       },

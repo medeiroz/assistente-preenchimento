@@ -37,6 +37,10 @@ export interface RecorderDeps {
   isTrusted?(ev: Event): boolean;
   /** Pausa a observação (ex.: enquanto o seletor de campos está ativo). */
   isPaused?(): boolean;
+  /** Mostra a barra da página. Só o frame de topo; iframes gravam sem barra. Padrão: true. */
+  showBar?: boolean;
+  /** Marca as capturas feitas neste frame (iframe): a regra nasce atuando em iframes. */
+  frames?: 'all';
 }
 
 export interface Recorder {
@@ -86,6 +90,7 @@ export function createRecorder(deps: RecorderDeps): Recorder {
   const now = deps.now ?? Date.now;
   const trusted = deps.isTrusted ?? ((ev: Event) => ev.isTrusted);
   let bar: RecorderBar | null = null;
+  let active = false;
   let count = 0;
   const paused = deps.isPaused ?? (() => false);
   const timers = new Map<Element, { timer: ReturnType<typeof setTimeout>; target: Element }>();
@@ -148,7 +153,7 @@ export function createRecorder(deps: RecorderDeps): Recorder {
 
   function report(root: Element, target: Element, skipUnseenEmpty = false): void {
     timers.delete(root);
-    if (!bar) return;
+    if (!active) return;
     const entry = captureFor(root, target);
     if (!entry || entry.sensitive) return;
     const capture = entry.capture;
@@ -159,18 +164,18 @@ export function createRecorder(deps: RecorderDeps): Recorder {
     if (skipUnseenEmpty && value === '' && !lastSent.has(key)) return;
     lastSent.set(key, value);
     const field: RecordedField = {
-      capture: { ...capture },
+      capture: { ...capture, ...(deps.frames ? { frames: deps.frames } : {}) },
       value,
       url: win.location.href,
       recordedAt: now(),
     };
     deps.send(field).then(
       (status) => {
-        if (!bar) return;
+        if (!active) return;
         if (!status.active) return stopLocal();
         setCount(status.count);
         if (value.trim() !== '')
-          bar.flash(t('barRecorded', capture.label ?? t('fieldNoLabelLower')));
+          bar?.flash(t('barRecorded', capture.label ?? t('fieldNoLabelLower')));
       },
       () => {
         // Background indisponível: tenta de novo na próxima alteração.
@@ -211,7 +216,7 @@ export function createRecorder(deps: RecorderDeps): Recorder {
 
   function scheduleRescan(): void {
     for (const t of rescanTimers) clearTimeout(t);
-    rescanTimers = RESCAN_MS.map((ms) => setTimeout(() => bar && !paused() && rescan(), ms));
+    rescanTimers = RESCAN_MS.map((ms) => setTimeout(() => active && !paused() && rescan(), ms));
   }
 
   function flush(): void {
@@ -223,7 +228,7 @@ export function createRecorder(deps: RecorderDeps): Recorder {
   }
 
   function onEvent(ev: Event): void {
-    if (!bar || paused() || !trusted(ev)) return;
+    if (!active || paused() || !trusted(ev)) return;
     const target = ev.composedPath()[0];
     if (!isElement(target)) return;
     // keydown não muda valor nem fecha widgets: não vale nenhum trabalho.
@@ -261,11 +266,11 @@ export function createRecorder(deps: RecorderDeps): Recorder {
   }
 
   function onLeave(): void {
-    if (bar && !paused()) flush();
+    if (active && !paused()) flush();
   }
 
   function stopLocal(): void {
-    if (!bar) return;
+    if (!active) return;
     for (const type of EVENTS) win.removeEventListener(type, onEvent, true);
     for (const type of LEAVE_EVENTS) win.removeEventListener(type, onLeave, true);
     for (const p of timers.values()) clearTimeout(p.timer);
@@ -275,17 +280,21 @@ export function createRecorder(deps: RecorderDeps): Recorder {
     touched.clear();
     known.clear();
     lastSent.clear();
-    bar.destroy();
+    bar?.destroy();
     bar = null;
+    active = false;
     count = 0;
   }
 
   function start(status: RecorderStatus): void {
-    if (!bar) {
-      bar = createRecorderBar(doc, {
-        onStop: () => deps.onStop(false),
-        onDiscard: () => deps.onStop(true),
-      });
+    if (!active) {
+      active = true;
+      if (deps.showBar !== false) {
+        bar = createRecorderBar(doc, {
+          onStop: () => deps.onStop(false),
+          onDiscard: () => deps.onStop(true),
+        });
+      }
       for (const type of EVENTS) {
         win.addEventListener(type, onEvent, { capture: true, passive: true });
       }
@@ -298,13 +307,13 @@ export function createRecorder(deps: RecorderDeps): Recorder {
 
   return {
     get active() {
-      return bar !== null;
+      return active;
     },
     start,
     flush,
     update(status) {
       if (!status.active) return stopLocal();
-      if (!bar) return start(status);
+      if (!active) return start(status);
       if (status.count !== count) setCount(status.count);
     },
     stop: stopLocal,

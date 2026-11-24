@@ -21,6 +21,7 @@ function locatorKey(l: Capture['locator']): unknown[] {
 export function fieldKey(capture: Capture): string {
   return JSON.stringify([
     capture.urlPattern,
+    capture.frames ?? null,
     containerKey(capture.container),
     locatorKey(capture.locator),
   ]);
@@ -42,10 +43,15 @@ export function upsertField(fields: RecordedField[], field: RecordedField): Reco
 export function groupFields(fields: RecordedField[]): RecordingGroup[] {
   const groups = new Map<string, RecordingGroup>();
   for (const f of fields) {
-    const key = JSON.stringify([f.capture.urlPattern, containerKey(f.capture.container)]);
+    const key = JSON.stringify([
+      f.capture.urlPattern,
+      f.capture.frames ?? null,
+      containerKey(f.capture.container),
+    ]);
     let g = groups.get(key);
     if (!g) {
       g = { urlPattern: f.capture.urlPattern, fields: [] };
+      if (f.capture.frames) g.frames = f.capture.frames;
       if (f.capture.container) g.container = { ...f.capture.container };
       groups.set(key, g);
     }

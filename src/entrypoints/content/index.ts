@@ -63,44 +63,42 @@ export default defineContentScript({
     });
     const contextTarget = trackContextTarget(window);
 
-    // A gravação vive só no frame de topo.
-    const recorder = isTop
-      ? createRecorder({
-          isPaused: () => picker.active,
-          send: (field) =>
-            browser.runtime.sendMessage({
-              type: 'recorder/field',
-              payload: { field },
-            }) as Promise<RecorderStatus>,
-          onStop: (discard) => {
-            browser.runtime
-              .sendMessage({ type: 'recorder/stop', payload: { discard } })
-              .catch((e: unknown) => console.warn('[assistente] falha ao encerrar a gravação', e));
-          },
-        })
-      : null;
+    // Todo frame grava; só o de topo mostra a barra. Campos de iframe nascem com `frames: 'all'`.
+    const recorder = createRecorder({
+      showBar: isTop,
+      ...(isTop ? {} : { frames: 'all' as const }),
+      isPaused: () => picker.active,
+      send: (field) =>
+        browser.runtime.sendMessage({
+          type: 'recorder/field',
+          payload: { field },
+        }) as Promise<RecorderStatus>,
+      onStop: (discard) => {
+        browser.runtime
+          .sendMessage({ type: 'recorder/stop', payload: { discard } })
+          .catch((e: unknown) => console.warn('[assistente] falha ao encerrar a gravação', e));
+      },
+    });
 
-    if (recorder) {
-      browser.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
-        if (!isMessage(message) || message.type !== 'recorder/state') return false;
-        recorder.update(message.payload);
-        sendResponse(undefined);
-        return false;
+    browser.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
+      if (!isMessage(message) || message.type !== 'recorder/state') return false;
+      recorder.update(message.payload);
+      sendResponse(undefined);
+      return false;
+    });
+
+    // Retoma a gravação depois de uma navegação completa (o background pode estar dormindo).
+    (
+      browser.runtime.sendMessage({ type: 'recorder/status', payload: {} }) as Promise<
+        RecorderStatus | undefined
+      >
+    )
+      .then((status) => {
+        if (status?.active) recorder.start(status);
+      })
+      .catch(() => {
+        // Sem resposta do background: sem gravação a retomar.
       });
-
-      // Retoma a gravação depois de uma navegação completa (o background pode estar dormindo).
-      (
-        browser.runtime.sendMessage({ type: 'recorder/status', payload: {} }) as Promise<
-          RecorderStatus | undefined
-        >
-      )
-        .then((status) => {
-          if (status?.active) recorder.start(status);
-        })
-        .catch(() => {
-          // Sem resposta do background: sem gravação a retomar.
-        });
-    }
 
     const repo = chromeSyncRepository();
     const history = chromeHistoryRepository();

@@ -32,7 +32,7 @@ describe('startRecording', () => {
   it('pede a permissão e envia recorder/start de forma síncrona, sem esperar a permissão', () => {
     const d = deps({ requestPermission: vi.fn(() => new Promise<boolean>(() => {})) });
     void startRecording(7, 'https://app.exemplo.com/p', d);
-    expect(d.requestPermission).toHaveBeenCalledWith('https://app.exemplo.com/*');
+    expect(d.requestPermission).toHaveBeenCalledWith(['https://app.exemplo.com/*']);
     expect(d.sendStart).toHaveBeenCalledWith(7);
   });
 
@@ -42,6 +42,21 @@ describe('startRecording', () => {
     const broken = deps({ requestPermission: vi.fn(() => Promise.reject(new Error('x'))) });
     await expect(startRecording(1, 'https://a.com/', broken)).resolves.toBeUndefined();
     expect(broken.sendStart).toHaveBeenCalled();
+  });
+
+  it('pede de uma vez a origem da página e as dos iframes (sem repetir)', async () => {
+    const d = deps({
+      frameUrls: [
+        'https://servicos.exemplo.com/form?f=A',
+        'https://app.exemplo.com/outro',
+        'about:blank',
+      ],
+    });
+    await startRecording(1, 'https://app.exemplo.com/p', d);
+    expect(d.requestPermission).toHaveBeenCalledWith([
+      'https://app.exemplo.com/*',
+      'https://servicos.exemplo.com/*',
+    ]);
   });
 
   it('não pede permissão sem URL https', async () => {

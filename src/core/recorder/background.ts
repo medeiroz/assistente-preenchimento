@@ -144,9 +144,14 @@ export function createRecorderBackground(deps: RecorderBackgroundDeps): Recorder
       enqueue(async () => {
         const session = await load();
         if (!session || senderTabId === undefined || session.tabId !== senderTabId) return INACTIVE;
+        const before = session.fields.length;
         session.fields = upsertField(session.fields, field);
         await deps.session.set({ [RECORDER_SESSION_KEY]: session });
-        return { active: true, count: session.fields.length };
+        const status = { active: true, count: session.fields.length };
+        // O campo pode vir de um iframe, que não tem barra: o contador do topo só se atualiza
+        // pelo estado empurrado pelo background.
+        if (status.count !== before) await push(senderTabId, status);
+        return status;
       }),
 
     stop: (tabId, senderTabId, discard = false) =>

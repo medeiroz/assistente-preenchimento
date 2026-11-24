@@ -45,6 +45,8 @@ export interface RecorderSession {
 /** Campos de uma mesma página/contêiner: vira uma regra sugerida. */
 export interface RecordingGroup {
   urlPattern: string;
+  /** 'all' quando os campos foram gravados num iframe. */
+  frames?: 'all';
   container?: CaptureContainer;
   fields: RecordedField[];
 }

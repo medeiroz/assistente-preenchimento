@@ -3,10 +3,13 @@ import { isStaticallyCovered, toOriginPattern } from '../../../shared/permission
 import { t } from '../../../core/i18n';
 
 export interface StartRecordingDeps {
-  requestPermission(origin: string): Promise<boolean>;
+  /** Pede as origens (página + iframes) num único diálogo. */
+  requestPermission(origins: string[]): Promise<boolean>;
   sendStart(tabId: number): Promise<RecorderStatus>;
   /** Origens que o manifest já cobre. */
   statics?: readonly string[];
+  /** URLs dos iframes da página: também precisam de permissão para o gravador entrar neles. */
+  frameUrls?: readonly string[];
 }
 
 /** Padrão de permissão (`https://host/*` ou `http://host/*`) a pedir para a URL da aba; null se não se aplica. */
@@ -38,8 +41,15 @@ export async function startRecording(
   tabUrl: string | undefined,
   deps: StartRecordingDeps,
 ): Promise<void> {
-  const origin = originToRequest(tabUrl, deps.statics);
-  const asking = origin === null ? Promise.resolve(false) : safe(deps.requestPermission(origin));
+  const origins = [
+    ...new Set(
+      [tabUrl, ...(deps.frameUrls ?? [])]
+        .map((u) => originToRequest(u, deps.statics))
+        .filter((o): o is string => o !== null),
+    ),
+  ];
+  const asking =
+    origins.length === 0 ? Promise.resolve(false) : safe(deps.requestPermission(origins));
   const starting = deps.sendStart(tabId);
   const [, started] = await Promise.allSettled([asking, starting]);
   if (started.status === 'rejected') {

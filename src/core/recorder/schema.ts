@@ -13,6 +13,7 @@ export const CaptureSchema = z.object({
   label: z.string().nullable(),
   container: ContainerSchema.optional(),
   urlPattern: z.string(),
+  frames: z.literal('all').optional(),
 });
 
 export const RecordedFieldSchema = z.object({
@@ -30,6 +31,7 @@ export const RecorderSessionSchema = z.object({
 
 export const RecordingGroupSchema = z.object({
   urlPattern: z.string(),
+  frames: z.literal('all').optional(),
   container: ContainerSchema.optional(),
   fields: z.array(RecordedFieldSchema),
 });

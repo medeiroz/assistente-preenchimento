@@ -60,6 +60,17 @@ describe('groupFields / buildRecordingDraft', () => {
     expect(g[2]?.container).toEqual({ selector: '.m', textContains: 'Novo' });
     expect(g[0]?.container).toBeUndefined();
   });
+  it('campos de iframe formam grupo próprio e mantêm frames: all (também após o parse)', () => {
+    const fs = [field('A', '1'), field('B', '2', { frames: 'all' })];
+    const g = groupFields(fs);
+    expect(g).toHaveLength(2);
+    expect(g[0]?.frames).toBeUndefined();
+    expect(g[1]?.frames).toBe('all');
+    const session = { tabId: 1, startedAt: 0, fields: fs };
+    expect(parseRecorderSession(session)).toEqual(session);
+    const draft = buildRecordingDraft(session, 5);
+    expect(parseRecordingDraft(draft)).toEqual(draft);
+  });
   it('monta o rascunho', () => {
     const session = { tabId: 1, startedAt: 0, fields: [field('A', '1')] };
     const d = buildRecordingDraft(session, 99);

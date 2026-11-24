@@ -71,6 +71,7 @@ export function groupCapture(group: RecordingGroup): Capture {
     label: null,
     urlPattern: group.urlPattern,
   };
+  if (group.frames) capture.frames = group.frames;
   if (group.container) capture.container = group.container;
   return capture;
 }
@@ -88,6 +89,7 @@ export function groupToNewRule(group: RecordingGroup): RuleDraft {
   const draft = newRuleDraft();
   draft.name = suggestRuleName(groupCapture(group));
   draft.urlPatterns = [group.urlPattern];
+  if (group.frames) draft.allFrames = true;
   draft.containerSelector = group.container?.selector ?? '';
   draft.containerText = group.container?.textContains ?? '';
   const fields: FieldDraft[] = [];

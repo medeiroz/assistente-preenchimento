@@ -104,11 +104,19 @@ export default defineBackground(() => {
     sendState: (tabId, status) =>
       browser.tabs.sendMessage(tabId, { type: 'recorder/state', payload: status }),
     openOptions: () => browser.runtime.openOptionsPage(),
-    inject: (tabId) =>
-      browser.scripting.executeScript({
-        target: { tabId },
-        files: [contentScriptFile(browser.runtime.getManifest()) as never],
-      }),
+    inject: async (tabId) => {
+      const files = [contentScriptFile(browser.runtime.getManifest()) as never];
+      try {
+        // Todos os frames: formulários dentro de iframes também são gravados.
+        return await browser.scripting.executeScript({
+          target: { tabId, allFrames: true },
+          files,
+        });
+      } catch {
+        // Algum iframe sem permissão de host pode recusar a injeção: ao menos o topo.
+        return browser.scripting.executeScript({ target: { tabId }, files });
+      }
+    },
   });
   const registry = createFrameRegistry({
     session: browser.storage.session,

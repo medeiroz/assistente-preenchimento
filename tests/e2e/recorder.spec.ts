@@ -119,3 +119,63 @@ test('grava um wizard com navegação completa e troca de passo (SPA)', async ({
   expect(all).not.toContain('segredo-123');
   expect(all).not.toContain('Senha de acesso');
 });
+
+test('grava campo dentro de iframe de outra origem e a regra sugerida atua em iframes', async ({
+  context,
+  extensionId,
+}: {
+  context: BrowserContext;
+  extensionId: string;
+}) => {
+  const ext = await context.newPage();
+  await ext.goto(`chrome-extension://${extensionId}/popup.html?tabId=0`);
+  await expect
+    .poll(() =>
+      ext.evaluate(
+        async () =>
+          'rule:e2e-harness' in
+          (await (globalThis as unknown as ChromeApi).chrome.storage.sync.get('rule:e2e-harness')),
+      ),
+    )
+    .toBe(true);
+
+  const page: Page = await context.newPage();
+  await page.goto(`${baseURL}/frames.html`);
+  const cross = page.frameLocator('#cross');
+  await expect(cross.locator('#nome')).toBeAttached();
+  const tabId = await ext.evaluate(async (u) => {
+    const tabs = await (globalThis as unknown as ChromeApi).chrome.tabs.query({ url: u });
+    return tabs[0]?.id ?? -1;
+  }, `${baseURL}/frames.html*`);
+  expect(tabId).toBeGreaterThan(-1);
+  await ext.evaluate(
+    (id) =>
+      (globalThis as unknown as ChromeApi).chrome.runtime.sendMessage({
+        type: 'recorder/start',
+        payload: { tabId: id },
+      }),
+    tabId,
+  );
+  const stopButton = page.getByRole('button', { name: 'Parar e criar regras' });
+  await expect(stopButton).toBeVisible();
+  // A barra existe só no topo.
+  await expect(cross.getByRole('button', { name: 'Parar e criar regras' })).toHaveCount(0);
+
+  await cross.locator('#nome').pressSequentially('Joana do Iframe');
+  await cross.locator('#nome').blur();
+  await expect(page.getByText('1 campo')).toBeVisible();
+
+  const opened = context.waitForEvent('page');
+  await stopButton.click();
+  const options = await opened;
+  await options.waitForLoadState();
+  const text = async (): Promise<string> =>
+    (await options.locator('body').innerText()) +
+    '\n' +
+    (await options
+      .locator('input, textarea, select')
+      .evaluateAll((els) => els.map((e) => (e as HTMLInputElement).value).join('\n')));
+  await expect.poll(text).toContain('Nome do iframe');
+  expect(await text()).toContain('Joana do Iframe');
+  expect(await text()).toContain('http://localhost/*');
+});
