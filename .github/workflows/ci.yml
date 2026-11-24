@@ -214,30 +214,52 @@ jobs:
       - name: Enviar para as lojas configuradas
         run: |
           dir=.output/release
-          args=()
+          failed=0
+
+          # Cada loja é enviada sozinha: uma recusa não esconde nem impede as outras. Respostas que
+          # só dizem "já foi enviado" (reexecução da mesma versão) ou "há uma revisão em andamento"
+          # (a versão anterior ainda não foi aprovada) viram aviso; qualquer outro erro falha o job.
+          submit() {
+            local name="$1"; shift
+            local log
+            log="$(mktemp)"
+            echo "::group::$name"
+            if npx wxt submit "$@" 2>&1 | tee "$log"; then
+              echo "::endgroup::"
+              return 0
+            fi
+            echo "::endgroup::"
+            if grep -q -i -E 'already exists|already been submitted|pending review|in review|ITEM_PENDING_REVIEW|in progress|ongoing submission' "$log"; then
+              echo "::warning title=$name::envio ignorado (versão já enviada ou revisão em andamento); veja o log."
+              return 0
+            fi
+            echo "::error title=$name::falha ao enviar para a loja."
+            failed=1
+          }
+
+          sent=0
           if [ -n "$CHROME_EXTENSION_ID" ] && [ -n "$CHROME_PUBLISHER_ID" ] &&
             [ -n "$CHROME_SERVICE_ACCOUNT_CLIENT_EMAIL" ] && [ -n "$CHROME_SERVICE_ACCOUNT_PRIVATE_KEY" ]; then
-            echo "Chrome Web Store: sim"
-            args+=(--chrome-zip "$dir/assistente-preenchimento-$VERSION-chrome.zip" --chrome-api-version v2)
+            sent=1
+            submit "Chrome Web Store" --chrome-zip "$dir/assistente-preenchimento-$VERSION-chrome.zip" --chrome-api-version v2
           else
             echo "Chrome Web Store: secrets ausentes, pulando."
           fi
           if [ -n "$EDGE_PRODUCT_ID" ] && [ -n "$EDGE_CLIENT_ID" ] && [ -n "$EDGE_API_KEY" ]; then
-            echo "Edge Add-ons: sim"
-            args+=(--edge-zip "$dir/assistente-preenchimento-$VERSION-chrome.zip")
+            sent=1
+            submit "Edge Add-ons" --edge-zip "$dir/assistente-preenchimento-$VERSION-chrome.zip"
           else
             echo "Edge Add-ons: secrets ausentes, pulando."
           fi
           if [ -n "$FIREFOX_JWT_ISSUER" ] && [ -n "$FIREFOX_JWT_SECRET" ]; then
-            echo "Firefox (AMO): sim"
-            args+=(--firefox-zip "$dir/assistente-preenchimento-$VERSION-firefox.zip"
-              --firefox-sources-zip "$dir/assistente-preenchimento-$VERSION-sources.zip"
-              --firefox-channel listed --firefox-compatibility firefox)
+            sent=1
+            submit "Firefox (AMO)" --firefox-zip "$dir/assistente-preenchimento-$VERSION-firefox.zip" \
+              --firefox-sources-zip "$dir/assistente-preenchimento-$VERSION-sources.zip" \
+              --firefox-channel listed --firefox-compatibility firefox
           else
             echo "Firefox (AMO): secrets ausentes, pulando."
           fi
-          if [ "${#args[@]}" -eq 0 ]; then
+          if [ "$sent" -eq 0 ]; then
             echo "Nenhuma loja configurada; nada a publicar."
-            exit 0
           fi
-          npx wxt submit "${args[@]}"
+          exit "$failed"
