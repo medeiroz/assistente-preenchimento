@@ -1,0 +1,32 @@
+name: Diagnóstico Chrome Web Store (temporário)
+on: workflow_dispatch
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    env:
+      PUB: ${{ secrets.CHROME_PUBLISHER_ID }}
+      ITEM: ${{ secrets.CHROME_EXTENSION_ID }}
+      EMAIL: ${{ secrets.CHROME_SERVICE_ACCOUNT_CLIENT_EMAIL }}
+      KEY: ${{ secrets.CHROME_SERVICE_ACCOUNT_PRIVATE_KEY }}
+    steps:
+      - name: Consultar o item pela API
+        run: |
+          node --input-type=module -e '
+          import { createSign } from "node:crypto";
+          const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
+          const now = Math.floor(Date.now() / 1000);
+          const head = b64({ alg: "RS256", typ: "JWT" });
+          const claim = b64({ iss: process.env.EMAIL, scope: "https://www.googleapis.com/auth/chromewebstore", aud: "https://oauth2.googleapis.com/token", iat: now, exp: now + 3000 });
+          const sig = createSign("RSA-SHA256").update(head + "." + claim).sign(process.env.KEY, "base64url");
+          const tok = await (await fetch("https://oauth2.googleapis.com/token", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion: head + "." + claim + "." + sig }) })).json();
+          console.log("token:", tok.access_token ? "ok" : JSON.stringify(tok));
+          console.log("email:", process.env.EMAIL.replace(/^(.{3}).*(@.*)$/, "$1***$2"));
+          console.log("tamanho publisher id:", process.env.PUB.length, "| tamanho item id:", process.env.ITEM.length);
+          const call = async (label, pub, item) => {
+            const r = await fetch(`https://chromewebstore.googleapis.com/v2/publishers/${pub}/items/${item}:fetchStatus`, { headers: { authorization: "Bearer " + tok.access_token } });
+            const t = await r.text();
+            console.log(label, r.status, t.replace(/\s+/g, " ").slice(0, 400));
+          };
+          await call("item real:", process.env.PUB, process.env.ITEM);
+          await call("item inexistente:", process.env.PUB, "a".repeat(32));
+          '
