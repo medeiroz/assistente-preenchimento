@@ -60,6 +60,11 @@ function patch(index: number, change: Partial<FieldDraft>): void {
   );
 }
 
+/** As sugestões são expressões ({{ ... }}): só aparecem (e a seta do campo) com valor vazio ou começando por `{`. */
+function suggestsFor(value: string): boolean {
+  return value === '' || value.startsWith('{');
+}
+
 function onText(index: number, key: 'locatorValue' | 'value' | 'defaultValue', ev: Event): void {
   patch(index, { [key]: (ev.target as HTMLInputElement).value });
 }
@@ -347,7 +352,7 @@ function otherErrors(f: FieldDraft): string[] {
               class="f-value"
               type="text"
               :value="f.value"
-              :list="'value-suggestions'"
+              :list="suggestsFor(f.value) ? 'value-suggestions' : undefined"
               autocomplete="off"
               :aria-invalid="valueError(f) !== null"
               :aria-describedby="valueError(f) !== null ? `f${i}-value-err` : undefined"

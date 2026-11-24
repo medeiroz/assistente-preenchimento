@@ -34,6 +34,8 @@ export interface FieldDraft {
 }
 
 export const DEFAULT_KEY_DELAY_MS = 50;
+/** Espera padrão antes do primeiro campo de uma regra (a página costuma terminar de montar o formulário). */
+export const DEFAULT_FIRST_FIELD_DELAY_MS = 300;
 
 /** Adaptadores que sabem digitar tecla por tecla (os demais ignoram a opção). */
 export function isKnownAdapterChoice(adapter: AdapterChoice): boolean {

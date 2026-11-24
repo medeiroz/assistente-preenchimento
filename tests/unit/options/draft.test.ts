@@ -57,6 +57,14 @@ function validNew() {
   return d;
 }
 
+describe('espera padrão do primeiro campo', () => {
+  it('só o primeiro campo da regra nasce com 300 ms', () => {
+    const first = newFieldDraft([]);
+    expect(first.delayMs).toBe(300);
+    expect(newFieldDraft([first]).delayMs).toBeNull();
+  });
+});
+
 describe('ids', () => {
   it('slugify remove acentos e símbolos', () => {
     expect(slugify('CE — NFS-e: Emissão Ágil!')).toBe('ce-nfs-e-emissao-agil');

@@ -1,6 +1,7 @@
 import type { Rule, RuleInput } from '../../../core/model';
 import { generateRuleId, nextFieldId } from './draftIds';
 import {
+  DEFAULT_FIRST_FIELD_DELAY_MS,
   DEFAULT_KEY_DELAY_MS,
   type BuildOptions,
   type Extra,
@@ -54,7 +55,7 @@ export function newFieldDraft(fields: readonly { id: string }[]): FieldDraft {
     adapter: 'auto',
     value: '',
     defaultValue: '',
-    delayMs: null,
+    delayMs: fields.length === 0 ? DEFAULT_FIRST_FIELD_DELAY_MS : null,
     typing: false,
     keyDelayMs: DEFAULT_KEY_DELAY_MS,
   };
