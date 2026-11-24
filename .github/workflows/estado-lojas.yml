@@ -1,6 +1,6 @@
 name: Estado nas lojas
-# Consulta manual: o que Chrome e Firefox dizem sobre cada versão (aprovada, em revisão...).
-on: workflow_dispatch
+# Chamado pelo ci.yml (ação manual "estado"): o que Chrome e Firefox dizem sobre cada versão (aprovada, em revisão...).
+on: workflow_call
 
 jobs:
   estado:

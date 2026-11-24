@@ -1,0 +1,74 @@
+name: Verificar
+# Checks da extensão: typecheck, lint, testes, build de produção, Firefox e E2E. Chamado pelo ci.yml.
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Typecheck, lint, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npx prettier --check .
+      - run: npm run build
+      - name: Pacote de produção sem marcas do build de testes
+        run: |
+          bad=0
+          for term in clinicaexperts 'Clínica Experts' e2e-harness e2eDenyPermissions __assistenteMenu \
+            'http://localhost/*' 'http://127.0.0.1/*'; do
+            if grep -rIlF -- "$term" .output/chrome-mv3; then
+              echo "::error::O pacote de produção contém \"$term\" (marca do build de testes)."
+              bad=1
+            fi
+          done
+          exit "$bad"
+
+  firefox:
+    name: Firefox (build, lint e pacote)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build:firefox
+      - run: npm run lint:firefox
+      - run: npm run zip:firefox
+
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      # O Chromium novo em modo headless carrega extensões; o xvfb é uma garantia
+      # caso algum teste abra uma janela com display.
+      - run: xvfb-run -a npm run e2e
+      - name: Enviar relatórios de falha
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-results
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7

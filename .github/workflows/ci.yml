@@ -1,181 +1,49 @@
-name: CI
-# Pull requests: só os checks. Push na main: checks e, se tudo passar, release automática.
+name: CI/CD
+# Único ponto de entrada: tudo o que roda neste repositório começa aqui e chama os outros
+# arquivos desta pasta (verificar.yml, release.yml, publicar-loja.yml, estado-lojas.yml).
+#  - Pull request: só os checks.
+#  - Push na main: checks, release automática e envio às três lojas (um nó por loja).
+#  - Agendado (a cada 6h) ou manual "pendentes": reenvia a última Release onde faltar
+#    (a Chrome Web Store recusa envios enquanto há uma revisão em andamento).
+#  - Manual "estado": mostra o que Chrome e Firefox dizem de cada versão.
 
 on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      acao:
+        description: O que fazer
+        type: choice
+        default: pendentes
+        options: [pendentes, estado]
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  # Execuções agendadas/manuais não disputam a fila com a release de um push.
+  group: ci-${{ github.event_name == 'schedule' && 'agenda' || github.event_name == 'workflow_dispatch' && 'manual' || github.ref }}
   # Em PRs cancela execuções antigas; na main nunca, para não interromper uma release.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  verify:
-    name: Typecheck, lint, test, build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
-      - run: npm run typecheck
-      - run: npm run lint
-      - run: npm test
-      - run: npx prettier --check .
-      - run: npm run build
-      - name: Pacote de produção sem marcas do build de testes
-        run: |
-          bad=0
-          for term in clinicaexperts 'Clínica Experts' e2e-harness e2eDenyPermissions __assistenteMenu \
-            'http://localhost/*' 'http://127.0.0.1/*'; do
-            if grep -rIlF -- "$term" .output/chrome-mv3; then
-              echo "::error::O pacote de produção contém \"$term\" (marca do build de testes)."
-              bad=1
-            fi
-          done
-          exit "$bad"
-
-  firefox:
-    name: Firefox (build, lint e pacote)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
-      - run: npm run build:firefox
-      - run: npm run lint:firefox
-      - run: npm run zip:firefox
-
-  e2e:
-    name: E2E (Playwright)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium
-      # O Chromium novo em modo headless carrega extensões; o xvfb é uma garantia
-      # caso algum teste abra uma janela com display.
-      - run: xvfb-run -a npm run e2e
-      - name: Enviar relatórios de falha
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: playwright-results
-          path: |
-            playwright-report/
-            test-results/
-          if-no-files-found: ignore
-          retention-days: 7
+  # ---------------------------------------------------------------- push e pull request
+  verificar:
+    name: Verificar
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    uses: ./.github/workflows/verificar.yml
 
   release:
-    name: Release automática
-    needs: [verify, e2e, firefox]
+    name: Release
+    needs: verificar
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
     permissions:
       contents: write
-    outputs:
-      version: ${{ steps.version.outputs.version }}
-    # Nunca duas releases ao mesmo tempo (nem cancela a que está rodando).
-    concurrency:
-      group: release-main
-      cancel-in-progress: false
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - run: git fetch --tags --force
-
-      - name: Definir a versão
-        id: version
-        run: |
-          version="$(node scripts/next-version.mjs)"
-          echo "Versão da release: $version"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          npm ci
-          # Atualiza package.json e package-lock.json; o manifest herda do package.json.
-          npm version "$version" --no-git-tag-version --allow-same-version
-
-      - name: Gerar os pacotes
-        run: |
-          npm run zip
-          npm run zip:firefox
-
-      - name: Verificar conteúdo dos pacotes
-        run: |
-          bad=0
-          for zip_file in .output/*-chrome.zip .output/*-firefox.zip; do
-            echo "Pacote: $zip_file"
-            unzip -l "$zip_file"
-            rm -rf .output/zip-check
-            unzip -q "$zip_file" -d .output/zip-check
-            # localhost/127.0.0.1 sozinhos são legítimos (exceção de loopback no aviso de http);
-            # os padrões abaixo só existem no build de testes.
-            for term in e2e-harness e2eDenyPermissions __assistenteMenu 'http://localhost/*' \
-              'http://127.0.0.1/*'; do
-              if grep -rIlF -- "$term" .output/zip-check; then
-                echo "::error::$zip_file contém \"$term\": parece um build de testes. Abortando."
-                bad=1
-              fi
-            done
-          done
-          rm -rf .output/zip-check
-          exit "$bad"
-
-      - name: Calcular sha256
-        run: |
-          cd .output
-          for f in *-chrome.zip *-firefox.zip *-sources.zip; do sha256sum "$f" > "$f.sha256"; done
-          cat ./*.sha256
-
-      - name: Commit do bump, tag e push
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json package-lock.json
-          if git diff --cached --quiet; then
-            echo "package.json já está na versão $VERSION; nada para commitar."
-          else
-            git commit -m "chore(release): v$VERSION [skip ci]"
-            if ! git push origin HEAD:main; then
-              echo "Push recusado; atualizando e tentando mais uma vez."
-              git pull --rebase origin main
-              git push origin HEAD:main
-            fi
-          fi
-          git tag -a "v$VERSION" -m "v$VERSION"
-          git push origin "v$VERSION"
-
-      - name: Criar a Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          gh release create "v$VERSION" \
-            .output/*-chrome.zip .output/*-chrome.zip.sha256 \
-            .output/*-firefox.zip .output/*-firefox.zip.sha256 \
-            .output/*-sources.zip .output/*-sources.zip.sha256 \
-            --title "v$VERSION" --generate-notes --latest
+    uses: ./.github/workflows/release.yml
 
   # Um nó por loja: se uma falhar, dá para reexecutar só ela. Uma versão já enviada é pulada
   # (scripts/publicar-loja.mjs), então reexecutar nunca repete envio.
@@ -210,4 +78,58 @@ jobs:
     with:
       loja: edge
       versao: ${{ needs.release.outputs.version }}
+    secrets: inherit
+
+  # ------------------------------------------------------------- agendado e manual
+  ultima:
+    name: Última Release
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.acao == 'pendentes')
+    runs-on: ubuntu-latest
+    outputs:
+      versao: ${{ steps.v.outputs.versao }}
+    steps:
+      - id: v
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName -q .tagName)"
+          echo "versao=${tag#v}" >> "$GITHUB_OUTPUT"
+
+  pendente-chrome:
+    name: Pendente no Chrome
+    needs: ultima
+    permissions:
+      contents: write
+    uses: ./.github/workflows/publicar-loja.yml
+    with:
+      loja: chrome
+      versao: ${{ needs.ultima.outputs.versao }}
+    secrets: inherit
+
+  pendente-firefox:
+    name: Pendente no Firefox
+    needs: ultima
+    permissions:
+      contents: write
+    uses: ./.github/workflows/publicar-loja.yml
+    with:
+      loja: firefox
+      versao: ${{ needs.ultima.outputs.versao }}
+    secrets: inherit
+
+  pendente-edge:
+    name: Pendente no Edge
+    needs: ultima
+    permissions:
+      contents: write
+    uses: ./.github/workflows/publicar-loja.yml
+    with:
+      loja: edge
+      versao: ${{ needs.ultima.outputs.versao }}
+    secrets: inherit
+
+  estado:
+    name: Estado nas lojas
+    if: github.event_name == 'workflow_dispatch' && inputs.acao == 'estado'
+    uses: ./.github/workflows/estado-lojas.yml
     secrets: inherit
