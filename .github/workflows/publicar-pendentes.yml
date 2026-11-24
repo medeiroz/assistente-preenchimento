@@ -1,0 +1,34 @@
+name: Publicar pendentes
+# A Chrome Web Store recusa envios enquanto há uma revisão em andamento. A cada poucas horas
+# tenta de novo a última Release; se a loja já tem a versão (ou o marcador existe), não faz nada.
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+jobs:
+  ultima:
+    name: Última Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      versao: ${{ steps.v.outputs.versao }}
+    steps:
+      - id: v
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName -q .tagName)"
+          echo "versao=${tag#v}" >> "$GITHUB_OUTPUT"
+
+  chrome:
+    name: Chrome Web Store
+    needs: ultima
+    permissions:
+      contents: write
+    uses: ./.github/workflows/publicar-loja.yml
+    with:
+      loja: chrome
+      versao: ${{ needs.ultima.outputs.versao }}
+    secrets: inherit

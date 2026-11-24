@@ -177,89 +177,37 @@ jobs:
             .output/*-sources.zip .output/*-sources.zip.sha256 \
             --title "v$VERSION" --generate-notes --latest
 
-  publish:
-    name: Publicar nas lojas
+  # Um nó por loja: se uma falhar, dá para reexecutar só ela. Uma versão já enviada é pulada
+  # (scripts/publicar-loja.mjs), então reexecutar nunca repete envio.
+  publicar-chrome:
+    name: Publicar no Chrome
     needs: release
-    runs-on: ubuntu-latest
     permissions:
-      contents: read
-    # Separado da release: se uma loja falhar, dá para reexecutar só este job.
-    # Cada loja só é usada se todos os secrets dela estiverem configurados (store/PUBLICAR.md §9).
-    env:
-      VERSION: ${{ needs.release.outputs.version }}
-      CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
-      CHROME_PUBLISHER_ID: ${{ secrets.CHROME_PUBLISHER_ID }}
-      CHROME_SERVICE_ACCOUNT_CLIENT_EMAIL: ${{ secrets.CHROME_SERVICE_ACCOUNT_CLIENT_EMAIL }}
-      CHROME_SERVICE_ACCOUNT_PRIVATE_KEY: ${{ secrets.CHROME_SERVICE_ACCOUNT_PRIVATE_KEY }}
-      EDGE_PRODUCT_ID: ${{ secrets.EDGE_PRODUCT_ID }}
-      EDGE_CLIENT_ID: ${{ secrets.EDGE_CLIENT_ID }}
-      EDGE_API_KEY: ${{ secrets.EDGE_API_KEY }}
-      FIREFOX_JWT_ISSUER: ${{ secrets.FIREFOX_JWT_ISSUER }}
-      FIREFOX_JWT_SECRET: ${{ secrets.FIREFOX_JWT_SECRET }}
-      # Mesmo id de browser_specific_settings.gecko.id em wxt.config.ts.
-      FIREFOX_EXTENSION_ID: assistente-preenchimento@medeiroz.github.io
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
+      contents: write
+    uses: ./.github/workflows/publicar-loja.yml
+    with:
+      loja: chrome
+      versao: ${{ needs.release.outputs.version }}
+    secrets: inherit
 
-      - name: Baixar os pacotes da Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh release download "v$VERSION" --dir .output/release --pattern '*.zip'
+  publicar-firefox:
+    name: Publicar no Firefox
+    needs: release
+    permissions:
+      contents: write
+    uses: ./.github/workflows/publicar-loja.yml
+    with:
+      loja: firefox
+      versao: ${{ needs.release.outputs.version }}
+    secrets: inherit
 
-      - name: Enviar para as lojas configuradas
-        run: |
-          dir=.output/release
-          failed=0
-
-          # Cada loja é enviada sozinha: uma recusa não esconde nem impede as outras. Respostas que
-          # só dizem "já foi enviado" (reexecução da mesma versão) ou "há uma revisão em andamento"
-          # (a versão anterior ainda não foi aprovada) viram aviso; qualquer outro erro falha o job.
-          submit() {
-            local name="$1"; shift
-            local log
-            log="$(mktemp)"
-            echo "::group::$name"
-            if npx wxt submit "$@" 2>&1 | tee "$log"; then
-              echo "::endgroup::"
-              return 0
-            fi
-            echo "::endgroup::"
-            if grep -q -i -E 'already exists|already been submitted|pending review|in review|ITEM_PENDING_REVIEW|in progress|ongoing submission' "$log"; then
-              echo "::warning title=$name::envio ignorado (versão já enviada ou revisão em andamento); veja o log."
-              return 0
-            fi
-            echo "::error title=$name::falha ao enviar para a loja."
-            failed=1
-          }
-
-          sent=0
-          if [ -n "$CHROME_EXTENSION_ID" ] && [ -n "$CHROME_PUBLISHER_ID" ] &&
-            [ -n "$CHROME_SERVICE_ACCOUNT_CLIENT_EMAIL" ] && [ -n "$CHROME_SERVICE_ACCOUNT_PRIVATE_KEY" ]; then
-            sent=1
-            submit "Chrome Web Store" --chrome-zip "$dir/assistente-preenchimento-$VERSION-chrome.zip" --chrome-api-version v2
-          else
-            echo "Chrome Web Store: secrets ausentes, pulando."
-          fi
-          if [ -n "$EDGE_PRODUCT_ID" ] && [ -n "$EDGE_CLIENT_ID" ] && [ -n "$EDGE_API_KEY" ]; then
-            sent=1
-            submit "Edge Add-ons" --edge-zip "$dir/assistente-preenchimento-$VERSION-chrome.zip"
-          else
-            echo "Edge Add-ons: secrets ausentes, pulando."
-          fi
-          if [ -n "$FIREFOX_JWT_ISSUER" ] && [ -n "$FIREFOX_JWT_SECRET" ]; then
-            sent=1
-            submit "Firefox (AMO)" --firefox-zip "$dir/assistente-preenchimento-$VERSION-firefox.zip" \
-              --firefox-sources-zip "$dir/assistente-preenchimento-$VERSION-sources.zip" \
-              --firefox-channel listed --firefox-compatibility firefox
-          else
-            echo "Firefox (AMO): secrets ausentes, pulando."
-          fi
-          if [ "$sent" -eq 0 ]; then
-            echo "Nenhuma loja configurada; nada a publicar."
-          fi
-          exit "$failed"
+  publicar-edge:
+    name: Publicar no Edge
+    needs: release
+    permissions:
+      contents: write
+    uses: ./.github/workflows/publicar-loja.yml
+    with:
+      loja: edge
+      versao: ${{ needs.release.outputs.version }}
+    secrets: inherit
